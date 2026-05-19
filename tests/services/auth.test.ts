@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { isOwner, isEmployee, isSuperEmployee, EMPLOYEE_ROLES, MANAGER_ROLES } from './auth';
-import type { UserRole } from './auth';
+import { isOwner, isEmployee, isSuperEmployee, EMPLOYEE_ROLES, MANAGER_ROLES } from '@/services/auth';
+import type { UserRole } from '@/services/auth';
 
 describe('Role Helpers', () => {
   describe('isOwner', () => {

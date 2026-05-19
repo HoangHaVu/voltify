@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import BetaSignupPage from './BetaSignupPage';
+import BetaSignupPage from '@/pages/BetaSignupPage';
 
 const mockNavigate = vi.fn();
 
@@ -13,7 +13,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../lib/supabase', () => ({
+vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: vi.fn(() => ({
       insert: vi.fn(() => Promise.resolve({ error: null })),
@@ -24,7 +24,7 @@ vi.mock('../lib/supabase', () => ({
   },
 }));
 
-vi.mock('../components/seo/SEO', () => ({
+vi.mock('@/components/seo/SEO', () => ({
   default: () => null,
 }));
 

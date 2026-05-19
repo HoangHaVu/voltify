@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeLeadScore, getScoreResult } from './leadScore';
+import { computeLeadScore, getScoreResult } from '@/utils/leadScore';
 
 describe('computeLeadScore', () => {
   it('berechnet Score 0 für leere Parameter', () => {

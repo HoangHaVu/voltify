@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { calculateROI } from './calculations';
-import type { WizardData } from '../pages/Configurator';
+import { calculateROI } from '@/lib/calculations';
+import type { WizardData } from '@/pages/Configurator';
 
 const baseData: WizardData = {
   buildingType: 'einfamilien',

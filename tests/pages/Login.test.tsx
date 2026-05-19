@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import Login from './Login';
+import Login from '@/pages/Login';
 
 const mockNavigate = vi.fn();
 const mockLogin = vi.fn();
@@ -14,11 +14,11 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../contexts/AuthContext', () => ({
+vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ login: mockLogin, user: null }),
 }));
 
-vi.mock('../components/seo/SEO', () => ({
+vi.mock('@/components/seo/SEO', () => ({
   default: () => null,
 }));
 

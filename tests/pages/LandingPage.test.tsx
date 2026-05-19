@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import LandingPage from './LandingPage';
+import LandingPage from '@/pages/LandingPage';
 
 const mockNavigate = vi.fn();
 
@@ -35,7 +35,7 @@ vi.mock('gsap/ScrollTrigger', () => ({
   },
 }));
 
-vi.mock('../components/seo/SEO', () => ({
+vi.mock('@/components/seo/SEO', () => ({
   default: () => null,
 }));
 

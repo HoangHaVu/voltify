@@ -389,7 +389,7 @@ export default function AdminDashboard() {
 
   // ── Settings State ──
   const STORAGE_KEY = 'voltify_settings_v1';
-  const [settings, setSettings] = useState(() => {
+  const [settings, setSettings] = useState<OwnerSettings>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };

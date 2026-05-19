@@ -36,9 +36,10 @@ interface LeadCardProps {
   showClosingActions?: boolean;
   onWon?: () => void;
   onLost?: () => void;
+  onClick?: () => void;
 }
 
-export function LeadCard({ lead, showClosingActions, onWon, onLost }: LeadCardProps) {
+export function LeadCard({ lead, showClosingActions, onWon, onLost, onClick }: LeadCardProps) {
   const navigate = useNavigate();
   const slaBadge = getSlaBadge(lead.created_at);
   const { score, tier, label, color, bgColor } = getScoreResult(lead.score);
@@ -52,7 +53,7 @@ export function LeadCard({ lead, showClosingActions, onWon, onLost }: LeadCardPr
         e.dataTransfer.setData('leadId', lead.id);
         e.dataTransfer.effectAllowed = 'move';
       }}
-      onClick={() => navigate(`/lead/${lead.id}`)}
+      onClick={() => onClick ? onClick() : navigate(`/lead/${lead.id}`)}
       className="bg-[#1A1A1A] rounded-xl p-4 border border-white/5 hover:border-[#F5A623]/30 transition-all cursor-grab active:cursor-grabbing group"
     >
       {/* Header */}

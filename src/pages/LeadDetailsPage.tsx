@@ -13,6 +13,7 @@ import { AdminSidebar } from '../components/layout/AdminSidebar';
 import { useAuth } from '../contexts/AuthContext';
 import { useInstallerLead } from '../hooks/useInstallerLead';
 import { useDiscountCodes } from '../hooks/useDiscountCodes';
+import { supabase } from '../lib/supabase';
 import { getScoreResult } from '../utils/leadScore';
 import OfferPdfDocument, { type CompanySettings } from '../components/pdf/OfferPdfDocument';
 import InvoicePdfDocument from '../components/pdf/InvoicePdfDocument';

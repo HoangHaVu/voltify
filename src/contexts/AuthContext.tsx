@@ -50,6 +50,7 @@ async function buildUser(session: Session): Promise<AuthUser | null> {
       role: meta.role,
       fullName: meta.full_name ?? session.user.email!,
       isVerified: false,
+      ownerId: null,
     };
   }
   return null;

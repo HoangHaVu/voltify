@@ -7,6 +7,7 @@ import {
   AlertTriangle, Loader2, Send, Eye, FileText as FileTextIcon, Receipt,
   ChevronRight, MapPin, BatteryCharging, Car, Thermometer, Sun, Users, BarChart3,
   Trophy, FilterX, Calendar, FolderOpen, TrendingDown, Activity, Target,
+  Crown, Compass,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeads } from '../hooks/useLeads';

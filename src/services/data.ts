@@ -12,6 +12,7 @@ export interface Project {
   annual_savings: number | null;
   amortization: number | null;
   autarky: number | null;
+  profit_20_years: number | null;
   notes: string | null;
   created_at: string;
   installer?: { full_name: string; phone: string | null } | null;

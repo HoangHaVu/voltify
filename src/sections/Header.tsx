@@ -60,7 +60,6 @@ export default function Header() {
                 }`}
               >
                 {link.label}
-                {link.hasDropdown && <ChevronDown className="w-3 h-3" />}
               </a>
             ))}
           </nav>

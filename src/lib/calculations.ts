@@ -1,0 +1,49 @@
+import type { WizardData } from '../pages/Configurator';
+import type { ROICalculations } from '../services/leads';
+import { getGrantSubsidyTotal } from '../data/grants';
+
+export interface ExtendedROICalculations extends ROICalculations {
+  grantSavings: number;
+  effectiveInvestment: number;
+}
+
+export function calculateROI(data: WizardData): ExtendedROICalculations {
+  const consumption = Number(data.consumption) || 4000;
+  const roofArea = Number(data.roofArea) || 50;
+  const storageKwh = Number(data.storageSize) || 10;
+
+  const systemPower = Math.min(Math.round(roofArea * 0.18), Math.round(consumption / 850));
+  const investPerKw = 1400;
+  const totalInvest = systemPower * investPerKw + storageKwh * 700;
+
+  // Förderungen basierend auf PLZ
+  const grantSavings = getGrantSubsidyTotal(data.zipCode);
+  const effectiveInvestment = Math.max(0, totalInvest - grantSavings);
+
+  const savingsPerYear = Math.round(consumption * 0.35 * 0.35);
+  const amortization = savingsPerYear > 0 ? Math.round((effectiveInvestment / savingsPerYear) * 10) / 10 : 0;
+  const profit20Years = savingsPerYear * 20 - effectiveInvestment;
+  const autarky = Math.min(50 + storageKwh * 2, 95);
+
+  // Lead Score (0-100)
+  let score = 50;
+  if (data.ownership === 'eigentümer') score += 20;
+  if (consumption > 5000) score += 15;
+  if (data.wallbox) score += 10;
+  if (data.backupPower) score += 5;
+  if (data.energyApp) score += 5;
+  if (roofArea > 80) score += 10;
+  score = Math.min(100, score);
+
+  return {
+    kwp: systemPower,
+    investment: totalInvest,
+    annualSavings: savingsPerYear,
+    amortization: Math.round(amortization),
+    autarky: Math.round(autarky),
+    profit20Years: Math.round(profit20Years),
+    score,
+    grantSavings,
+    effectiveInvestment,
+  };
+}

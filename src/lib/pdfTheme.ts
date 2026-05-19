@@ -1,0 +1,68 @@
+// ============================================================
+// PDF Design Tokens — Voltify Brand Colors
+// ============================================================
+
+export const PDF_COLORS = {
+  primary:          '#1A3A5C',
+  primaryDark:      '#0F2440',
+  secondary:        '#F5A623',
+  amberLight:       '#FEF3C7',
+  green:            '#16A34A',
+  slate50:          '#F8FAFC',
+  slate100:         '#F1F5F9',
+  slate200:         '#E2E8F0',
+  slate400:         '#94A3B8',
+  slate500:         '#64748B',
+  slate700:         '#334155',
+  white:            '#FFFFFF',
+} as const;
+
+export const PDF_FONT_SIZE = {
+  xs:   7,
+  sm:   8,
+  base: 9,
+  md:   10,
+  lg:   13,
+  xl:   14,
+  '2xl': 18,
+} as const;
+
+export const PDF_BASE = {
+  page:         { fontFamily: 'Helvetica', backgroundColor: PDF_COLORS.white, paddingBottom: 48 },
+  header:       { backgroundColor: PDF_COLORS.primaryDark, padding: '20 32', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerTitle:  { color: PDF_COLORS.white, fontSize: PDF_FONT_SIZE['2xl'], fontFamily: 'Helvetica-Bold' },
+  headerSub:    { color: PDF_COLORS.slate400, fontSize: PDF_FONT_SIZE.xs, marginTop: 3 },
+  headerDate:   { color: PDF_COLORS.slate400, fontSize: PDF_FONT_SIZE.xs, textAlign: 'right' },
+  accentBar:    { height: 4, backgroundColor: PDF_COLORS.secondary },
+  body:         { padding: '24 32' },
+  sectionLabel: { fontSize: PDF_FONT_SIZE.sm, fontFamily: 'Helvetica-Bold', color: PDF_COLORS.secondary, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 },
+  divider:      { height: 1, backgroundColor: PDF_COLORS.slate200, marginBottom: 14 },
+  section:      { marginBottom: 20 },
+  row:          { flexDirection: 'row', gap: 12 },
+  col:          { flex: 1 },
+  configBox:    { backgroundColor: PDF_COLORS.slate50, borderRadius: 6, border: `1 solid ${PDF_COLORS.slate200}`, padding: 12 },
+  configRow:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  configLabel:  { fontSize: PDF_FONT_SIZE.xs, color: PDF_COLORS.slate500 },
+  configValue:  { fontSize: PDF_FONT_SIZE.xs, fontFamily: 'Helvetica-Bold', color: PDF_COLORS.primaryDark },
+  metricGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  metricBox:    { width: '30.5%', backgroundColor: PDF_COLORS.slate50, border: `1 solid ${PDF_COLORS.slate200}`, borderRadius: 6, padding: '10 12' },
+  metricBoxHero:{ width: '30.5%', backgroundColor: PDF_COLORS.primaryDark, borderRadius: 6, padding: '10 12' },
+  metricLabel:  { fontSize: 7, color: PDF_COLORS.slate400, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 },
+  metricLabelHero: { fontSize: 7, color: '#94A3B8', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 },
+  metricValue:  { fontSize: 16, fontFamily: 'Helvetica-Bold', color: PDF_COLORS.primaryDark },
+  metricValueHero: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: PDF_COLORS.white },
+  metricUnit:   { fontSize: 9, color: PDF_COLORS.slate500 },
+  metricUnitHero: { fontSize: 9, color: '#94A3B8' },
+  savingsBox:   { backgroundColor: PDF_COLORS.amberLight, border: `1 solid ${PDF_COLORS.secondary}`, borderRadius: 6, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  savingsLabel: { fontSize: PDF_FONT_SIZE.xs, color: PDF_COLORS.slate700 },
+  savingsValue: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: PDF_COLORS.primaryDark },
+  grantRow:     { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8, gap: 8 },
+  grantDot:     { width: 6, height: 6, borderRadius: 3, backgroundColor: PDF_COLORS.secondary, marginTop: 3 },
+  grantTitle:   { fontSize: PDF_FONT_SIZE.xs, fontFamily: 'Helvetica-Bold', color: PDF_COLORS.primaryDark, marginBottom: 2 },
+  grantDesc:    { fontSize: 7, color: PDF_COLORS.slate500 },
+  grantBadge:   { fontSize: 7, fontFamily: 'Helvetica-Bold', color: PDF_COLORS.secondary },
+  footer:       { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: PDF_COLORS.slate50, borderTop: `1 solid ${PDF_COLORS.slate200}`, padding: '10 32', flexDirection: 'row', justifyContent: 'space-between' },
+  footerText:   { fontSize: PDF_FONT_SIZE.xs, color: PDF_COLORS.slate400 },
+  disclaimer:   { backgroundColor: PDF_COLORS.slate100, borderRadius: 4, padding: '8 12', marginTop: 4 },
+  disclaimerText: { fontSize: PDF_FONT_SIZE.xs, color: PDF_COLORS.slate500, lineHeight: 1.5 },
+} as const;

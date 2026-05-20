@@ -4,23 +4,25 @@ import type { WizardData } from '@/pages/Configurator';
 
 const baseData: WizardData = {
   buildingType: 'einfamilien',
-  roofType: 'satteldach',
-  roofMaterial: 'dachziegel',
-  roofPitch: '30',
+  ownership: 'eigentümer',
+  roofTilt: 30,
+  roofOrientation: 'S',
   roofArea: '80',
+  shading: 'none',
   consumption: '4500',
-  currentTariff: '0.35',
+  consumptionMethod: 'manual',
   storageSize: '10',
   wallbox: false,
   backupPower: false,
   energyApp: false,
-  ownership: 'eigentümer',
-  zipCode: '80331',
   firstName: 'Max',
   lastName: 'Mustermann',
   email: 'max@test.de',
   phone: '01711234567',
-  privacyAccepted: true,
+  zipCode: '80331',
+  city: 'München',
+  company: 'Mustermann GmbH',
+  privacyConsent: true,
 };
 
 describe('calculateROI', () => {

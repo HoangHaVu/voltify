@@ -6,13 +6,13 @@ const mockSignIn = vi.fn();
 const mockSignOut = vi.fn();
 const mockFetchProfile = vi.fn();
 const mockGetSession = vi.fn();
-const mockOnAuthStateChange = vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } }));
+const mockOnAuthStateChange = vi.fn((_cb?: any) => ({ data: { subscription: { unsubscribe: vi.fn() } } }));
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: () => mockGetSession(),
-      onAuthStateChange: (cb: any) => mockOnAuthStateChange(cb),
+      onAuthStateChange: (event: string, cb: any) => mockOnAuthStateChange(cb),
     },
   },
 }));

@@ -77,21 +77,32 @@ Deno.serve(async (req) => {
     </div>
   `;
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: 'Voltify Beta <noreply@vu-studio.de>',
-      to: ADMIN_EMAIL,
-      subject: `⚡ Voltify Beta-Anfrage: ${data.company_name} (${data.phone ?? data.email})`,
-      html,
-    }),
-  });
+  // Versuche mit eigener Domain, fallback auf Resend-Standard
+  let fromAddress = 'Voltify Beta <noreply@vu-studio.de>';
+  let res = await sendEmail(resendKey, fromAddress, ADMIN_EMAIL, data, html);
+
+  if (!res.ok && (res.status === 403 || res.status === 422)) {
+    fromAddress = 'Voltify Beta <onboarding@resend.dev>';
+    res = await sendEmail(resendKey, fromAddress, ADMIN_EMAIL, data, html);
+  }
 
   return new Response(JSON.stringify({ sent: res.ok, status: res.status }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });
+
+  async function sendEmail(key: string, from: string, to: string, data: BetaRequest, htmlBody: string) {
+    return fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to,
+        subject: `⚡ Voltify Beta-Anfrage: ${data.company_name} (${data.phone ?? data.email})`,
+        html: htmlBody,
+      }),
+    });
+  }
 });

@@ -68,12 +68,9 @@ export default function BetaSignupPage() {
                 <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
                   <CheckCircle className="w-8 h-8 text-green-500" />
                 </div>
-                <h2 className="text-2xl font-bold text-[#1A3A5C]">Danke, {contactName.split(' ')[0]}!</h2>
+                <h2 className="text-2xl font-bold text-[#1A3A5C]">Dankeschön für die Anfrage!</h2>
                 <p className="text-gray-500 text-sm max-w-xs leading-relaxed">
-                  {phone
-                    ? <>Wir melden uns in Kürze telefonisch bei dir unter <strong className="text-[#1A3A5C]">{phone}</strong>.</>
-                    : <>Wir melden uns per E-Mail bei dir unter <strong className="text-[#1A3A5C]">{email}</strong>.</>
-                  }
+                  Wir werden uns in Kürze bei Ihnen telefonisch melden.
                 </p>
                 <button
                   onClick={() => navigate('/')}

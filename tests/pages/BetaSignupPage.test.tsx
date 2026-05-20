@@ -36,11 +36,11 @@ describe('BetaSignupPage', () => {
   it('rendert das Beta-Formular korrekt', () => {
     render(<BetaSignupPage />);
 
-    expect(screen.getByText('Beta-Programm')).toBeInTheDocument();
+    expect(screen.getByText('Jetzt Beta-Partner werden')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Mustermann GmbH')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Max Mustermann')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('max@firma.de')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Jetzt als Beta-Tester bewerben/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Beta-Platz sichern — 20% Rabatt/i })).toBeInTheDocument();
   });
 
   it('zeigt den Login-Link im Footer', () => {
@@ -60,6 +60,7 @@ describe('BetaSignupPage', () => {
     render(<BetaSignupPage />);
 
     expect(screen.getByText('Kostenloser Zugang')).toBeInTheDocument();
+    expect(screen.getAllByText(/20% Gründerrabatt/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Persönliches Onboarding')).toBeInTheDocument();
     expect(screen.getByText('Direkter Einfluss')).toBeInTheDocument();
   });
@@ -68,7 +69,7 @@ describe('BetaSignupPage', () => {
     render(<BetaSignupPage />);
 
     expect(screen.getByText('30')).toBeInTheDocument();
-    expect(screen.getByText('0€')).toBeInTheDocument();
+    expect(screen.getByText('-20%')).toBeInTheDocument();
     expect(screen.getByText('1:1')).toBeInTheDocument();
   });
 });

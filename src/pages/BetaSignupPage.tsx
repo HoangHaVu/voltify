@@ -81,8 +81,11 @@ export default function BetaSignupPage() {
               </div>
             ) : (
               <>
-                <h1 className="text-3xl md:text-4xl font-semibold text-[#1A3A5C] mb-3">Beta-Programm</h1>
-                <p className="text-gray-500 text-sm mb-8">Hinterlasse deine Kontaktdaten — wir melden uns persönlich bei dir.</p>
+                <span className="inline-flex items-center gap-1.5 bg-[#F5A623]/10 text-[#F5A623] text-xs font-bold px-3 py-1 rounded-full mb-3">
+                  🚀 Nur noch 10 Plätze verfügbar
+                </span>
+                <h1 className="text-3xl md:text-4xl font-semibold text-[#1A3A5C] mb-3">Jetzt Beta-Partner werden</h1>
+                <p className="text-gray-500 text-sm mb-8">Hinterlasse deine Kontaktdaten — wir melden uns persönlich bei dir. Als Beta-Partner sicherst du dir dauerhaft <span className="text-[#F5A623] font-bold">20% Gründerrabatt</span> auf jeden Tarif.</p>
 
                 {error && (
                   <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-6">
@@ -194,7 +197,7 @@ export default function BetaSignupPage() {
                       <Zap className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
-                        Jetzt als Beta-Tester bewerben
+                        Beta-Platz sichern — 20% Rabatt
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
@@ -223,10 +226,10 @@ export default function BetaSignupPage() {
           <div className="relative max-w-[540px] w-full">
             {/* Tagline */}
             <div className="inline-flex items-center gap-2 bg-[#F5A623]/20 border border-[#F5A623]/30 rounded-full px-3 py-1 text-xs font-bold text-[#F5A623] uppercase tracking-widest mb-6">
-              ⭐ Beta-Programm
+              ⭐ Beta-Programm — Limitiert
             </div>
             <h2 className="text-3xl font-semibold text-white mb-2 leading-snug">
-              Werde einer der ersten<br />Voltify-Partner
+              Werde einer der ersten<br />10 Voltify-Partner
             </h2>
             <p className="text-white/60 text-sm mb-8">Kein Account-Setup, kein Passwort. Wir melden uns persönlich bei dir.</p>
 
@@ -234,8 +237,9 @@ export default function BetaSignupPage() {
             <div className="space-y-4">
               {[
                 { icon: '🎯', title: 'Kostenloser Zugang', text: '30 Tage vollständiger Zugriff ohne Kreditkarte.' },
+                { icon: '💰', title: '20% Gründerrabatt', text: 'Dauerhafter Rabatt auf jeden Tarif — auch nach der Beta.' },
                 { icon: '📞', title: 'Persönliches Onboarding', text: 'Wir richten alles gemeinsam mit dir ein.' },
-                { icon: '💡', title: 'Direkter Einfluss', text: 'Dein Feedback formt das Produkt.' },
+                { icon: '💡', title: 'Direkter Einfluss', text: 'Dein Feedback formt das Produkt. Video-Testimonial erwünscht.' },
               ].map(item => (
                 <div key={item.title} className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 flex items-start gap-4">
                   <span className="text-2xl">{item.icon}</span>
@@ -254,8 +258,8 @@ export default function BetaSignupPage() {
                 <p className="text-[10px] text-white/50">Tage kostenlos</p>
               </div>
               <div className="bg-white/10 rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold text-white">0€</p>
-                <p className="text-[10px] text-white/50">Setup-Gebühr</p>
+                <p className="text-2xl font-bold text-[#F5A623]">-20%</p>
+                <p className="text-[10px] text-white/50">Dauerhafter Rabatt</p>
               </div>
               <div className="bg-white/10 rounded-xl p-3 text-center">
                 <p className="text-2xl font-bold text-white">1:1</p>

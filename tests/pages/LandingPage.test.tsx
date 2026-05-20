@@ -47,14 +47,14 @@ describe('LandingPage', () => {
   it('rendert den Hero-Bereich mit Haupt-CTA', () => {
     render(<LandingPage />);
 
-    expect(screen.getByText(/Mehr Leads/i)).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /Kostenlos testen/i }).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Solar-Angebote/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Jetzt Beta-Partner werden/i }).length).toBeGreaterThan(0);
   });
 
   it('navigiert zu /beta beim Klick auf Kostenlos testen (Hero)', () => {
     render(<LandingPage />);
 
-    const ctaButton = screen.getAllByRole('button', { name: /Kostenlos testen/i })[0];
+    const ctaButton = screen.getAllByRole('button', { name: /Jetzt Beta-Partner werden/i })[0];
     fireEvent.click(ctaButton);
 
     expect(mockNavigate).toHaveBeenCalledWith('/beta');
@@ -63,15 +63,15 @@ describe('LandingPage', () => {
   it('rendert die 3 Produkt-Kacheln', () => {
     render(<LandingPage />);
 
-    expect(screen.getByText('CRM & Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Solar-Konfigurator')).toBeInTheDocument();
+    expect(screen.getByText('CRM & Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Digitaler Auftritt')).toBeInTheDocument();
   });
 
   it('navigiert zu /login beim Klick auf Dashboard öffnen', () => {
     render(<LandingPage />);
 
-    const dashboardButton = screen.getByRole('button', { name: /Dashboard oeffnen/i });
+    const dashboardButton = screen.getByRole('button', { name: /Dashboard öffnen/i });
     fireEvent.click(dashboardButton);
 
     expect(mockNavigate).toHaveBeenCalledWith('/login');
@@ -80,7 +80,16 @@ describe('LandingPage', () => {
   it('navigiert zu /konfigurator beim Klick auf Konfigurator testen', () => {
     render(<LandingPage />);
 
-    const configButton = screen.getByRole('button', { name: /Konfigurator testen/i });
+    const configButtons = screen.getAllByRole('button', { name: /Konfigurator testen/i });
+    fireEvent.click(configButtons[configButtons.length - 1]);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/konfigurator');
+  });
+
+  it('navigiert zu /konfigurator beim Klick auf Konfigurator testen (Hero)', () => {
+    render(<LandingPage />);
+
+    const configButton = screen.getAllByRole('button', { name: /Konfigurator testen/i })[0];
     fireEvent.click(configButton);
 
     expect(mockNavigate).toHaveBeenCalledWith('/konfigurator');
@@ -95,20 +104,11 @@ describe('LandingPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/demo');
   });
 
-  it('navigiert zu /demo beim Klick auf Demo ansehen (Hero)', () => {
-    render(<LandingPage />);
-
-    const demoButton = screen.getAllByRole('button', { name: /Demo ansehen/i })[0];
-    fireEvent.click(demoButton);
-
-    expect(mockNavigate).toHaveBeenCalledWith('/demo');
-  });
-
   it('rendert die Stats-Bar', () => {
     render(<LandingPage />);
 
     expect(screen.getByText('30 Tage')).toBeInTheDocument();
-    expect(screen.getByText('3-in-1')).toBeInTheDocument();
+    expect(screen.getByText('20%')).toBeInTheDocument();
     expect(screen.getByText('50%+')).toBeInTheDocument();
     expect(screen.getByText('Sofort')).toBeInTheDocument();
   });

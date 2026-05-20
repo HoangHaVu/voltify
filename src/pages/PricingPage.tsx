@@ -133,14 +133,14 @@ export default function PricingPage() {
         <div className="max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F5A623]/10 text-[#F5A623] text-xs font-bold mb-6">
             <Zap className="w-3.5 h-3.5" />
-            Transparente Preise, keine versteckten Kosten
+            Beta-Partner erhalten dauerhaft 20% Rabatt
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
             Wähle den passenden<br />
             <span className="text-[#F5A623]">Tarif</span> für dein Team
           </h1>
           <p className="text-gray-400 text-lg max-w-lg mx-auto">
-            Starte kostenlos, skaliere mit deinem Geschäft. Alle Tarife inkl. Solar-Konfigurator.
+            Starte kostenlos, skaliere mit deinem Geschäft. Alle Tarife inkl. Solar-Konfigurator. Beta-Partner sparen dauerhaft 20%.
           </p>
         </div>
       </section>
@@ -184,10 +184,14 @@ export default function PricingPage() {
 
                 {/* Price */}
                 <div className="mb-4">
-                  <div className="flex items-baseline gap-1">
+                  <div className="flex items-baseline gap-2">
                     <span className="text-sm text-gray-400">€</span>
                     <span className="text-4xl font-black text-white">{tier.price}</span>
                     <span className="text-sm text-gray-400">{tier.period}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-gray-500 line-through">€{Math.round(parseInt(tier.price) * 1.25)}</span>
+                    <span className="text-xs font-bold text-[#F5A623]">Beta-Preis: 20% günstiger</span>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">{tier.description}</p>
                 </div>

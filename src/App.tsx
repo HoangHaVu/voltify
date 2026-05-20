@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import ScrollToTop from './components/layout/ScrollToTop';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import type { UserRole } from './services/auth';
 import CustomerLandingPage from './pages/CustomerLandingPage';
@@ -36,7 +37,9 @@ const PROJECT_ROLES: UserRole[] = [
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/demo" element={<CustomerLandingPage />} />
       <Route path="/login" element={<Login />} />
@@ -118,5 +121,6 @@ export default function App() {
       <Route path="/datenschutz" element={<Datenschutz />} />
       <Route path="/impressum" element={<Impressum />} />
     </Routes>
+    </>
   );
 }

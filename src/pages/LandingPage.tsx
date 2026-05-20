@@ -21,16 +21,16 @@ const navLinks = [
 
 const stats = [
   { value: '30 Tage', label: 'Kostenlos testen', icon: Clock },
-  { value: '3-in-1', label: 'CRM, Konfigurator & Website', icon: Layers },
+  { value: '20%', label: 'Gründerrabatt für Beta-Partner', icon: Zap },
   { value: '50%+', label: 'Weniger Admin-Aufwand', icon: TrendingUp },
   { value: 'Sofort', label: 'Startklar nach Onboarding', icon: Zap },
 ];
 
 const steps = [
-  { num: '01', title: 'Lead erfassen', desc: 'Der Endkunde konfiguriert seine Solaranlage im 9-Schritt-Wizard auf Ihrer Webseite — Sie erhalten den Lead automatisch im Dashboard.' },
-  { num: '02', title: 'Angebot erstellen', desc: 'Mit einem Klick wird eine professionelle PDF-Kalkulation mit ROI, Förderungen und Preisen generiert — fertig zum Versand.' },
-  { num: '03', title: 'Projekt steuern', desc: 'Vom Lead über das Angebot bis zur Fertigmeldung: Jeder Statuswechsel ist nachvollziehbar, nichts geht verloren.' },
-  { num: '04', title: 'Team koordinieren', desc: 'Weisen Sie Leads an Vertrieb, Projekte an Monteure und Termine direkt im Kalender zu — alle wissen Bescheid.' },
+  { num: '01', title: 'Kunde konfiguriert', desc: 'Der Endkunde füllt den Solar-Konfigurator auf Ihrer Webseite aus — Dach, Verbrauch, Speicher, Förderungen. In 5 Minuten erledigt.' },
+  { num: '02', title: 'Angebot generieren', desc: 'Mit einem Klick erstellt Voltify eine professionelle PDF-Kalkulation mit ROI, BAFA-Förderung und Zahlungsplan.' },
+  { num: '03', title: 'Per E-Mail versenden', desc: 'Das Angebot wird direkt an den Kunden versendet — mit Ihrem Branding, Ihren Preisen und Ihren AGB.' },
+  { num: '04', title: 'Deal abschließen', desc: 'Vom Lead bis zur Rechnung: Jeder Schritt ist nachvollziehbar. Sie sparen 2 Tage Admin-Aufwand pro Angebot.' },
 ];
 
 interface ServiceItem {
@@ -44,20 +44,20 @@ interface ServiceItem {
 
 const services: ServiceItem[] = [
   {
-    icon: LayoutDashboard,
-    title: 'CRM & Dashboard',
-    desc: 'Alles im Blick: Lead-Pipeline, Projektuebersicht, Team-Verwaltung und Kalender — speziell fuer Solar-Betriebe entwickelt.',
-    features: ['Lead-Pipeline (Kanban)', 'Projekt-Tracking', 'Team & Rollen', 'Kalender & Termine', 'Notizen & Kommunikation'],
-    link: '/login',
-    linkLabel: 'Dashboard oeffnen',
-  },
-  {
     icon: SlidersHorizontal,
     title: 'Solar-Konfigurator',
-    desc: 'Ein professioneller 9-Schritt-Wizard fuer Ihre Endkunden: Dach, Verbrauch, Speicher, Foerderungen — inklusive ROI-Berechnung.',
-    features: ['9-Schritt-Wizard', 'Automatische ROI-Berechnung', 'BAFA / KfW Foerderungen', 'PDF-Angebotserstellung', 'Individuelles Branding'],
+    desc: 'Ihre Kunden konfigurieren ihre Anlage selbst — Dach, Verbrauch, Speicher, Förderungen. Sie erhalten den Lead mit allen Daten.',
+    features: ['9-Schritt-Wizard für Endkunden', 'Automatische ROI-Berechnung', 'BAFA / KfW Förderungen', 'Lead-Erfassung auf Ihrer Webseite', 'DSGVO-konform'],
     link: '/konfigurator',
     linkLabel: 'Konfigurator testen',
+  },
+  {
+    icon: LayoutDashboard,
+    title: 'CRM & Dashboard',
+    desc: 'Alle Leads, Projekte und Termine an einem Ort. Kanban-Pipeline, Kalender und Team-Verwaltung — speziell für Solar-Betriebe.',
+    features: ['Lead-Pipeline (Kanban)', 'Projekt-Tracking', 'Kalender & Termine', 'Team & Rollen', 'Notizen & Kommunikation'],
+    link: '/login',
+    linkLabel: 'Dashboard öffnen',
   },
   {
     icon: Globe,
@@ -173,27 +173,27 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-[#E8F4FD]/70 via-[#E8F4FD]/40 to-white" />
         </div>
         <div className="relative z-10 text-center max-w-[840px] mx-auto px-6 py-20">
-          <span className="reveal inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm text-sm text-[#1A3A5C] font-medium px-5 py-2 rounded-full border border-[#1A3A5C]/10 mb-6">
-            <Zap className="w-4 h-4 text-[#F5A623]" fill="currentColor" /> All-in-One Software für Solar-Betriebe
+          <span className="reveal inline-flex items-center gap-2 bg-[#F5A623]/10 backdrop-blur-sm text-sm text-[#1A3A5C] font-bold px-5 py-2 rounded-full border border-[#F5A623]/20 mb-6">
+            <Zap className="w-4 h-4 text-[#F5A623]" fill="currentColor" /> 🚀 Beta-Programm — Nur noch 10 Plätze verfügbar
           </span>
           <h1 className="reveal text-5xl md:text-6xl lg:text-7xl font-semibold text-[#1A3A5C] leading-[1.05] tracking-tight mb-6">
-            Mehr Leads.<br />Schnellere Angebote.<br /><span className="text-[#F5A623]">Weniger Admin.</span>
+            Solar-Angebote<br />in <span className="text-[#F5A623]">20 Minuten</span><br />statt 2 Tagen.
           </h1>
           <p className="reveal text-gray-600 text-lg max-w-[600px] mx-auto mb-8 leading-relaxed">
-            Voltify vereint Lead-Management, Solar-Konfigurator und digitalen Auftritt in einem System — speziell für Photovoltaik-Betriebe entwickelt.
+            Voltify erstellt automatisch professionelle Solar-Angebots-PDFs mit ROI, Förderungen und Zahlungsplan. Ihre Kunden konfigurieren selbst — Sie klicken auf "Versenden".
           </p>
           <div className="reveal flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => navigate('/beta')}
               className="inline-flex items-center gap-2 bg-[#F5A623] text-[#1A3A5C] text-base font-bold px-8 py-4 rounded-full hover:bg-[#E09000] transition-all hover:scale-[1.02]"
             >
-              Kostenlos testen <ArrowRight className="w-5 h-5" />
+              Jetzt Beta-Partner werden <ArrowRight className="w-5 h-5" />
             </button>
             <button
-              onClick={() => navigate('/demo')}
+              onClick={() => navigate('/konfigurator')}
               className="inline-flex items-center gap-2 bg-white text-[#1A3A5C] text-base font-medium px-8 py-4 rounded-full border border-gray-200 hover:bg-gray-50 transition-all"
             >
-              Demo ansehen
+              Konfigurator testen
             </button>
           </div>
         </div>
@@ -204,7 +204,7 @@ export default function LandingPage() {
       <section className="py-16 bg-[#F8FAFB]">
         <div className="max-w-[1280px] mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="reveal text-3xl md:text-4xl font-semibold text-[#1A3A5C] tracking-tight">Entwickelt fuer wachsende Solar-Betriebe</h2>
+            <h2 className="reveal text-3xl md:text-4xl font-semibold text-[#1A3A5C] tracking-tight">Weniger Admin, mehr Abschlüsse</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((s, i) => {
@@ -228,9 +228,9 @@ export default function LandingPage() {
         <div className="max-w-[1280px] mx-auto px-6">
           <div className="text-center mb-16">
             <span className="reveal text-xs font-semibold text-[#F5A623] uppercase tracking-widest">Unsere Produkte</span>
-            <h2 className="reveal text-4xl md:text-5xl font-semibold text-[#1A3A5C] mt-3 tracking-tight">Alles, was Ihr Betrieb braucht<br />— in einem System</h2>
+            <h2 className="reveal text-4xl md:text-5xl font-semibold text-[#1A3A5C] mt-3 tracking-tight">Vom Lead bis zum<br />Angebot — in einem System</h2>
             <p className="reveal text-gray-500 text-base max-w-[600px] mx-auto mt-4 leading-relaxed">
-              Keine Excel-Listen, keine Einzelloesungen, keine Zettelwirtschaft. Voltify ersetzt alle Ihre Tools durch eine durchgaengige Plattform.
+              Der Kunde konfiguriert auf Ihrer Webseite. Sie erhalten den Lead und generieren mit einem Klick eine professionelle PDF-Kalkulation.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -366,20 +366,23 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-[#E8F4FD]/80 via-[#E8F4FD]/60 to-[#E8F4FD]/80" />
         </div>
         <div className="relative z-10 max-w-[640px] mx-auto px-6 text-center">
-          <h2 className="reveal text-4xl md:text-5xl font-semibold text-[#1A3A5C] tracking-tight mb-4">Bereit, Ihr Solar-Geschaeft<br />zu <span className="text-[#F5A623]">digitalisieren</span>?</h2>
-          <p className="reveal text-gray-600 text-base mb-8">Starten Sie mit 30 Tagen kostenlos. Keine Kreditkarte, kein Vertragszwang — persoenliches Onboarding inklusive.</p>
+          <span className="reveal inline-flex items-center gap-2 bg-[#F5A623]/10 text-sm text-[#1A3A5C] font-bold px-4 py-1.5 rounded-full border border-[#F5A623]/20 mb-4">
+            <Zap className="w-4 h-4 text-[#F5A623]" fill="currentColor" /> Nur noch 10 Beta-Plätze — Dauerhafter Gründerrabatt
+          </span>
+          <h2 className="reveal text-4xl md:text-5xl font-semibold text-[#1A3A5C] tracking-tight mb-4">Bereit, Ihr Solar-Geschäft<br />zu <span className="text-[#F5A623]">skalieren</span>?</h2>
+          <p className="reveal text-gray-600 text-base mb-8">30 Tage kostenlos testen. Keine Kreditkarte. Persönliches Onboarding. Als Beta-Partner sichern Sie sich dauerhaft 20% Rabatt auf jeden Tarif.</p>
           <div className="reveal flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => navigate('/beta')}
               className="inline-flex items-center gap-2 bg-[#F5A623] text-[#1A3A5C] text-base font-bold px-8 py-4 rounded-full hover:bg-[#E09000] transition-all hover:scale-[1.02]"
             >
-              Kostenlos testen <ArrowRight className="w-5 h-5" />
+              Jetzt Beta-Partner werden <ArrowRight className="w-5 h-5" />
             </button>
             <button
-              onClick={() => navigate('/demo')}
+              onClick={() => navigate('/konfigurator')}
               className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm text-[#1A3A5C] text-base font-medium px-8 py-4 rounded-full border border-[#1A3A5C]/10 hover:bg-white transition-all"
             >
-              Demo ansehen
+              Konfigurator testen
             </button>
           </div>
         </div>

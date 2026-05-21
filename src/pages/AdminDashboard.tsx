@@ -21,6 +21,7 @@ import {
   fetchPendingDiscountRequestsScoped, resolveDiscountRequest,
   updateLeadOfferStatus, updateLeadStatus, updatePaymentStatus, updateLeadFields,
   applyDiscountCode, requestDiscount, clearDiscount, redeemDiscountCode,
+  upsertSiteVisitAppointment,
   type DiscountCode, type Lead,
 } from '../services/data';
 import { OfferPreviewCard } from '../components/settings/OfferPreviewCard';
@@ -1463,6 +1464,10 @@ export default function AdminDashboard() {
                             roof_angle: selectedLead.roof_angle,
                             shading_issues: selectedLead.shading_issues,
                           });
+                          // Termin automatisch mit Kalender synchronisieren
+                          if (selectedLead.site_visit_date && user) {
+                            await upsertSiteVisitAppointment(user.id, selectedLead);
+                          }
                         } finally {
                           setDetailLoading(false);
                         }

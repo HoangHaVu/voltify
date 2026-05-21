@@ -479,6 +479,60 @@ export async function deleteAppointment(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function fetchAppointmentByLeadId(leadId: string): Promise<Appointment | null> {
+  const { data, error } = await supabase
+    .from('appointments')
+    .select('id, installer_id, title, type, starts_at, ends_at, location, notes, lead_id, customer_name, customer_phone, customer_email')
+    .eq('lead_id', leadId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as Appointment | null;
+}
+
+export async function upsertSiteVisitAppointment(
+  installerId: string,
+  lead: Lead,
+): Promise<void> {
+  const existing = await fetchAppointmentByLeadId(lead.id);
+
+  // Wenn kein Termin mehr geplant → bestehenden Appointment löschen
+  if (!lead.site_visit_date) {
+    if (existing) {
+      await deleteAppointment(existing.id);
+    }
+    return;
+  }
+
+  // Termin erstellen oder aktualisieren
+  const start = new Date(lead.site_visit_date);
+  const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 Stunde
+  const title = `Vor-Ort: ${lead.first_name} ${lead.last_name}`;
+
+  if (existing) {
+    await updateAppointment(existing.id, {
+      starts_at: start.toISOString(),
+      ends_at: end.toISOString(),
+      notes: lead.site_visit_notes || existing.notes,
+      customer_name: `${lead.first_name} ${lead.last_name}`,
+      customer_phone: lead.phone,
+      customer_email: lead.email,
+    });
+  } else {
+    await createAppointment(installerId, {
+      title,
+      type: 'beratung',
+      starts_at: start.toISOString(),
+      ends_at: end.toISOString(),
+      location: lead.zip || null,
+      notes: lead.site_visit_notes || null,
+      lead_id: lead.id,
+      customer_name: `${lead.first_name} ${lead.last_name}`,
+      customer_phone: lead.phone,
+      customer_email: lead.email,
+    });
+  }
+}
+
 // ── Rabatt-System ────────────────────────────────────────────────────
 
 export async function fetchDiscountCodes(): Promise<DiscountCode[]> {

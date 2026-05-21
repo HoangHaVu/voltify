@@ -1,17 +1,20 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { pdf } from '@react-pdf/renderer';
 import {
   Search, Zap, Pencil, X, Filter, Download,
   Plus, TrendingUp, DollarSign, CheckCircle2, Clock,
   Mail, Phone, Tag, Percent, ToggleLeft, ToggleRight, Trash2,
   AlertTriangle, Loader2, Send, Eye, FileText as FileTextIcon, Receipt,
   ChevronRight, ChevronDown, MapPin, BatteryCharging, Car, Thermometer, Sun, Users, BarChart3,
-  Trophy, FilterX, Calendar, FolderOpen, TrendingDown, Activity, Target,
-  Crown, Compass,
+  Trophy, FilterX, Calendar, FolderOpen, TrendingDown, Activity, Target, Home,
+  Crown, Compass, FileDown,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import OfferPdfDocument, { type CompanySettings } from '../components/pdf/OfferPdfDocument';
 import { useLeads } from '../hooks/useLeads';
 import { recalculateLead } from '../lib/calculations';
+import { computeLeadScoreFromLead } from '../utils/leadScore';
 import { useProjects } from '../hooks/useProjects';
 import { AdminSidebar } from '../components/layout/AdminSidebar';
 import { KanbanColumn } from '../components/pipeline/KanbanColumn';
@@ -26,6 +29,37 @@ import {
   type DiscountCode, type Lead,
 } from '../services/data';
 import { OfferPreviewCard } from '../components/settings/OfferPreviewCard';
+
+// ─── PDF Helpers ───
+const DEFAULT_COMPANY: CompanySettings = {
+  firmenname: 'Voltify Solar',
+  slogan: 'Ihre Solaranlage — einfach konfiguriert.',
+  logoDataUrl: '',
+  primaryColor: '#1A3A5C',
+  accentColor: '#F5A623',
+  iban: '',
+  zahlungsziel: '14',
+  steuernummer: '',
+  adresse: '',
+  ort: '',
+  geschaeftsfuehrer: '',
+  rechnungskreis: 'RE',
+};
+
+function loadCompanySettings(): CompanySettings {
+  try {
+    const raw = localStorage.getItem('voltify_settings_v1');
+    if (raw) return { ...DEFAULT_COMPANY, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return DEFAULT_COMPANY;
+}
+
+function generateOfferNumber(lead: Lead): string {
+  const prefix = loadCompanySettings().rechnungskreis || 'RE';
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const leadId = lead.id.slice(0, 4).toUpperCase();
+  return `${prefix}-${date}-${leadId}`;
+}
 import { InvoicePreviewCard } from '../components/settings/InvoicePreviewCard';
 import { supabase } from '../lib/supabase';
 
@@ -390,6 +424,7 @@ export default function AdminDashboard() {
   const openLeadDetail = (lead: Lead) => setSelectedLead(lead);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   // ── Rabatt UI State ──
   const [discountCodeInput, setDiscountCodeInput] = useState('');
@@ -397,14 +432,27 @@ export default function AdminDashboard() {
   const [requestNote, setRequestNote] = useState('');
   const [showDiscountRequest, setShowDiscountRequest] = useState(false);
   const [availableDiscountCodes, setAvailableDiscountCodes] = useState<DiscountCode[]>([]);
+  const [isLoadingCodes, setIsLoadingCodes] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
 
   // Rabattcodes laden wenn Drawer geöffnet wird
   useEffect(() => {
     if (selectedLead && user) {
+      setIsLoadingCodes(true);
       const ownerId = user.role === 'owner' ? user.id : (user.ownerId || user.id);
+      console.log('[DEBUG] Lade Rabattcodes für ownerId:', ownerId, 'user.role:', user.role);
       fetchOwnerDiscountCodes(ownerId)
-        .then(setAvailableDiscountCodes)
-        .catch(() => setAvailableDiscountCodes([]));
+        .then((codes) => {
+          console.log('[DEBUG] Rabattcodes geladen:', codes.length, codes);
+          setAvailableDiscountCodes(codes);
+        })
+        .catch((err) => {
+          console.error('[DEBUG] Fehler beim Laden der Rabattcodes:', err);
+          setAvailableDiscountCodes([]);
+        })
+        .finally(() => setIsLoadingCodes(false));
+    } else {
+      setAvailableDiscountCodes([]);
     }
   }, [selectedLead?.id, user?.id]);
 
@@ -606,7 +654,8 @@ export default function AdminDashboard() {
     setDetailLoading(true);
     try {
       const basePrice = selectedLead.investment ?? 0;
-      const validation = await redeemDiscountCode(user.id, code, basePrice);
+      const ownerId = user.role === 'owner' ? user.id : (user.ownerId || user.id);
+      const validation = await redeemDiscountCode(ownerId, code, basePrice);
       if (!validation.success) throw new Error(validation.reason);
       await applyDiscountCode(leadId, code, validation.percentage ?? 0, basePrice);
       const finalPrice = Math.round(basePrice * (1 - (validation.percentage ?? 0) / 100));
@@ -668,6 +717,29 @@ export default function AdminDashboard() {
       } : prev);
     } finally {
       setDetailLoading(false);
+    }
+  }
+
+  async function handleGenerateOfferPdf(lead: Lead) {
+    setIsGeneratingPdf(true);
+    try {
+      const company = loadCompanySettings();
+      const offerNumber = generateOfferNumber(lead);
+      const blob = await pdf(<OfferPdfDocument lead={lead} company={company} offerNumber={offerNumber} />).toBlob();
+
+      // Download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Angebot-${offerNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Fehler beim Erstellen des PDFs: ' + (e as Error).message);
+    } finally {
+      setIsGeneratingPdf(false);
     }
   }
 
@@ -1227,7 +1299,7 @@ export default function AdminDashboard() {
                             € {lead.investment?.toLocaleString('de-DE')}
                           </p>
                           <p className="text-[10px] text-gray-500">
-                            {lead.kwp?.toFixed(1)} kWp · Score {lead.score}
+                            {lead.kwp?.toFixed(1)} kWp · Score {computeLeadScoreFromLead(lead)}
                           </p>
                         </div>
                       </div>
@@ -1333,7 +1405,18 @@ export default function AdminDashboard() {
 
               {/* Konfiguration */}
               <div className="bg-[#1A1A1A] rounded-xl border border-white/5 p-4 space-y-3">
-                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Konfiguration</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Konfiguration</h3>
+                  <button
+                    onClick={() => setShowConfigModal(true)}
+                    className="flex items-center gap-1.5 bg-[#F5A623]/10 hover:bg-[#F5A623]/20 text-[#F5A623] font-bold text-[10px] px-2.5 py-1 rounded-md transition-colors"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Bearbeiten
+                  </button>
+                </div>
+
+                {/* Details immer anzeigen */}
                 <div className="grid grid-cols-2 gap-3">
                   {selectedLead.kwp != null && (
                     <div className="flex items-center gap-2">
@@ -1362,6 +1445,48 @@ export default function AdminDashboard() {
                       <span className="text-sm text-gray-300">{selectedLead.roof_orientation}</span>
                     </div>
                   )}
+                  {selectedLead.consumption != null && (
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-blue-400" />
+                      <span className="text-sm text-gray-300">{selectedLead.consumption.toLocaleString('de-DE')} kWh</span>
+                    </div>
+                  )}
+                  {selectedLead.electricity_price != null && (
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-300">{selectedLead.electricity_price} ct/kWh</span>
+                    </div>
+                  )}
+                  {selectedLead.roof_area != null && (
+                    <div className="flex items-center gap-2">
+                      <Home className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-300">{selectedLead.roof_area} m²</span>
+                    </div>
+                  )}
+                  {selectedLead.construction_year && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-300">Baujahr {selectedLead.construction_year}</span>
+                    </div>
+                  )}
+                  {selectedLead.annual_savings != null && (
+                    <div className="flex items-center gap-2">
+                      <TrendingDown className="w-4 h-4 text-green-400" />
+                      <span className="text-sm text-gray-300">{selectedLead.annual_savings.toLocaleString('de-DE')} €/Jahr</span>
+                    </div>
+                  )}
+                  {selectedLead.amortization != null && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-300">~{selectedLead.amortization} J. Amort.</span>
+                    </div>
+                  )}
+                  {selectedLead.autarky != null && (
+                    <div className="flex items-center gap-2">
+                      <BatteryCharging className="w-4 h-4 text-green-400" />
+                      <span className="text-sm text-gray-300">{selectedLead.autarky}% Autarkie</span>
+                    </div>
+                  )}
                   {selectedLead.has_battery && (
                     <div className="flex items-center gap-2">
                       <BatteryCharging className="w-4 h-4 text-green-400" />
@@ -1380,14 +1505,20 @@ export default function AdminDashboard() {
                       <span className="text-sm text-gray-300">Wärmepumpe</span>
                     </div>
                   )}
+                  {selectedLead.shading_issues && (
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                      <span className="text-sm text-amber-400">Verschattung</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Vor-Ort-Termin & Messung */}
+              {/* Vor-Ort-Termin */}
               {(selectedLead.status === 'kontaktiert' || selectedLead.status === 'vorort' || selectedLead.status === 'angebot' || selectedLead.status === 'abschluss') && (
                 <div className="bg-[#1A1A1A] rounded-xl border border-white/5 p-4 space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Vor-Ort-Termin</h3>
+                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Termin vereinbaren</h3>
                     {selectedLead.site_visit_done && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">
                         Durchgeführt
@@ -1416,147 +1547,6 @@ export default function AdminDashboard() {
                       rows={2}
                       className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50 resize-none"
                     />
-                  </div>
-
-                  {/* Gemessene Daten */}
-                  <div className="space-y-3 pt-2 border-t border-white/5">
-                    <h4 className="text-xs font-bold text-gray-400">Gemessene Daten</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs text-gray-500">Dachfläche (m²)</label>
-                        <input
-                          type="number"
-                          value={selectedLead.roof_area_measured ?? ''}
-                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, roof_area_measured: e.target.value ? Number(e.target.value) : null } : prev)}
-                          className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-gray-500">Dachneigung (°)</label>
-                        <input
-                          type="number"
-                          value={selectedLead.roof_angle ?? ''}
-                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, roof_angle: e.target.value ? Number(e.target.value) : null } : prev)}
-                          className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
-                        />
-                      </div>
-                    </div>
-                    <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedLead.shading_issues || false}
-                        onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, shading_issues: e.target.checked } : prev)}
-                        className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
-                      />
-                      Verschattungsprobleme festgestellt
-                    </label>
-                  </div>
-
-                  {/* Konfiguration vor Ort anpassen */}
-                  <div className="space-y-3 pt-2 border-t border-white/5">
-                    <h4 className="text-xs font-bold text-gray-400">Konfiguration anpassen</h4>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs text-gray-500">Dachausrichtung</label>
-                        <select
-                          value={selectedLead.roof_orientation || ''}
-                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, roof_orientation: e.target.value || null } : prev)}
-                          className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
-                        >
-                          <option value="">—</option>
-                          <option value="Süd">Süd</option>
-                          <option value="Süd-Ost">Süd-Ost</option>
-                          <option value="Süd-West">Süd-West</option>
-                          <option value="Ost">Ost</option>
-                          <option value="West">West</option>
-                          <option value="Nord">Nord</option>
-                        </select>
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-gray-500">Stromverbrauch (kWh/Jahr)</label>
-                        <input
-                          type="number"
-                          value={selectedLead.consumption ?? ''}
-                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, consumption: e.target.value ? Number(e.target.value) : null } : prev)}
-                          className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs text-gray-500">Strompreis (ct/kWh)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={selectedLead.electricity_price ?? ''}
-                        onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, electricity_price: e.target.value ? Number(e.target.value) : null } : prev)}
-                        className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedLead.has_battery || false}
-                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, has_battery: e.target.checked } : prev)}
-                          className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
-                        />
-                        <BatteryCharging className="w-4 h-4 text-green-400" />
-                        Speicher / Batteriespeicher
-                      </label>
-                      <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedLead.has_e_car || false}
-                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, has_e_car: e.target.checked } : prev)}
-                          className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
-                        />
-                        <Car className="w-4 h-4 text-blue-400" />
-                        E-Auto / Wallbox
-                      </label>
-                      <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedLead.has_heat_pump || false}
-                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, has_heat_pump: e.target.checked } : prev)}
-                          className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
-                        />
-                        <Thermometer className="w-4 h-4 text-orange-400" />
-                        Wärmepumpe
-                      </label>
-                    </div>
-
-                    {/* Konfiguration neu berechnen */}
-                    <button
-                      onClick={() => {
-                        const recalculated = recalculateLead(selectedLead);
-                        setSelectedLead((prev) => prev ? { ...prev, ...recalculated } : prev);
-                      }}
-                      className="w-full flex items-center justify-center gap-2 bg-[#1A3A5C]/30 hover:bg-[#1A3A5C]/50 text-blue-400 font-bold text-xs px-4 py-2 rounded-lg transition-colors border border-[#1A3A5C]/30"
-                    >
-                      <Zap className="w-3.5 h-3.5" />
-                      Konfiguration neu berechnen
-                    </button>
-
-                    {/* Vorschau der neuen Werte */}
-                    {(selectedLead.kwp != null || selectedLead.investment != null) && (
-                      <div className="grid grid-cols-3 gap-2 bg-[#252525] rounded-lg p-3">
-                        <div>
-                          <p className="text-[10px] text-gray-500">kWp</p>
-                          <p className="text-sm font-bold text-white">{selectedLead.kwp}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-500">Investition</p>
-                          <p className="text-sm font-bold text-white">{selectedLead.investment?.toLocaleString('de-DE')} €</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-500">Ersparnis/Jahr</p>
-                          <p className="text-sm font-bold text-[#F5A623]">{selectedLead.annual_savings?.toLocaleString('de-DE')} €</p>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Termin durchgeführt Toggle */}
@@ -1596,7 +1586,7 @@ export default function AdminDashboard() {
                             amortization: selectedLead.amortization,
                             autarky: selectedLead.autarky,
                             profit_20_years: selectedLead.profit_20_years,
-                            score: selectedLead.score,
+                            score: computeLeadScoreFromLead(selectedLead),
                           });
                           // Termin automatisch mit Kalender synchronisieren
                           if (selectedLead.site_visit_date && user) {
@@ -1634,6 +1624,209 @@ export default function AdminDashboard() {
                 </div>
               )}
 
+              {/* Konfiguration bearbeiten Modal */}
+              {showConfigModal && selectedLead && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                  <div className="bg-[#1A1A1A] rounded-xl border border-white/10 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                    <div className="flex items-center justify-between p-4 border-b border-white/5">
+                      <h3 className="text-sm font-bold text-white">Konfiguration bearbeiten</h3>
+                      <button
+                        onClick={() => setShowConfigModal(false)}
+                        className="text-gray-500 hover:text-white transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="p-4 space-y-4">
+                      {/* Gemessene Daten */}
+                      <div className="space-y-3">
+                        <h4 className="text-xs font-bold text-gray-400">Gemessene Daten</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-xs text-gray-500">Dachfläche (m²)</label>
+                            <input
+                              type="number"
+                              value={selectedLead.roof_area_measured ?? ''}
+                              onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, roof_area_measured: e.target.value ? Number(e.target.value) : null } : prev)}
+                              className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-gray-500">Dachneigung (°)</label>
+                            <input
+                              type="number"
+                              value={selectedLead.roof_angle ?? ''}
+                              onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, roof_angle: e.target.value ? Number(e.target.value) : null } : prev)}
+                              className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
+                            />
+                          </div>
+                        </div>
+                        <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedLead.shading_issues || false}
+                            onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, shading_issues: e.target.checked } : prev)}
+                            className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
+                          />
+                          Verschattungsprobleme festgestellt
+                        </label>
+                      </div>
+
+                      {/* Konfiguration */}
+                      <div className="space-y-3 pt-2 border-t border-white/5">
+                        <h4 className="text-xs font-bold text-gray-400">Konfiguration</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-xs text-gray-500">Dachausrichtung</label>
+                            <select
+                              value={selectedLead.roof_orientation || ''}
+                              onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, roof_orientation: e.target.value || null } : prev)}
+                              className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
+                            >
+                              <option value="">—</option>
+                              <option value="Süd">Süd</option>
+                              <option value="Süd-Ost">Süd-Ost</option>
+                              <option value="Süd-West">Süd-West</option>
+                              <option value="Ost">Ost</option>
+                              <option value="West">West</option>
+                              <option value="Nord">Nord</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-gray-500">Stromverbrauch (kWh/Jahr)</label>
+                            <input
+                              type="number"
+                              value={selectedLead.consumption ?? ''}
+                              onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, consumption: e.target.value ? Number(e.target.value) : null } : prev)}
+                              className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-xs text-gray-500">Strompreis (ct/kWh)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={selectedLead.electricity_price ?? ''}
+                            onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, electricity_price: e.target.value ? Number(e.target.value) : null } : prev)}
+                            className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedLead.has_battery || false}
+                              onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, has_battery: e.target.checked } : prev)}
+                              className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
+                            />
+                            <BatteryCharging className="w-4 h-4 text-green-400" />
+                            Speicher / Batteriespeicher
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedLead.has_e_car || false}
+                              onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, has_e_car: e.target.checked } : prev)}
+                              className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
+                            />
+                            <Car className="w-4 h-4 text-blue-400" />
+                            E-Auto / Wallbox
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedLead.has_heat_pump || false}
+                              onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, has_heat_pump: e.target.checked } : prev)}
+                              className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
+                            />
+                            <Thermometer className="w-4 h-4 text-orange-400" />
+                            Wärmepumpe
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Neuberechnung */}
+                      <div className="space-y-3 pt-2 border-t border-white/5">
+                        <button
+                          onClick={() => {
+                            const recalculated = recalculateLead(selectedLead);
+                            setSelectedLead((prev) => prev ? { ...prev, ...recalculated } : prev);
+                          }}
+                          className="w-full flex items-center justify-center gap-2 bg-[#1A3A5C]/30 hover:bg-[#1A3A5C]/50 text-blue-400 font-bold text-xs px-4 py-2 rounded-lg transition-colors border border-[#1A3A5C]/30"
+                        >
+                          <Zap className="w-3.5 h-3.5" />
+                          Konfiguration neu berechnen
+                        </button>
+
+                        {(selectedLead.kwp != null || selectedLead.investment != null) && (
+                          <div className="grid grid-cols-3 gap-2 bg-[#252525] rounded-lg p-3">
+                            <div>
+                              <p className="text-[10px] text-gray-500">kWp</p>
+                              <p className="text-sm font-bold text-white">{selectedLead.kwp}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-gray-500">Investition</p>
+                              <p className="text-sm font-bold text-white">{selectedLead.investment?.toLocaleString('de-DE')} €</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-gray-500">Ersparnis/Jahr</p>
+                              <p className="text-sm font-bold text-[#F5A623]">{selectedLead.annual_savings?.toLocaleString('de-DE')} €</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 p-4 border-t border-white/5">
+                      <button
+                        onClick={() => setShowConfigModal(false)}
+                        className="flex-1 bg-[#252525] border border-white/10 hover:bg-[#333] text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-colors"
+                      >
+                        Abbrechen
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setDetailLoading(true);
+                          try {
+                            await updateLeadFields(selectedLead.id, {
+                              roof_area_measured: selectedLead.roof_area_measured,
+                              roof_angle: selectedLead.roof_angle,
+                              shading_issues: selectedLead.shading_issues,
+                              roof_orientation: selectedLead.roof_orientation,
+                              consumption: selectedLead.consumption,
+                              electricity_price: selectedLead.electricity_price,
+                              has_battery: selectedLead.has_battery,
+                              has_e_car: selectedLead.has_e_car,
+                              has_heat_pump: selectedLead.has_heat_pump,
+                              kwp: selectedLead.kwp,
+                              investment: selectedLead.investment,
+                              annual_savings: selectedLead.annual_savings,
+                              amortization: selectedLead.amortization,
+                              autarky: selectedLead.autarky,
+                              profit_20_years: selectedLead.profit_20_years,
+                              score: computeLeadScoreFromLead(selectedLead),
+                            });
+                            setShowConfigModal(false);
+                          } catch (e) {
+                            alert((e as Error).message);
+                          } finally {
+                            setDetailLoading(false);
+                          }
+                        }}
+                        disabled={detailLoading}
+                        className="flex-1 bg-[#F5A623] hover:bg-[#E09000] text-[#1A3A5C] font-bold text-xs px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {detailLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Speichern'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Angebots-Management */}
               <div className="bg-[#1A1A1A] rounded-xl border border-white/5 p-4 space-y-4">
                 <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Angebots-Management</h3>
@@ -1653,12 +1846,49 @@ export default function AdminDashboard() {
                   );
                 })()}
 
+                {/* Rabatt-Hinweis im Angebot */}
+                {selectedLead.discount_status !== 'none' && selectedLead.discount_percentage != null && (
+                  <div className="bg-[#252525] rounded-lg p-3 border border-white/5 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#F5A623] flex items-center gap-1.5">
+                        <Tag className="w-3.5 h-3.5" />
+                        {selectedLead.discount_status === 'code_applied' && 'Rabatt aktiv'}
+                        {selectedLead.discount_status === 'requested' && 'Rabatt angefragt'}
+                        {selectedLead.discount_status === 'approved' && 'Rabatt genehmigt'}
+                      </span>
+                      <span className="text-xs font-bold text-[#F5A623]">{selectedLead.discount_percentage}%</span>
+                    </div>
+                    {selectedLead.discount_code && (
+                      <p className="text-[10px] text-gray-500">Code: {selectedLead.discount_code}</p>
+                    )}
+                    {selectedLead.final_price != null && selectedLead.investment != null && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="text-xs text-gray-500 line-through">{selectedLead.investment.toLocaleString('de-DE')} €</span>
+                        <span className="text-sm font-bold text-[#F5A623]">{selectedLead.final_price.toLocaleString('de-DE')} €</span>
+                        <span className="text-[10px] text-gray-500">Endpreis</span>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-gray-500 italic">
+                      Wird im PDF automatisch berücksichtigt
+                    </p>
+                  </div>
+                )}
+
                 {/* Aktionen */}
                 <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleGenerateOfferPdf(selectedLead)}
+                    disabled={isGeneratingPdf}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {isGeneratingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+                    {isGeneratingPdf ? 'PDF wird erstellt…' : 'Angebot als PDF'}
+                  </button>
+
                   {selectedLead.offer_status === 'created' && (
                     <button
                       onClick={() => handleOfferStatusChange(selectedLead.id, 'sent', { offer_sent_at: new Date().toISOString() })}
-                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-colors"
+                      className="flex items-center gap-2 bg-[#252525] border border-white/10 hover:bg-[#333] text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-colors"
                     >
                       <Send className="w-3.5 h-3.5" />
                       Als versendet markieren
@@ -1838,9 +2068,14 @@ export default function AdminDashboard() {
                 {/* Rabatt-Code anwenden */}
                 {selectedLead.discount_status === 'none' && (
                   <div className="space-y-2">
-                    {availableDiscountCodes.length > 0 ? (
+                    {isLoadingCodes ? (
+                      <div className="flex items-center gap-2 text-xs text-gray-500 py-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Rabattcodes werden geladen…
+                      </div>
+                    ) : availableDiscountCodes.length > 0 ? (
                       <div className="space-y-2">
-                        <label className="text-xs text-gray-500">Verfügbare Rabattcodes</label>
+                        <label className="text-xs text-gray-500">Verfügbare Rabattcodes ({availableDiscountCodes.length})</label>
                         <div className="relative">
                           <select
                             value={discountCodeInput}
@@ -1873,21 +2108,26 @@ export default function AdminDashboard() {
                         </button>
                       </div>
                     ) : (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={discountCodeInput}
-                          onChange={(e) => setDiscountCodeInput(e.target.value)}
-                          placeholder="Rabatt-Code eingeben"
-                          className="flex-1 bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50"
-                        />
-                        <button
-                          onClick={() => { if (discountCodeInput.trim()) handleApplyDiscount(selectedLead.id, discountCodeInput.trim()); }}
-                          disabled={!discountCodeInput.trim() || detailLoading}
-                          className="bg-[#F5A623] text-[#1A3A5C] font-bold text-xs px-4 py-2 rounded-lg hover:bg-[#E09000] transition-colors disabled:opacity-50"
-                        >
-                          Anwenden
-                        </button>
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500">
+                          Keine Rabattcodes verfügbar. Gebe einen Code manuell ein oder erstelle Codes in den Einstellungen.
+                        </p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={discountCodeInput}
+                            onChange={(e) => setDiscountCodeInput(e.target.value)}
+                            placeholder="Rabatt-Code eingeben"
+                            className="flex-1 bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50"
+                          />
+                          <button
+                            onClick={() => { if (discountCodeInput.trim()) handleApplyDiscount(selectedLead.id, discountCodeInput.trim()); }}
+                            disabled={!discountCodeInput.trim() || detailLoading}
+                            className="bg-[#F5A623] text-[#1A3A5C] font-bold text-xs px-4 py-2 rounded-lg hover:bg-[#E09000] transition-colors disabled:opacity-50"
+                          >
+                            Anwenden
+                          </button>
+                        </div>
                       </div>
                     )}
                     <button

@@ -1,4 +1,5 @@
 import { getIrradiationByZip } from '../data/plzIrradiation';
+import type { Lead } from '../services/data';
 
 export type ScoreTier = 'heiss' | 'warm' | 'kalt';
 
@@ -59,4 +60,17 @@ export function getScoreResult(score: number): ScoreResult {
     return { score, tier: 'warm', label: 'Warm', color: 'text-[#1A3A5C]', bgColor: 'bg-[#1A3A5C]/10 border-[#1A3A5C]/30' };
   }
   return { score, tier: 'kalt', label: 'Kalt', color: 'text-gray-500', bgColor: 'bg-gray-100 border-gray-300' };
+}
+
+// Berechnet Score dynamisch aus Lead-Daten (immer aktuell)
+export function computeLeadScoreFromLead(lead: Lead): number {
+  return computeLeadScore({
+    kwp: lead.kwp,
+    investment: lead.investment,
+    zip: lead.zip,
+    isOwner: true, // Leads sind per Default Eigentümer
+    hasBattery: lead.has_battery,
+    area: lead.roof_area,
+    planningHorizon: lead.planning_horizon ?? undefined,
+  });
 }

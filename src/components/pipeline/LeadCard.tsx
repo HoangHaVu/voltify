@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Sun, MoreVertical, Flame, Zap, Snowflake } from 'lucide-react';
 import type { Lead } from '../../services/data';
+import { computeLeadScoreFromLead } from '../../utils/leadScore';
 
 const OFFER_BADGE: Record<Lead['offer_status'], { label: string; classes: string }> = {
   created:  { label: 'Angebot erstellt',  classes: 'bg-[#252525] text-gray-500' },
@@ -42,7 +43,8 @@ interface LeadCardProps {
 export function LeadCard({ lead, showClosingActions, onWon, onLost, onClick }: LeadCardProps) {
   const navigate = useNavigate();
   const slaBadge = getSlaBadge(lead.created_at);
-  const { score, tier, label, color, bgColor } = getScoreResult(lead.score);
+  const computedScore = computeLeadScoreFromLead(lead);
+  const { score, tier, label, color, bgColor } = getScoreResult(computedScore);
   const TierIcon = TIER_ICON[tier];
   const displayName = `${lead.first_name} ${lead.last_name}`;
 

@@ -401,7 +401,8 @@ export default function AdminDashboard() {
   // Rabattcodes laden wenn Drawer geöffnet wird
   useEffect(() => {
     if (selectedLead && user) {
-      fetchOwnerDiscountCodes(user.id)
+      const ownerId = user.role === 'owner' ? user.id : (user.ownerId || user.id);
+      fetchOwnerDiscountCodes(ownerId)
         .then(setAvailableDiscountCodes)
         .catch(() => setAvailableDiscountCodes([]));
     }
@@ -511,7 +512,8 @@ export default function AdminDashboard() {
   // Rabatt-Codes & Anfragen laden
   useEffect(() => {
     if (!user) return;
-    fetchOwnerDiscountCodes(user.id)
+    const ownerId = user.role === 'owner' ? user.id : (user.ownerId || user.id);
+    fetchOwnerDiscountCodes(ownerId)
       .then(setOwnerCodes)
       .catch(console.error)
       .finally(() => setCodesLoading(false));

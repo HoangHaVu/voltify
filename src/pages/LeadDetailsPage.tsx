@@ -14,6 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useInstallerLead } from '../hooks/useInstallerLead';
 import { useDiscountCodes } from '../hooks/useDiscountCodes';
 import { supabase } from '../lib/supabase';
+import { updateLeadFields } from '../services/data';
 import { getScoreResult } from '../utils/leadScore';
 import OfferPdfDocument, { type CompanySettings } from '../components/pdf/OfferPdfDocument';
 import InvoicePdfDocument from '../components/pdf/InvoicePdfDocument';
@@ -41,6 +42,7 @@ const STATUS_OPTIONS: { value: Lead['status']; label: string }[] = [
 const STATUS_COLOR: Record<Lead['status'], string> = {
   neu: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
   kontaktiert: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  vorort: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   angebot: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
   abschluss: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   gewonnen: 'bg-green-500/10 text-green-400 border-green-500/20',
@@ -771,6 +773,47 @@ export default function LeadDetailsPage() {
                     </div>
                   </section>
 
+                  {/* Vor-Ort-Info */}
+                  {(lead.site_visit_date || lead.site_visit_done || lead.roof_area_measured) && (
+                    <section className="bg-[#1A1A1A] rounded-xl border border-white/5 p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest">Vor-Ort-Termin</h2>
+                        {lead.site_visit_done ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">Durchgeführt</span>
+                        ) : lead.site_visit_date ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400">
+                            Geplant: {new Date(lead.site_visit_date).toLocaleDateString('de-DE')}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="space-y-2">
+                        {lead.site_visit_notes && (
+                          <p className="text-sm text-gray-400 italic">„{lead.site_visit_notes}"</p>
+                        )}
+                        {(lead.roof_area_measured || lead.roof_angle != null) && (
+                          <div className="flex flex-wrap gap-3 pt-2 border-t border-white/5">
+                            {lead.roof_area_measured && (
+                              <span className="text-xs text-gray-400">
+                                Gemessene Dachfläche: <strong className="text-white">{lead.roof_area_measured} m²</strong>
+                                {lead.roof_area && lead.roof_area !== lead.roof_area_measured && (
+                                  <span className="text-gray-600 line-through ml-1">({lead.roof_area} m² vorher)</span>
+                                )}
+                              </span>
+                            )}
+                            {lead.roof_angle != null && (
+                              <span className="text-xs text-gray-400">
+                                Dachneigung: <strong className="text-white">{lead.roof_angle}°</strong>
+                              </span>
+                            )}
+                            {lead.shading_issues && (
+                              <span className="text-xs text-amber-400">⚠ Verschattung festgestellt</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  )}
+
                   {/* Preis & Rabatt */}
                   {lead.investment != null && (
                     <section className="bg-[#1A1A1A] rounded-xl border border-white/5 p-6">
@@ -822,6 +865,25 @@ export default function LeadDetailsPage() {
                           <XCircle className="w-4 h-4 text-red-400 shrink-0" />
                           <span className="text-sm font-bold text-red-400 flex-1">Anfrage abgelehnt</span>
                           <button onClick={clearLeadDiscount} className="text-xs text-gray-500 hover:text-white transition-colors font-medium">Neu anfragen</button>
+                        </div>
+                      )}
+
+                      {/* Neues Angebot nötig nach Rabattänderung */}
+                      {lead.discount_status !== 'none' && lead.offer_status !== 'created' && (
+                        <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3 mb-4">
+                          <p className="text-xs text-red-400 mb-2">
+                            <AlertTriangle className="w-3 h-3 inline mr-1" />
+                            Rabatt geändert — altes Angebot ist ungültig
+                          </p>
+                          <button
+                            onClick={async () => {
+                              await changeOfferStatus('created');
+                            }}
+                            className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-lg transition-colors border border-red-500/20"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            Neues Angebot generieren
+                          </button>
                         </div>
                       )}
 

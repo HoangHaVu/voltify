@@ -216,7 +216,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
             <div className="space-y-3">
               <a href="mailto:contact@vu-studio.de" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-sm text-white">
                 <Mail className="w-4 h-4 text-[#F5A623]" />
-                <span>contact(at)vu-studio.de</span>
+                <span>contact@vu-studio.de</span>
               </a>
               <a href="tel:+4915226429187" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-sm text-white">
                 <Phone className="w-4 h-4 text-[#F5A623]" />

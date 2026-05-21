@@ -94,6 +94,21 @@ export function LeadCard({ lead, showClosingActions, onWon, onLost, onClick }: L
             {OFFER_BADGE[lead.offer_status].label}
           </span>
         )}
+        {lead.site_visit_date && !lead.site_visit_done && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400">
+            Termin: {new Date(lead.site_visit_date).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
+          </span>
+        )}
+        {lead.site_visit_done && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-green-500/10 text-green-400">
+            Vor-Ort erledigt
+          </span>
+        )}
+        {lead.discount_status !== 'none' && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F5A623]/10 text-[#F5A623]">
+            −{lead.discount_percentage}%
+          </span>
+        )}
         {slaBadge && (
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${slaBadge.classes}`}>
             {slaBadge.label}
@@ -104,10 +119,24 @@ export function LeadCard({ lead, showClosingActions, onWon, onLost, onClick }: L
       {/* Footer */}
       <div className="flex items-center justify-between pt-2 border-t border-white/5">
         <div className="font-bold text-white text-sm">
-          {lead.investment ? `${lead.investment.toLocaleString('de-DE')} €` : '—'}
+          {lead.final_price != null ? (
+            <span>
+              <span className="text-gray-500 line-through text-xs mr-1">{lead.investment?.toLocaleString('de-DE')} €</span>
+              {lead.final_price.toLocaleString('de-DE')} €
+            </span>
+          ) : lead.investment ? (
+            `${lead.investment.toLocaleString('de-DE')} €`
+          ) : '—'}
         </div>
-        <div className="text-[10px] text-gray-500 font-medium">
-          {formatDate(lead.created_at)}
+        <div className="flex items-center gap-1.5">
+          {lead.discount_status !== 'none' && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#F5A623]/10 text-[#F5A623]">
+              −{lead.discount_percentage}%
+            </span>
+          )}
+          <div className="text-[10px] text-gray-500 font-medium">
+            {formatDate(lead.created_at)}
+          </div>
         </div>
       </div>
 

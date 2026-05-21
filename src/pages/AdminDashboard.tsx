@@ -19,7 +19,8 @@ import { ProjectCard } from '../components/pipeline/ProjectCard';
 import {
   fetchOwnerDiscountCodes, createDiscountCode, toggleDiscountCode, deleteDiscountCode,
   fetchPendingDiscountRequestsScoped, resolveDiscountRequest,
-  updateLeadOfferStatus, updateLeadStatus, updatePaymentStatus,
+  updateLeadOfferStatus, updateLeadStatus, updatePaymentStatus, updateLeadFields,
+  applyDiscountCode, requestDiscount, clearDiscount, redeemDiscountCode,
   type DiscountCode, type Lead,
 } from '../services/data';
 import { OfferPreviewCard } from '../components/settings/OfferPreviewCard';
@@ -87,6 +88,7 @@ const DEFAULT_SETTINGS: OwnerSettings = {
 const LEAD_COLUMNS: { key: Lead['status']; label: string; color: string }[] = [
   { key: 'neu',         label: 'Neu',               color: 'bg-emerald-500' },
   { key: 'kontaktiert', label: 'Kontaktiert',       color: 'bg-blue-500' },
+  { key: 'vorort',      label: 'Vor Ort',           color: 'bg-purple-500' },
   { key: 'angebot',     label: 'Angebot versendet', color: 'bg-indigo-500' },
   { key: 'abschluss',   label: 'Abschluss',         color: 'bg-amber-500' },
 ];
@@ -387,6 +389,12 @@ export default function AdminDashboard() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  // ── Rabatt UI State ──
+  const [discountCodeInput, setDiscountCodeInput] = useState('');
+  const [requestPercentage, setRequestPercentage] = useState(5);
+  const [requestNote, setRequestNote] = useState('');
+  const [showDiscountRequest, setShowDiscountRequest] = useState(false);
+
   // ── Settings State ──
   const STORAGE_KEY = 'voltify_settings_v1';
   const [settings, setSettings] = useState<OwnerSettings>(() => {
@@ -467,6 +475,7 @@ export default function AdminDashboard() {
   const STATUS_LABELS: Record<Lead['status'], string> = {
     neu: 'Neu',
     kontaktiert: 'Kontaktiert',
+    vorort: 'Vor Ort',
     angebot: 'Angebot versendet',
     abschluss: 'Abschluss',
     gewonnen: 'Gewonnen',
@@ -572,6 +581,87 @@ export default function AdminDashboard() {
         const field = `payment_${payment}_paid` as const;
         setSelectedLead((prev) => prev ? { ...prev, [field]: !current } : prev);
       }
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  // ── Rabatt Handler ──
+  async function handleApplyDiscount(leadId: string, code: string) {
+    if (!selectedLead || !user) return;
+    setDetailLoading(true);
+    try {
+      const basePrice = selectedLead.investment ?? 0;
+      const validation = await redeemDiscountCode(user.id, code, basePrice);
+      if (!validation.success) throw new Error(validation.reason);
+      await applyDiscountCode(leadId, code, validation.percentage ?? 0, basePrice);
+      const finalPrice = Math.round(basePrice * (1 - (validation.percentage ?? 0) / 100));
+      setSelectedLead((prev) => prev ? {
+        ...prev,
+        discount_code: code,
+        discount_percentage: validation.percentage ?? 0,
+        discount_status: 'code_applied',
+        final_price: finalPrice,
+        discount_note: null,
+        discount_requested_at: null,
+        discount_resolved_at: null,
+      } : prev);
+      // Angebot zurücksetzen damit neues generiert wird
+      await updateLeadOfferStatus(leadId, 'created');
+      setSelectedLead((prev) => prev ? { ...prev, offer_status: 'created', offer_sent_at: null, offer_viewed_at: null } : prev);
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  async function handleRequestDiscount(leadId: string, percentage: number, note: string) {
+    if (!selectedLead) return;
+    setDetailLoading(true);
+    try {
+      const basePrice = selectedLead.investment ?? 0;
+      await requestDiscount(leadId, percentage, note, basePrice);
+      const finalPrice = Math.round(basePrice * (1 - percentage / 100));
+      setSelectedLead((prev) => prev ? {
+        ...prev,
+        discount_code: null,
+        discount_percentage: percentage,
+        discount_status: 'requested',
+        final_price: finalPrice,
+        discount_note: note || null,
+        discount_requested_at: new Date().toISOString(),
+        discount_resolved_at: null,
+      } : prev);
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  async function handleClearDiscount(leadId: string) {
+    setDetailLoading(true);
+    try {
+      await clearDiscount(leadId);
+      setSelectedLead((prev) => prev ? {
+        ...prev,
+        discount_code: null,
+        discount_percentage: null,
+        discount_status: 'none',
+        final_price: null,
+        discount_note: null,
+        discount_requested_at: null,
+        discount_resolved_at: null,
+      } : prev);
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  async function handleResetOffer(leadId: string) {
+    setDetailLoading(true);
+    try {
+      await updateLeadOfferStatus(leadId, 'created');
+      setSelectedLead((prev) => prev ? { ...prev, offer_status: 'created', offer_sent_at: null, offer_viewed_at: null } : prev);
     } finally {
       setDetailLoading(false);
     }
@@ -1240,7 +1330,16 @@ export default function AdminDashboard() {
                   {selectedLead.investment != null && (
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-[#F5A623]" />
-                      <span className="text-sm text-gray-300">{selectedLead.investment.toLocaleString('de-DE')} €</span>
+                      <span className="text-sm text-gray-300">
+                        {selectedLead.final_price != null ? (
+                          <>
+                            <span className="text-gray-500 line-through text-xs mr-1">{selectedLead.investment.toLocaleString('de-DE')} €</span>
+                            <span className="text-[#F5A623] font-bold">{selectedLead.final_price.toLocaleString('de-DE')} €</span>
+                          </>
+                        ) : (
+                          <>{selectedLead.investment.toLocaleString('de-DE')} €</>
+                        )}
+                      </span>
                     </div>
                   )}
                   {selectedLead.roof_orientation && (
@@ -1269,6 +1368,132 @@ export default function AdminDashboard() {
                   )}
                 </div>
               </div>
+
+              {/* Vor-Ort-Termin & Messung */}
+              {(selectedLead.status === 'kontaktiert' || selectedLead.status === 'vorort' || selectedLead.status === 'angebot' || selectedLead.status === 'abschluss') && (
+                <div className="bg-[#1A1A1A] rounded-xl border border-white/5 p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Vor-Ort-Termin</h3>
+                    {selectedLead.site_visit_done && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">
+                        Durchgeführt
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Termin-Datum */}
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500">Termin-Datum</label>
+                    <input
+                      type="date"
+                      value={selectedLead.site_visit_date?.slice(0, 10) || ''}
+                      onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, site_visit_date: e.target.value ? new Date(e.target.value).toISOString() : null } : prev)}
+                      className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
+                    />
+                  </div>
+
+                  {/* Notizen */}
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500">Vor-Ort-Notizen</label>
+                    <textarea
+                      value={selectedLead.site_visit_notes || ''}
+                      onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, site_visit_notes: e.target.value || null } : prev)}
+                      placeholder="Notizen vom Termin..."
+                      rows={2}
+                      className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50 resize-none"
+                    />
+                  </div>
+
+                  {/* Gemessene Daten */}
+                  <div className="space-y-3 pt-2 border-t border-white/5">
+                    <h4 className="text-xs font-bold text-gray-400">Gemessene Daten</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs text-gray-500">Dachfläche (m²)</label>
+                        <input
+                          type="number"
+                          value={selectedLead.roof_area_measured ?? ''}
+                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, roof_area_measured: e.target.value ? Number(e.target.value) : null } : prev)}
+                          className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-gray-500">Dachneigung (°)</label>
+                        <input
+                          type="number"
+                          value={selectedLead.roof_angle ?? ''}
+                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, roof_angle: e.target.value ? Number(e.target.value) : null } : prev)}
+                          className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
+                        />
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedLead.shading_issues || false}
+                        onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, shading_issues: e.target.checked } : prev)}
+                        className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
+                      />
+                      Verschattungsprobleme festgestellt
+                    </label>
+                  </div>
+
+                  {/* Termin durchgeführt Toggle */}
+                  <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer pt-2 border-t border-white/5">
+                    <input
+                      type="checkbox"
+                      checked={selectedLead.site_visit_done}
+                      onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, site_visit_done: e.target.checked } : prev)}
+                      className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
+                    />
+                    Termin wurde durchgeführt
+                  </label>
+
+                  {/* Speichern & Status-Wechsel */}
+                  <div className="flex flex-col gap-2 pt-2">
+                    <button
+                      onClick={async () => {
+                        setDetailLoading(true);
+                        try {
+                          await updateLeadFields(selectedLead.id, {
+                            site_visit_date: selectedLead.site_visit_date,
+                            site_visit_notes: selectedLead.site_visit_notes,
+                            site_visit_done: selectedLead.site_visit_done,
+                            roof_area_measured: selectedLead.roof_area_measured,
+                            roof_angle: selectedLead.roof_angle,
+                            shading_issues: selectedLead.shading_issues,
+                          });
+                        } finally {
+                          setDetailLoading(false);
+                        }
+                      }}
+                      className="w-full bg-[#252525] hover:bg-white/5 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-colors border border-white/10"
+                    >
+                      Speichern
+                    </button>
+
+                    {selectedLead.status === 'kontaktiert' && (
+                      <button
+                        onClick={() => handleLeadStatusChange(selectedLead.id, 'vorort')}
+                        className="w-full flex items-center justify-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-bold text-xs px-4 py-2.5 rounded-lg transition-colors border border-purple-500/20"
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                        Termin vereinbart → Vor Ort
+                      </button>
+                    )}
+
+                    {selectedLead.status === 'vorort' && selectedLead.site_visit_done && (
+                      <button
+                        onClick={() => handleLeadStatusChange(selectedLead.id, 'angebot')}
+                        className="w-full flex items-center justify-center gap-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold text-xs px-4 py-2.5 rounded-lg transition-colors border border-indigo-500/20"
+                      >
+                        <FileTextIcon className="w-3.5 h-3.5" />
+                        Angebot erstellen → Angebot versendet
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Angebots-Management */}
               <div className="bg-[#1A1A1A] rounded-xl border border-white/5 p-4 space-y-4">
@@ -1412,27 +1637,147 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-              {/* Rabatt-Info */}
-              {selectedLead.discount_status !== 'none' && (
-                <div className="bg-[#1A1A1A] rounded-xl border border-white/5 p-4">
-                  <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Rabatt</h3>
-                  <div className="flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-[#F5A623]" />
-                    <span className="text-sm text-gray-300">
-                      {selectedLead.discount_code && (
-                        <span className="font-mono text-[#F5A623] mr-1">{selectedLead.discount_code}</span>
-                      )}
-                      {selectedLead.discount_percentage}% Rabatt
-                      {selectedLead.final_price != null && (
-                        <span className="text-gray-500"> → <strong>{selectedLead.final_price.toLocaleString('de-DE')} €</strong></span>
-                      )}
-                    </span>
-                  </div>
-                  {selectedLead.discount_note && (
-                    <p className="text-xs text-gray-500 mt-1 italic">„{selectedLead.discount_note}"</p>
-                  )}
+              {/* Rabatt-Management */}
+              <div className="bg-[#1A1A1A] rounded-xl border border-white/5 p-4 space-y-4">
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Rabatt & Preis</h3>
+
+                {/* Aktueller Preis */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400">Projektsumme</span>
+                  <span className="text-sm font-bold text-white">
+                    {selectedLead.final_price != null
+                      ? <><span className="text-gray-500 line-through mr-2">{selectedLead.investment?.toLocaleString('de-DE')} €</span>{selectedLead.final_price.toLocaleString('de-DE')} €</>
+                      : <>{selectedLead.investment?.toLocaleString('de-DE')} €</>
+                    }
+                  </span>
                 </div>
-              )}
+
+                {/* Aktiver Rabatt */}
+                {selectedLead.discount_status !== 'none' && (
+                  <div className={`rounded-lg p-3 border ${
+                    selectedLead.discount_status === 'requested' ? 'bg-amber-500/5 border-amber-500/20' :
+                    selectedLead.discount_status === 'approved' ? 'bg-green-500/5 border-green-500/20' :
+                    'bg-[#F5A623]/5 border-[#F5A623]/20'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4 text-[#F5A623]" />
+                        <span className="text-sm text-white">
+                          {selectedLead.discount_code && (
+                            <span className="font-mono text-[#F5A623] mr-1">{selectedLead.discount_code}</span>
+                          )}
+                          {selectedLead.discount_percentage}% Rabatt
+                        </span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        selectedLead.discount_status === 'requested' ? 'bg-amber-500/10 text-amber-400' :
+                        selectedLead.discount_status === 'approved' ? 'bg-green-500/10 text-green-400' :
+                        'bg-[#F5A623]/10 text-[#F5A623]'
+                      }`}>
+                        {selectedLead.discount_status === 'code_applied' ? 'Aktiv' :
+                         selectedLead.discount_status === 'requested' ? 'Angefragt' :
+                         selectedLead.discount_status === 'approved' ? 'Genehmigt' :
+                         selectedLead.discount_status}
+                      </span>
+                    </div>
+                    {selectedLead.discount_note && (
+                      <p className="text-xs text-gray-500 mt-1 italic">„{selectedLead.discount_note}"</p>
+                    )}
+                    {/* Rabatt entfernen */}
+                    {selectedLead.discount_status !== 'requested' && (
+                      <button
+                        onClick={() => handleClearDiscount(selectedLead.id)}
+                        className="mt-2 text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Rabatt entfernen
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Rabatt-Code anwenden */}
+                {selectedLead.discount_status === 'none' && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={discountCodeInput}
+                        onChange={(e) => setDiscountCodeInput(e.target.value)}
+                        placeholder="Rabatt-Code eingeben"
+                        className="flex-1 bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50"
+                      />
+                      <button
+                        onClick={() => { if (discountCodeInput.trim()) handleApplyDiscount(selectedLead.id, discountCodeInput.trim()); }}
+                        disabled={!discountCodeInput.trim() || detailLoading}
+                        className="bg-[#F5A623] text-[#1A3A5C] font-bold text-xs px-4 py-2 rounded-lg hover:bg-[#E09000] transition-colors disabled:opacity-50"
+                      >
+                        Anwenden
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => setShowDiscountRequest(!showDiscountRequest)}
+                      className="text-xs text-gray-500 hover:text-white transition-colors flex items-center gap-1"
+                    >
+                      <Percent className="w-3 h-3" />
+                      {showDiscountRequest ? 'Abbrechen' : 'Individuellen Rabatt anfragen'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Individuellen Rabatt anfragen */}
+                {showDiscountRequest && selectedLead.discount_status === 'none' && (
+                  <div className="space-y-3 bg-[#252525] rounded-lg p-3 border border-white/5">
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Rabatt-Satz: {requestPercentage}%</label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="30"
+                        value={requestPercentage}
+                        onChange={(e) => setRequestPercentage(Number(e.target.value))}
+                        className="w-full accent-[#F5A623]"
+                      />
+                      <div className="flex justify-between text-[10px] text-gray-600">
+                        <span>1%</span>
+                        <span>15%</span>
+                        <span>30%</span>
+                      </div>
+                    </div>
+                    <textarea
+                      value={requestNote}
+                      onChange={(e) => setRequestNote(e.target.value)}
+                      placeholder="Begründung für Rabatt..."
+                      rows={2}
+                      className="w-full bg-[#0F0F0F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50 resize-none"
+                    />
+                    <button
+                      onClick={() => { handleRequestDiscount(selectedLead.id, requestPercentage, requestNote); setShowDiscountRequest(false); setRequestNote(''); }}
+                      disabled={detailLoading}
+                      className="w-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold text-xs px-4 py-2 rounded-lg hover:bg-amber-500/20 transition-colors"
+                    >
+                      Rabatt-Anfrage senden
+                    </button>
+                  </div>
+                )}
+
+                {/* Neues Angebot nötig Warnung */}
+                {selectedLead.discount_status !== 'none' && selectedLead.offer_status !== 'created' && (
+                  <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
+                    <p className="text-xs text-red-400 mb-2">
+                      <AlertTriangle className="w-3 h-3 inline mr-1" />
+                      Rabatt geändert — altes Angebot ist ungültig
+                    </p>
+                    <button
+                      onClick={() => handleResetOffer(selectedLead.id)}
+                      className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-lg transition-colors border border-red-500/20"
+                    >
+                      <FileTextIcon className="w-3.5 h-3.5" />
+                      Neues Angebot generieren
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

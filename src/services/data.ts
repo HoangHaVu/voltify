@@ -69,7 +69,7 @@ export interface Lead {
   planning_horizon: 'sofort' | '3monate' | '12monate' | null;
   needs_financing: boolean | null;
   wants_zoom_call: boolean | null;
-  status: 'neu' | 'kontaktiert' | 'angebot' | 'abschluss' | 'gewonnen' | 'verloren' | 'planung' | 'installation' | 'abgeschlossen';
+  status: 'neu' | 'kontaktiert' | 'vorort' | 'angebot' | 'abschluss' | 'gewonnen' | 'verloren' | 'planung' | 'installation' | 'abgeschlossen';
   offer_status: 'created' | 'sent' | 'viewed' | 'accepted' | 'rejected';
   offer_sent_at: string | null;
   offer_viewed_at: string | null;
@@ -83,6 +83,12 @@ export interface Lead {
   discount_note: string | null;
   discount_requested_at: string | null;
   discount_resolved_at: string | null;
+  site_visit_date: string | null;
+  site_visit_notes: string | null;
+  site_visit_done: boolean;
+  roof_area_measured: number | null;
+  roof_angle: number | null;
+  shading_issues: boolean | null;
   created_at: string;
 }
 
@@ -102,7 +108,7 @@ export interface Appointment {
 }
 
 const PROJECT_SELECT = '*, customer:profiles!customer_id(id, full_name, phone, zip), lead:leads!lead_id(first_name, last_name, email, phone, zip)';
-const LEAD_SELECT = 'id, first_name, last_name, email, phone, zip, roof_orientation, roof_area, construction_year, consumption, has_e_car, has_heat_pump, has_battery, electricity_price, kwp, investment, annual_savings, amortization, autarky, profit_20_years, score, planning_horizon, needs_financing, wants_zoom_call, status, offer_status, offer_sent_at, offer_viewed_at, payment_1_paid, payment_2_paid, payment_3_paid, discount_code, discount_percentage, discount_status, final_price, discount_note, discount_requested_at, discount_resolved_at, created_at';
+const LEAD_SELECT = 'id, first_name, last_name, email, phone, zip, roof_orientation, roof_area, construction_year, consumption, has_e_car, has_heat_pump, has_battery, electricity_price, kwp, investment, annual_savings, amortization, autarky, profit_20_years, score, planning_horizon, needs_financing, wants_zoom_call, status, offer_status, offer_sent_at, offer_viewed_at, payment_1_paid, payment_2_paid, payment_3_paid, discount_code, discount_percentage, discount_status, final_price, discount_note, discount_requested_at, discount_resolved_at, site_visit_date, site_visit_notes, site_visit_done, roof_area_measured, roof_angle, shading_issues, created_at';
 
 // ── Projekte ─────────────────────────────────────────────────────────
 
@@ -286,6 +292,14 @@ export async function fetchLeadByIdScoped(userId: string, role: 'owner' | 'insta
 
 export async function updateLeadStatus(leadId: string, status: Lead['status']): Promise<void> {
   const { error } = await supabase.from('leads').update({ status }).eq('id', leadId);
+  if (error) throw error;
+}
+
+export async function updateLeadFields(
+  leadId: string,
+  fields: Partial<Lead>
+): Promise<void> {
+  const { error } = await supabase.from('leads').update(fields).eq('id', leadId);
   if (error) throw error;
 }
 

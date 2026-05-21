@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeads } from '../hooks/useLeads';
+import { recalculateLead } from '../lib/calculations';
 import { useProjects } from '../hooks/useProjects';
 import { AdminSidebar } from '../components/layout/AdminSidebar';
 import { KanbanColumn } from '../components/pipeline/KanbanColumn';
@@ -1439,6 +1440,113 @@ export default function AdminDashboard() {
                     </label>
                   </div>
 
+                  {/* Konfiguration vor Ort anpassen */}
+                  <div className="space-y-3 pt-2 border-t border-white/5">
+                    <h4 className="text-xs font-bold text-gray-400">Konfiguration anpassen</h4>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs text-gray-500">Dachausrichtung</label>
+                        <select
+                          value={selectedLead.roof_orientation || ''}
+                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, roof_orientation: e.target.value || null } : prev)}
+                          className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
+                        >
+                          <option value="">—</option>
+                          <option value="Süd">Süd</option>
+                          <option value="Süd-Ost">Süd-Ost</option>
+                          <option value="Süd-West">Süd-West</option>
+                          <option value="Ost">Ost</option>
+                          <option value="West">West</option>
+                          <option value="Nord">Nord</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-gray-500">Stromverbrauch (kWh/Jahr)</label>
+                        <input
+                          type="number"
+                          value={selectedLead.consumption ?? ''}
+                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, consumption: e.target.value ? Number(e.target.value) : null } : prev)}
+                          className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-500">Strompreis (ct/kWh)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={selectedLead.electricity_price ?? ''}
+                        onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, electricity_price: e.target.value ? Number(e.target.value) : null } : prev)}
+                        className="w-full bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedLead.has_battery || false}
+                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, has_battery: e.target.checked } : prev)}
+                          className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
+                        />
+                        <BatteryCharging className="w-4 h-4 text-green-400" />
+                        Speicher / Batteriespeicher
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedLead.has_e_car || false}
+                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, has_e_car: e.target.checked } : prev)}
+                          className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
+                        />
+                        <Car className="w-4 h-4 text-blue-400" />
+                        E-Auto / Wallbox
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedLead.has_heat_pump || false}
+                          onChange={(e) => setSelectedLead((prev) => prev ? { ...prev, has_heat_pump: e.target.checked } : prev)}
+                          className="w-4 h-4 rounded border-white/10 bg-[#252525] text-[#F5A623] focus:ring-[#F5A623]/50"
+                        />
+                        <Thermometer className="w-4 h-4 text-orange-400" />
+                        Wärmepumpe
+                      </label>
+                    </div>
+
+                    {/* Konfiguration neu berechnen */}
+                    <button
+                      onClick={() => {
+                        const recalculated = recalculateLead(selectedLead);
+                        setSelectedLead((prev) => prev ? { ...prev, ...recalculated } : prev);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 bg-[#1A3A5C]/30 hover:bg-[#1A3A5C]/50 text-blue-400 font-bold text-xs px-4 py-2 rounded-lg transition-colors border border-[#1A3A5C]/30"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      Konfiguration neu berechnen
+                    </button>
+
+                    {/* Vorschau der neuen Werte */}
+                    {(selectedLead.kwp != null || selectedLead.investment != null) && (
+                      <div className="grid grid-cols-3 gap-2 bg-[#252525] rounded-lg p-3">
+                        <div>
+                          <p className="text-[10px] text-gray-500">kWp</p>
+                          <p className="text-sm font-bold text-white">{selectedLead.kwp}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-gray-500">Investition</p>
+                          <p className="text-sm font-bold text-white">{selectedLead.investment?.toLocaleString('de-DE')} €</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-gray-500">Ersparnis/Jahr</p>
+                          <p className="text-sm font-bold text-[#F5A623]">{selectedLead.annual_savings?.toLocaleString('de-DE')} €</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Termin durchgeführt Toggle */}
                   <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer pt-2 border-t border-white/5">
                     <input
@@ -1463,6 +1571,20 @@ export default function AdminDashboard() {
                             roof_area_measured: selectedLead.roof_area_measured,
                             roof_angle: selectedLead.roof_angle,
                             shading_issues: selectedLead.shading_issues,
+                            roof_area: selectedLead.roof_area_measured ?? selectedLead.roof_area,
+                            roof_orientation: selectedLead.roof_orientation,
+                            consumption: selectedLead.consumption,
+                            electricity_price: selectedLead.electricity_price,
+                            has_battery: selectedLead.has_battery,
+                            has_e_car: selectedLead.has_e_car,
+                            has_heat_pump: selectedLead.has_heat_pump,
+                            kwp: selectedLead.kwp,
+                            investment: selectedLead.investment,
+                            annual_savings: selectedLead.annual_savings,
+                            amortization: selectedLead.amortization,
+                            autarky: selectedLead.autarky,
+                            profit_20_years: selectedLead.profit_20_years,
+                            score: selectedLead.score,
                           });
                           // Termin automatisch mit Kalender synchronisieren
                           if (selectedLead.site_visit_date && user) {

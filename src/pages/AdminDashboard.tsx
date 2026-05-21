@@ -396,6 +396,16 @@ export default function AdminDashboard() {
   const [requestPercentage, setRequestPercentage] = useState(5);
   const [requestNote, setRequestNote] = useState('');
   const [showDiscountRequest, setShowDiscountRequest] = useState(false);
+  const [availableDiscountCodes, setAvailableDiscountCodes] = useState<DiscountCode[]>([]);
+
+  // Rabattcodes laden wenn Drawer geöffnet wird
+  useEffect(() => {
+    if (selectedLead && user) {
+      fetchOwnerDiscountCodes(user.id)
+        .then(setAvailableDiscountCodes)
+        .catch(() => setAvailableDiscountCodes([]));
+    }
+  }, [selectedLead?.id, user?.id]);
 
   // ── Settings State ──
   const STORAGE_KEY = 'voltify_settings_v1';
@@ -1826,22 +1836,58 @@ export default function AdminDashboard() {
                 {/* Rabatt-Code anwenden */}
                 {selectedLead.discount_status === 'none' && (
                   <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={discountCodeInput}
-                        onChange={(e) => setDiscountCodeInput(e.target.value)}
-                        placeholder="Rabatt-Code eingeben"
-                        className="flex-1 bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50"
-                      />
-                      <button
-                        onClick={() => { if (discountCodeInput.trim()) handleApplyDiscount(selectedLead.id, discountCodeInput.trim()); }}
-                        disabled={!discountCodeInput.trim() || detailLoading}
-                        className="bg-[#F5A623] text-[#1A3A5C] font-bold text-xs px-4 py-2 rounded-lg hover:bg-[#E09000] transition-colors disabled:opacity-50"
-                      >
-                        Anwenden
-                      </button>
-                    </div>
+                    {availableDiscountCodes.length > 0 ? (
+                      <div className="space-y-2">
+                        <label className="text-xs text-gray-500">Verfügbare Rabattcodes</label>
+                        <div className="relative">
+                          <select
+                            value={discountCodeInput}
+                            onChange={(e) => setDiscountCodeInput(e.target.value)}
+                            className="w-full appearance-none bg-[#252525] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
+                          >
+                            <option value="">Rabatt-Code wählen…</option>
+                            {availableDiscountCodes.map((code) => {
+                              const hints: string[] = [];
+                              if (code.min_investment != null) hints.push(`ab ${code.min_investment.toLocaleString('de-DE')} €`);
+                              if (code.max_uses != null) hints.push(`noch ${Math.max(0, code.max_uses - code.uses_count)}×`);
+                              if (code.valid_until) hints.push(`bis ${new Date(code.valid_until).toLocaleDateString('de-DE')}`);
+                              const suffix = hints.length ? ` (${hints.join(', ')})` : '';
+                              const lbl = code.label ? ` — ${code.label}` : '';
+                              return (
+                                <option key={code.id} value={code.code}>
+                                  {code.code}{lbl} · {code.percentage}%{suffix}
+                                </option>
+                              );
+                            })}
+                          </select>
+                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                        </div>
+                        <button
+                          onClick={() => { if (discountCodeInput.trim()) handleApplyDiscount(selectedLead.id, discountCodeInput.trim()); }}
+                          disabled={!discountCodeInput.trim() || detailLoading}
+                          className="w-full bg-[#F5A623] text-[#1A3A5C] font-bold text-xs px-4 py-2 rounded-lg hover:bg-[#E09000] transition-colors disabled:opacity-50"
+                        >
+                          Anwenden
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={discountCodeInput}
+                          onChange={(e) => setDiscountCodeInput(e.target.value)}
+                          placeholder="Rabatt-Code eingeben"
+                          className="flex-1 bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50"
+                        />
+                        <button
+                          onClick={() => { if (discountCodeInput.trim()) handleApplyDiscount(selectedLead.id, discountCodeInput.trim()); }}
+                          disabled={!discountCodeInput.trim() || detailLoading}
+                          className="bg-[#F5A623] text-[#1A3A5C] font-bold text-xs px-4 py-2 rounded-lg hover:bg-[#E09000] transition-colors disabled:opacity-50"
+                        >
+                          Anwenden
+                        </button>
+                      </div>
+                    )}
                     <button
                       onClick={() => setShowDiscountRequest(!showDiscountRequest)}
                       className="text-xs text-gray-500 hover:text-white transition-colors flex items-center gap-1"

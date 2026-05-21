@@ -214,13 +214,13 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
               Bei Fragen oder Problemen erreichen Sie uns direkt:
             </p>
             <div className="space-y-3">
-              <a href="mailto:support@voltify.de" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-sm text-white">
+              <a href="mailto:contact@vu-studio.de" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-sm text-white">
                 <Mail className="w-4 h-4 text-[#F5A623]" />
-                <span>support@voltify.de</span>
+                <span>contact(at)vu-studio.de</span>
               </a>
-              <a href="tel:+491701234567" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-sm text-white">
+              <a href="tel:+4915226429187" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-sm text-white">
                 <Phone className="w-4 h-4 text-[#F5A623]" />
-                <span>+49 170 123 4567</span>
+                <span>015226429187</span>
               </a>
               <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 text-sm text-gray-400">
                 <MessageCircle className="w-4 h-4 text-[#F5A623]" />

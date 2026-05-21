@@ -5,7 +5,7 @@ import {
   Plus, TrendingUp, DollarSign, CheckCircle2, Clock,
   Mail, Phone, Tag, Percent, ToggleLeft, ToggleRight, Trash2,
   AlertTriangle, Loader2, Send, Eye, FileText as FileTextIcon, Receipt,
-  ChevronRight, MapPin, BatteryCharging, Car, Thermometer, Sun, Users, BarChart3,
+  ChevronRight, ChevronDown, MapPin, BatteryCharging, Car, Thermometer, Sun, Users, BarChart3,
   Trophy, FilterX, Calendar, FolderOpen, TrendingDown, Activity, Target,
   Crown, Compass,
 } from 'lucide-react';

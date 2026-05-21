@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 import {
   LayoutDashboard, BarChart3, FileText, Settings, HelpCircle,
   Zap, LogOut, Percent, LayoutGrid, Calendar, MessageSquare,
-  Users, Receipt, FolderCheck,
+  Users, Receipt, FolderCheck, X, Mail, Phone, MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import type { UserRole } from '../../services/auth';
@@ -110,6 +111,7 @@ interface AdminSidebarProps {
 export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
   const { user, logout, isOwner } = useAuth();
   const location = useLocation();
+  const [showHelp, setShowHelp] = useState(false);
   const sidebarNav = user ? getNavForRole(user.role) : [];
   const isSettingsPage = location.pathname === '/admin/settings';
 
@@ -189,11 +191,45 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
             Settings
           </Link>
         )}
-        <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-500 hover:text-white hover:bg-white/5 transition-all">
+        <button
+          onClick={() => setShowHelp(true)}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-500 hover:text-white hover:bg-white/5 transition-all"
+        >
           <HelpCircle className="w-[18px] h-[18px]" />
-          Help
+          Hilfe
         </button>
       </div>
+
+      {/* Help Modal */}
+      {showHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowHelp(false)}>
+          <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 p-6 w-full max-w-sm mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Hilfe & Support</h3>
+              <button onClick={() => setShowHelp(false)} className="text-gray-500 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-400 mb-5">
+              Bei Fragen oder Problemen erreichen Sie uns direkt:
+            </p>
+            <div className="space-y-3">
+              <a href="mailto:support@voltify.de" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-sm text-white">
+                <Mail className="w-4 h-4 text-[#F5A623]" />
+                <span>support@voltify.de</span>
+              </a>
+              <a href="tel:+491701234567" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-sm text-white">
+                <Phone className="w-4 h-4 text-[#F5A623]" />
+                <span>+49 170 123 4567</span>
+              </a>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 text-sm text-gray-400">
+                <MessageCircle className="w-4 h-4 text-[#F5A623]" />
+                <span>Mo–Fr 9–18 Uhr erreichbar</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* User */}
       <div className="px-4 pb-6 pt-2">

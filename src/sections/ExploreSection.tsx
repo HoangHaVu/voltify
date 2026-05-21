@@ -37,7 +37,7 @@ export default function ExploreSection() {
             {/* Form */}
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <label className="text-sm font-medium text-[#1A3A5C]">Postleitzahl</label>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
                   value={zipCode}
@@ -48,7 +48,7 @@ export default function ExploreSection() {
                 />
                 <button
                   type="submit"
-                  className="flex items-center gap-2 bg-[#F5A623] text-[#1A3A5C] text-sm font-medium px-5 py-2.5 rounded-full hover:bg-[#E09000] transition-all hover:scale-[1.02] whitespace-nowrap group"
+                  className="flex items-center justify-center gap-2 bg-[#F5A623] text-[#1A3A5C] text-sm font-medium px-5 py-4 sm:py-2.5 rounded-full hover:bg-[#E09000] transition-all hover:scale-[1.02] whitespace-nowrap group"
                 >
                   Jetzt berechnen
                   <span className="w-7 h-7 bg-[#1A3A5C] rounded-full flex items-center justify-center group-hover:bg-[#0F2440] transition-colors">

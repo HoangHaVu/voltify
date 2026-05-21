@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, Clock, Sun, ArrowRight, Zap, CheckCircle, Percent, Landmark, Download } from 'lucide-react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ROIPdfDocument from '../../components/pdf/ROIPdfDocument';
@@ -30,6 +31,14 @@ export default function Step7_Analysis({ data, onNext }: Props) {
   const maxVal = Math.max(...chartData.map(d => d.value));
   const minVal = Math.min(...chartData.map(d => d.value));
   const range = maxVal - minVal;
+
+  const [animated, setAnimated] = useState(false);
+  const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimated(true), 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="flex flex-col gap-8">
@@ -135,17 +144,30 @@ export default function Step7_Analysis({ data, onNext }: Props) {
           <p className="text-sm font-medium text-[#1A3A5C]">Amortisationsverlauf (20 Jahre)</p>
           <span className="text-xs text-[#F5A623] bg-[#F5A623]/10 px-2 py-0.5 rounded-full">+{Math.round(calc.profit20Years).toLocaleString()} € nach 20 Jahren</span>
         </div>
-        <div className="flex items-end gap-1 h-32">
+        <div className="flex items-end gap-[2px] h-40 sm:h-48">
           {chartData.map((d, i) => {
-            const height = range === 0 ? 50 : ((d.value - minVal) / range) * 100;
+            const targetHeight = range === 0 ? 50 : ((d.value - minVal) / range) * 100;
             const isPositive = d.value >= 0;
+            const displayHeight = animated ? Math.max(targetHeight, 4) : 0;
             return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
+              <div
+                key={i}
+                className="flex-1 flex flex-col items-center gap-1 relative"
+                onMouseEnter={() => setHoveredBar(i)}
+                onMouseLeave={() => setHoveredBar(null)}
+              >
+                {/* Tooltip */}
+                {hoveredBar === i && (
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-[#1A3A5C] text-white text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap z-10 shadow-lg">
+                    Jahr {d.year}: {d.value >= 0 ? '+' : ''}{d.value.toLocaleString()} €
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#1A3A5C] rotate-45" />
+                  </div>
+                )}
                 <div
-                  className={`w-full rounded-sm transition-all ${
+                  className={`w-full rounded-t-sm transition-all duration-1000 ease-out ${
                     isPositive ? 'bg-[#F5A623]' : 'bg-gray-300'
-                  }`}
-                  style={{ height: `${Math.max(height, 5)}%` }}
+                  } ${hoveredBar === i ? 'brightness-110' : ''}`}
+                  style={{ height: `${displayHeight}%` }}
                 />
               </div>
             );

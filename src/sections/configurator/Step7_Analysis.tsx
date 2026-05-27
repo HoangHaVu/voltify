@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TrendingUp, DollarSign, Clock, Sun, ArrowRight, Zap, CheckCircle, Percent, Landmark, Download } from 'lucide-react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ROIPdfDocument from '../../components/pdf/ROIPdfDocument';
@@ -24,19 +24,21 @@ export default function Step7_Analysis({ data, onNext }: Props) {
   const range = maxVal - minVal;
 
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const mountRef = useRef(false);
+
+  useEffect(() => {
+    // Kleines Delay, damit die Transition nach dem Mount abspielt
+    const timer = setTimeout(() => setMounted(true), 50);
+    mountRef.current = true;
+    return () => {
+      clearTimeout(timer);
+      mountRef.current = false;
+    };
+  }, []);
 
   return (
-    <>
-      <style>{`
-        @keyframes barGrow {
-          from { height: 0%; }
-          to { height: var(--target-height); }
-        }
-        .animate-bar-grow {
-          animation: barGrow 0.8s ease-out forwards;
-        }
-      `}</style>
-      <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8">
       <div>
         <h2 className="text-2xl md:text-3xl font-semibold text-[#1A3A5C] mb-2">Wirtschaftlichkeitsanalyse</h2>
         <p className="text-gray-500 text-sm">Ihre persönliche Auswertung basierend auf den eingegebenen Daten.</p>
@@ -164,10 +166,13 @@ export default function Step7_Analysis({ data, onNext }: Props) {
                   </div>
                 )}
                 <div
-                  className={`w-full rounded-t-sm animate-bar-grow ${
+                  className={`w-full rounded-t-sm ${
                     isPositive ? 'bg-[#F5A623]' : 'bg-gray-300'
                   } ${hoveredBar === i ? 'brightness-110' : ''}`}
-                  style={{ '--target-height': `${finalHeight}%` } as React.CSSProperties}
+                  style={{
+                    height: mounted ? `${finalHeight}%` : '0%',
+                    transition: `height 0.7s ease-out ${i * 35}ms`,
+                  }}
                 />
               </div>
             );
@@ -214,6 +219,5 @@ export default function Step7_Analysis({ data, onNext }: Props) {
         </PDFDownloadLink>
       </div>
     </div>
-    </>
   );
 }

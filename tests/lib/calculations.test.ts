@@ -13,8 +13,11 @@ const baseData: WizardData = {
   consumptionMethod: 'manual',
   storageSize: '10',
   wallbox: false,
+  heatPump: false,
   backupPower: false,
   energyApp: false,
+  electricityPrice: '0.32',
+  constructionYear: 'after2010',
   firstName: 'Max',
   lastName: 'Mustermann',
   email: 'max@test.de',
@@ -60,9 +63,14 @@ describe('calculateROI', () => {
       backupPower: false,
       energyApp: false,
     };
-    const result = calculateROI(renterData);
+    const ownerData: WizardData = {
+      ...renterData,
+      ownership: 'eigentümer',
+    };
+    const renterResult = calculateROI(renterData);
+    const ownerResult = calculateROI(ownerData);
 
-    expect(result.score).toBeLessThanOrEqual(60);
+    expect(renterResult.score).toBeLessThan(ownerResult.score);
   });
 
   it('berechnet kWp basierend auf Dachfläche (mit hohem Verbrauch)', () => {

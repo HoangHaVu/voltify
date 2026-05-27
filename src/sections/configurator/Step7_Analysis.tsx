@@ -4,7 +4,7 @@ import { PDFDownloadLink } from '@react-pdf/renderer';
 import ROIPdfDocument from '../../components/pdf/ROIPdfDocument';
 import type { WizardData } from '../../pages/Configurator';
 import { calculateROI } from '../../lib/calculations';
-import { getGrantSubsidyTotal, getStateLabel } from '../../data/grants';
+import { getGrantSubsidyTotal } from '../../data/grants';
 
 interface Props {
   data: WizardData;
@@ -14,20 +14,11 @@ interface Props {
 
 export default function Step7_Analysis({ data, onNext }: Props) {
   const calc = calculateROI(data);
-  const consumption = Number(data.consumption) || 4000;
-  const roofArea = Number(data.roofArea) || 50;
 
   const co2Saved = Math.round(calc.kwp * 900 / 1000 * 10) / 10;
   const grantSavings = calc.grantSavings;
   const effectiveInvestment = calc.effectiveInvestment;
-  const eegRevenue = Math.round(calc.kwp * 1000 * 0.3 * 0.082); // ~30% Einspeisung * 8,2ct
-
-  const chartData = Array.from({ length: 20 }, (_, i) => {
-    const year = i + 1;
-    const cumulative = year * calc.annualSavings - effectiveInvestment;
-    return { year, value: cumulative };
-  });
-
+  const chartData = calc.chartData.slice(1); // Jahr 1-20 (ohne Jahr 0)
   const maxVal = Math.max(...chartData.map(d => d.value));
   const minVal = Math.min(...chartData.map(d => d.value));
   const range = maxVal - minVal;
@@ -59,6 +50,7 @@ export default function Step7_Analysis({ data, onNext }: Props) {
             <span className="text-xs text-gray-500">Systemleistung</span>
           </div>
           <p className="text-2xl font-bold text-[#1A3A5C]">{calc.kwp} <span className="text-sm font-normal">kWp</span></p>
+          <p className="text-[10px] text-gray-400 mt-0.5">{calc.annualYield.toLocaleString()} kWh/Jahr Ertrag</p>
         </div>
         <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -83,6 +75,9 @@ export default function Step7_Analysis({ data, onNext }: Props) {
             <span className="text-xs text-gray-500">Ersparnis/Jahr</span>
           </div>
           <p className="text-2xl font-bold text-[#F5A623]">{calc.annualSavings.toLocaleString()} <span className="text-sm font-normal">€</span></p>
+          <p className="text-[10px] text-gray-400 mt-0.5">
+            Eigenverbrauch {calc.selfConsumedEnergy?.toLocaleString()} kWh + Einspeisung {calc.gridFeedIn?.toLocaleString()} kWh
+          </p>
         </div>
         <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -90,6 +85,7 @@ export default function Step7_Analysis({ data, onNext }: Props) {
             <span className="text-xs text-gray-500">Amortisation</span>
           </div>
           <p className="text-2xl font-bold text-[#1A3A5C]">{calc.amortization} <span className="text-sm font-normal">Jahre</span></p>
+          <p className="text-[10px] text-gray-400 mt-0.5">Autarkie: {calc.autarky}%</p>
         </div>
       </div>
 
@@ -112,8 +108,8 @@ export default function Step7_Analysis({ data, onNext }: Props) {
             <div>
               <p className="font-semibold text-[#1A3A5C] text-sm">EEG Einspeisevergütung</p>
               <p className="text-xs text-gray-500 mt-0.5">
-                {eegRevenue > 0
-                  ? `ca. ${eegRevenue.toLocaleString()} €/Jahr · 20 Jahre garantiert`
+                {calc.gridFeedIn > 0
+                  ? `ca. ${Math.round(calc.gridFeedIn * 0.082).toLocaleString()} €/Jahr · 8,2 ct/kWh · 20 Jahre garantiert`
                   : '8,2 ct/kWh · 20 Jahre garantiert'}
               </p>
             </div>

@@ -1,4 +1,4 @@
-import { Home, Building2, Building, Factory, HelpCircle, UserCheck, KeyRound } from 'lucide-react';
+import { Home, Building2, Building, Factory, HelpCircle, UserCheck, KeyRound, Calendar } from 'lucide-react';
 import type { WizardData } from '../../pages/Configurator';
 
 interface Props {
@@ -17,6 +17,11 @@ const buildingTypes = [
 const ownershipTypes = [
   { id: 'eigentuemer', label: 'Eigentümer', icon: KeyRound, desc: 'Ich bin Eigentümer' },
   { id: 'mieter', label: 'Mieter', icon: UserCheck, desc: 'Ich bin Mieter' },
+];
+
+const constructionYearOptions = [
+  { id: 'after2010', label: 'Nach 2010', icon: Calendar, desc: 'Neubau oder energetisch saniert' },
+  { id: 'pre1980', label: 'Vor 1980', icon: Calendar, desc: 'Altbausanierung möglich (+ 2.000 €)' },
 ];
 
 export default function Step1_Building({ data, updateData }: Props) {
@@ -53,6 +58,38 @@ export default function Step1_Building({ data, updateData }: Props) {
                 <div>
                   <p className={`text-sm font-medium ${selected ? 'text-[#1A3A5C]' : 'text-gray-700'}`}>{type.label}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{type.desc}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Construction Year */}
+      <div>
+        <label className="text-sm font-medium text-[#1A3A5C] mb-3 block">Baujahr</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {constructionYearOptions.map((opt) => {
+            const Icon = opt.icon;
+            const selected = data.constructionYear === opt.id;
+            return (
+              <button
+                key={opt.id}
+                onClick={() => updateData({ constructionYear: opt.id })}
+                className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                  selected
+                    ? 'border-[#1A3A5C] bg-[#1A3A5C]/5'
+                    : 'border-gray-200 hover:border-gray-300 bg-white/60'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  selected ? 'bg-[#F5A623]' : 'bg-gray-100'
+                }`}>
+                  <Icon className={`w-5 h-5 ${selected ? 'text-[#1A3A5C]' : 'text-gray-500'}`} />
+                </div>
+                <div>
+                  <p className={`text-sm font-medium ${selected ? 'text-[#1A3A5C]' : 'text-gray-700'}`}>{opt.label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
                 </div>
               </button>
             );

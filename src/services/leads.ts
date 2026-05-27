@@ -15,15 +15,17 @@ export interface WizardData {
   roofTilt: number;
   roofOrientation: string;
   roofArea: number;
-  shading: 'keine' | 'teilweise' | 'stark' | string;
+  shading: 'keine' | 'teilweise' | 'stark' | 'none' | 'partial' | 'strong' | string;
   consumption: number;
   consumptionMethod: 'upload' | 'manual' | 'preset' | string;
   householdSize: string;
   storageSize: number;
   wallbox: boolean;
+  heatPump: boolean;
   backupPower: boolean;
   energyApp: boolean;
   electricityPrice: number;
+  constructionYear: string;
   planningHorizon?: 'sofort' | '3monate' | '12monate' | string;
   needsFinancing?: boolean;
 }
@@ -61,8 +63,8 @@ export async function submitLead(
     consumption_method: data.consumptionMethod || null,
     household_size: data.householdSize || null,
     has_e_car: data.wallbox || false,
-    has_heat_pump: false,
-    has_battery: (data.storageSize || 0) > 0,
+    has_heat_pump: data.heatPump || false,
+    has_battery: (Number(data.storageSize) || 0) > 0,
     wallbox: data.wallbox || false,
     backup_power: data.backupPower || false,
     energy_app: data.energyApp || false,

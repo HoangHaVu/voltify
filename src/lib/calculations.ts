@@ -2,78 +2,148 @@ import type { WizardData } from '../pages/Configurator';
 import type { ROICalculations } from '../services/leads';
 import type { Lead } from '../services/data';
 import { getGrantSubsidyTotal } from '../data/grants';
+import { getIrradiationByZip } from '../data/plzIrradiation';
+import { computeLeadScore } from '../utils/leadScore';
+
+const PERFORMANCE_RATIO = 0.80; // Systemwirkungsgrad inkl. Wechselrichter
+const FEED_IN_TARIFF = 0.082;   // €/kWh, EEG 2024 (< 10 kWp)
+const INVEST_PER_KWP = 1800;    // €/kWp (realistischer Marktpreis)
+const BATTERY_ADDON = 6000;     // € für Batteriespeicher
+const CONSTRUCTION_ADDON = 2000; // € für Altbausanierung (vor 1980)
+
+// Orientierungsfaktor — Voltify verwendet Himmelsrichtungen (S, SO, SW, O, W, N)
+const ORIENTATION_FACTOR: Record<string, number> = {
+  'S': 1.0,
+  'SO': 0.95, 'SW': 0.95,
+  'O': 0.85, 'W': 0.85,
+  'NO': 0.88, 'NW': 0.88,
+  'N': 0.65,
+};
+
+// Quadratischer Abfall vom Optimum (32°); Min-Faktor 0.80
+function getRoofAngleFactor(angle: number): number {
+  const diff = Math.abs(angle - 32);
+  return Math.max(0.80, 1.0 - (diff * diff) / 5000);
+}
+
+// Verschattungsfaktor
+function getShadingFactor(shading: string): number {
+  if (shading === 'strong' || shading === 'stark') return 0.85;
+  if (shading === 'partial' || shading === 'teilweise') return 0.93;
+  return 1.0;
+}
 
 export interface ExtendedROICalculations extends ROICalculations {
   grantSavings: number;
   effectiveInvestment: number;
+  annualYield: number;
+  adjustedConsumption: number;
+  selfConsumedEnergy: number;
+  gridFeedIn: number;
+  irradiation: number;
+  selfConsumptionRate: number;
+  chartData: { year: number; value: number }[];
 }
 
 export function calculateROI(data: WizardData): ExtendedROICalculations {
   const consumption = Number(data.consumption) || 4000;
   const roofArea = Number(data.roofArea) || 50;
-  const storageKwh = Number(data.storageSize) || 10;
+  const storageKwh = data.storageSize !== '' && data.storageSize !== undefined ? Number(data.storageSize) : 10;
+  const hasBattery = storageKwh > 0;
+  const electricityPrice = Number(data.electricityPrice) || 0.32;
 
-  // Einstrahlungsfaktor basierend auf Dachausrichtung
-  const orientationFactor: Record<string, number> = {
-    'S': 1.0, 'Süd': 1.0,
-    'SO': 0.95, 'Süd-Ost': 0.95,
-    'SW': 0.95, 'Süd-West': 0.95,
-    'O': 0.85, 'Ost': 0.85,
-    'W': 0.85, 'West': 0.85,
-    'N': 0.65, 'Nord': 0.65,
-  };
-  const orientationMultiplier = orientationFactor[data.roofOrientation] ?? 1.0;
+  // Einstrahlung basierend auf PLZ
+  const irradiation = getIrradiationByZip(data.zipCode);
 
-  // Neigungsfaktor (30° = optimal)
-  const tiltDiff = Math.abs(data.roofTilt - 30);
-  const tiltMultiplier = Math.max(0.85, 1 - tiltDiff * 0.005);
+  // Ausrichtungsfaktor
+  const orientationFactor = ORIENTATION_FACTOR[data.roofOrientation] ?? 1.0;
+
+  // Neigungsfaktor
+  const roofAngleFactor = getRoofAngleFactor(data.roofTilt);
 
   // Verschattungsfaktor
-  const shadingMultiplier =
-    data.shading === 'stark' ? 0.75 :
-    data.shading === 'teilweise' ? 0.88 :
-    1.0;
+  const shadingFactor = getShadingFactor(data.shading);
 
-  const totalEfficiencyMultiplier = orientationMultiplier * tiltMultiplier * shadingMultiplier;
+  // Systemleistung in kWp — NUR durch Dachfläche begrenzt (realistisch!)
+  const kwp = Math.round(roofArea * 0.18 * orientationFactor * shadingFactor * 10) / 10;
 
-  const systemPower = Math.min(
-    Math.round(roofArea * 0.18 * totalEfficiencyMultiplier),
-    Math.round(consumption / 850)
+  // Zukünftiger Verbrauch durch E-Auto und Wärmepumpe
+  const adjustedConsumption = consumption
+    + (data.wallbox ? 2500 : 0)
+    + (data.heatPump ? 3000 : 0);
+
+  // Jährlicher Ertrag
+  const annualYield = Math.round(kwp * irradiation * PERFORMANCE_RATIO * roofAngleFactor);
+
+  // Eigenverbrauchsrate abhängig vom Gebäudetyp und Speicher
+  const isCommercial = data.buildingType === 'gewerbe' || data.buildingType === 'firmengebaeude';
+  const selfConsumptionRate = isCommercial
+    ? (hasBattery ? 0.80 : 0.60)
+    : (hasBattery ? 0.65 : 0.30);
+
+  // Selbst verbrauchte Energie (max. angepasster Verbrauch)
+  const selfConsumedEnergy = Math.min(
+    Math.round(annualYield * selfConsumptionRate),
+    adjustedConsumption
   );
-  const investPerKw = 1400;
-  const totalInvest = systemPower * investPerKw + storageKwh * 700;
 
-  // Förderungen basierend auf PLZ
+  // Einspeisung ins Netz
+  const gridFeedIn = annualYield - selfConsumedEnergy;
+
+  // Autarkiegrad
+  const autarky = Math.min(100, Math.round((selfConsumedEnergy / adjustedConsumption) * 100));
+
+  // Investition
+  const batteryAddon = hasBattery ? BATTERY_ADDON : 0;
+  const constructionAddon = data.constructionYear === 'pre1980' ? CONSTRUCTION_ADDON : 0;
+  const investment = Math.round(kwp * INVEST_PER_KWP) + batteryAddon + constructionAddon;
+
+  // Förderungen
   const grantSavings = getGrantSubsidyTotal(data.zipCode);
-  const effectiveInvestment = Math.max(0, totalInvest - grantSavings);
+  const effectiveInvestment = Math.max(0, investment - grantSavings);
 
-  const savingsPerYear = Math.round(consumption * 0.35 * 0.35);
-  const amortization = savingsPerYear > 0 ? Math.round((effectiveInvestment / savingsPerYear) * 10) / 10 : 0;
-  const profit20Years = savingsPerYear * 20 - effectiveInvestment;
-  const autarky = Math.min(50 + storageKwh * 2, 95);
+  // Jährliche Ersparnis = Eigenverbrauch * Strompreis + Einspeisung * EEG-Vergütung
+  const annualSavings = Math.round(
+    selfConsumedEnergy * electricityPrice + gridFeedIn * FEED_IN_TARIFF
+  );
+
+  const amortization = annualSavings > 0 ? Math.round(effectiveInvestment / annualSavings) : 0;
+  const profit20Years = Math.round(annualSavings * 20 - effectiveInvestment);
+
+  // Chart-Daten für Amortisationsgraph
+  const chartData = Array.from({ length: 21 }, (_, year) => ({
+    year,
+    value: annualSavings * year - effectiveInvestment,
+  }));
 
   // Lead Score (0-100)
-  let score = 50;
-  if (data.ownership === 'eigentümer') score += 20;
-  if (consumption > 5000) score += 15;
-  if (data.wallbox) score += 10;
-  if (data.backupPower) score += 5;
-  if (data.energyApp) score += 5;
-  if (roofArea > 80) score += 10;
-  if (data.shading === 'keine' || data.shading === 'none') score += 5;
-  if (orientationMultiplier >= 0.95) score += 5;
-  score = Math.min(100, score);
+  const score = computeLeadScore({
+    kwp,
+    investment,
+    zip: data.zipCode,
+    isOwner: data.ownership === 'eigentümer' || data.ownership === 'eigentuemer',
+    hasBattery,
+    area: roofArea,
+    planningHorizon: '',
+  });
 
   return {
-    kwp: systemPower,
-    investment: totalInvest,
-    annualSavings: savingsPerYear,
-    amortization: Math.round(amortization),
-    autarky: Math.round(autarky),
-    profit20Years: Math.round(profit20Years),
+    kwp,
+    investment,
+    annualSavings,
+    amortization,
+    autarky,
+    profit20Years,
     score,
     grantSavings,
     effectiveInvestment,
+    annualYield,
+    adjustedConsumption,
+    selfConsumedEnergy,
+    gridFeedIn,
+    irradiation,
+    selfConsumptionRate,
+    chartData,
   };
 }
 
@@ -84,37 +154,78 @@ export function calculateROI(data: WizardData): ExtendedROICalculations {
 export function recalculateLead(lead: Lead): Partial<Lead> {
   const consumption = lead.consumption || 4000;
   const roofArea = lead.roof_area_measured ?? lead.roof_area ?? 50;
-  const storageKwh = lead.has_battery ? 10 : 0;
+  const hasBattery = lead.has_battery || false;
+  const electricityPrice = lead.electricity_price || 0.32;
 
-  const systemPower = Math.min(Math.round(roofArea * 0.18), Math.round(consumption / 850));
-  const investPerKw = 1400;
-  const totalInvest = systemPower * investPerKw + storageKwh * 700;
+  // Einstrahlung basierend auf PLZ
+  const irradiation = getIrradiationByZip(lead.zip || '');
+
+  // Ausrichtungsfaktor (Lead speichert als String)
+  const orientationFactor = ORIENTATION_FACTOR[lead.roof_orientation || 'S'] ?? 1.0;
+
+  // Neigungsfaktor
+  const roofAngleFactor = getRoofAngleFactor(lead.roof_tilt || 30);
+
+  // Verschattungsfaktor
+  const shadingFactor = getShadingFactor(lead.shading || 'none');
+
+  // Systemleistung
+  const kwp = Math.round(roofArea * 0.18 * orientationFactor * shadingFactor * 10) / 10;
+
+  // Zukünftiger Verbrauch
+  const adjustedConsumption = consumption
+    + (lead.has_e_car ? 2500 : 0)
+    + (lead.has_heat_pump ? 3000 : 0);
+
+  // Jährlicher Ertrag
+  const annualYield = Math.round(kwp * irradiation * PERFORMANCE_RATIO * roofAngleFactor);
+
+  // Eigenverbrauchsrate
+  const isCommercial = lead.building_type === 'gewerbe' || lead.building_type === 'firmengebaeude';
+  const selfConsumptionRate = isCommercial
+    ? (hasBattery ? 0.80 : 0.60)
+    : (hasBattery ? 0.65 : 0.30);
+
+  const selfConsumedEnergy = Math.min(
+    Math.round(annualYield * selfConsumptionRate),
+    adjustedConsumption
+  );
+
+  const gridFeedIn = annualYield - selfConsumedEnergy;
+  const autarky = Math.min(100, Math.round((selfConsumedEnergy / adjustedConsumption) * 100));
+
+  // Investition
+  const batteryAddon = hasBattery ? BATTERY_ADDON : 0;
+  const investment = Math.round(kwp * INVEST_PER_KWP) + batteryAddon;
 
   const grantSavings = getGrantSubsidyTotal(lead.zip || '');
-  const effectiveInvestment = Math.max(0, totalInvest - grantSavings);
+  const effectiveInvestment = Math.max(0, investment - grantSavings);
 
-  const savingsPerYear = Math.round(consumption * 0.35 * 0.35);
-  const amortization = savingsPerYear > 0 ? Math.round((effectiveInvestment / savingsPerYear) * 10) / 10 : 0;
-  const profit20Years = savingsPerYear * 20 - effectiveInvestment;
-  const autarky = Math.min(50 + storageKwh * 2, 95);
+  const annualSavings = Math.round(
+    selfConsumedEnergy * electricityPrice + gridFeedIn * FEED_IN_TARIFF
+  );
+
+  const amortization = annualSavings > 0 ? Math.round(effectiveInvestment / annualSavings) : 0;
+  const profit20Years = Math.round(annualSavings * 20 - effectiveInvestment);
 
   // Lead Score (0-100)
-  let score = 50;
-  score += 20; // Eigentümer (Lead = immer Eigentümer)
-  if (consumption > 5000) score += 15;
-  if (lead.has_e_car) score += 10;
-  if (lead.has_battery) score += 5;
-  if (lead.has_heat_pump) score += 5;
-  if (roofArea > 80) score += 10;
-  score = Math.min(100, score);
+  const score = computeLeadScore({
+    kwp,
+    investment,
+    zip: lead.zip || '',
+    isOwner: true,
+    hasBattery,
+    area: roofArea,
+    planningHorizon: '',
+  });
 
   return {
-    kwp: systemPower,
-    investment: totalInvest,
-    annual_savings: savingsPerYear,
-    amortization: Math.round(amortization),
-    autarky: Math.round(autarky),
-    profit_20_years: Math.round(profit20Years),
+    kwp,
+    investment,
+    annual_savings: annualSavings,
+    amortization,
+    autarky,
+    profit_20_years: profit20Years,
     score,
   };
 }

@@ -127,6 +127,27 @@ export default function Step3_Consumption({ data, updateData }: Props) {
         </div>
       )}
 
+      {/* Strompreis */}
+      <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200 p-6">
+        <label className="text-sm font-medium text-[#1A3A5C] mb-3 block">Aktueller Strompreis</label>
+        <div className="relative">
+          <input
+            type="number"
+            value={data.electricityPrice}
+            onChange={(e) => updateData({ electricityPrice: e.target.value })}
+            placeholder="z.B. 0.32"
+            step="0.01"
+            min="0.10"
+            max="0.80"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-16 text-sm text-[#1A3A5C] placeholder:text-gray-400 focus:outline-none focus:border-[#1A3A5C] focus:ring-1 focus:ring-[#1A3A5C]"
+          />
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">€/kWh</span>
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          Durchschnitt in Deutschland: ca. 0,32 €/kWh (inkl. Grundpreis umgerechnet).
+        </p>
+      </div>
+
       {/* Info Box */}
       <div className="flex items-start gap-3 p-4 rounded-xl bg-[#1A3A5C]/5 border border-[#1A3A5C]/10">
         <Zap className="w-5 h-5 text-[#F5A623] flex-shrink-0 mt-0.5" />

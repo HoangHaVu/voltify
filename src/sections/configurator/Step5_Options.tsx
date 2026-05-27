@@ -1,4 +1,4 @@
-import { Car, Power, Smartphone, Check } from 'lucide-react';
+import { Car, Power, Smartphone, Check, Flame } from 'lucide-react';
 import type { WizardData } from '../../pages/Configurator';
 
 interface Props {
@@ -14,6 +14,14 @@ const options = [
     price: '+ 1.200 €',
     desc: 'Laden Sie Ihr E-Auto bequem mit Solarstrom zu Hause. Inkl. Installation.',
     icon: Car,
+  },
+  {
+    id: 'heatPump',
+    key: 'heatPump' as const,
+    label: 'Wärmepumpe (geplant)',
+    price: '+ 0 €',
+    desc: 'Planen Sie eine Wärmepumpe? Wir berücksichtigen +3.000 kWh/Jahr im Verbrauch.',
+    icon: Flame,
   },
   {
     id: 'backup',

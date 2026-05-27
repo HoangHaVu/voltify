@@ -51,8 +51,12 @@ export interface Lead {
   email: string;
   phone: string | null;
   zip: string | null;
+  building_type: string | null;
+  ownership: string | null;
   roof_orientation: string | null;
+  roof_tilt: number | null;
   roof_area: number | null;
+  shading: string | null;
   construction_year: string | null;
   consumption: number | null;
   has_e_car: boolean | null;

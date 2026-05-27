@@ -67,7 +67,7 @@ export default function ROIPdfDocument({ data, calc }: Props) {
                 </View>
                 <View style={s.configRow}>
                   <Text style={s.configLabel}>Eigentumsverhältnis</Text>
-                  <Text style={s.configValue}>{data.ownership === 'eigentümer' ? 'Eigentümer' : 'Mieter'}</Text>
+                  <Text style={s.configValue}>{data.ownership === 'eigentümer' || data.ownership === 'eigentuemer' ? 'Eigentümer' : 'Mieter'}</Text>
                 </View>
                 <View style={s.configRow}>
                   <Text style={s.configLabel}>Dachneigung</Text>
@@ -185,7 +185,7 @@ export default function ROIPdfDocument({ data, calc }: Props) {
           {/* Disclaimer */}
           <View style={s.disclaimer}>
             <Text style={s.disclaimerText}>
-              Diese Analyse basiert auf geschätzten Einstrahlungsdaten für PLZ {data.zipCode}, einem Systemwirkungsgrad von 80 % sowie einem Strompreis von 35 ct/kWh. Alle Angaben sind Prognosen und ohne Gewähr. Die tatsächlichen Werte können je nach Dachbeschaffenheit, Installationsqualität und Strompreisentwicklung abweichen. Förderungen sind ggf. zu beantragen und nicht automatisch zugesichert.
+              Diese Analyse basiert auf geschätzten Einstrahlungsdaten für PLZ {data.zipCode}, einem Systemwirkungsgrad von 80 % sowie einem Strompreis von {Number(data.electricityPrice || 0.32).toFixed(2).replace('.', ',')} €/kWh. Alle Angaben sind Prognosen und ohne Gewähr. Die tatsächlichen Werte können je nach Dachbeschaffenheit, Installationsqualität und Strompreisentwicklung abweichen. Förderungen sind ggf. zu beantragen und nicht automatisch zugesichert.
             </Text>
           </View>
 

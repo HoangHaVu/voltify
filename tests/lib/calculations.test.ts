@@ -13,6 +13,7 @@ const baseData: WizardData = {
   consumptionMethod: 'manual',
   storageSize: '10',
   wallbox: false,
+  futureCar: false,
   heatPump: false,
   backupPower: false,
   energyApp: false,

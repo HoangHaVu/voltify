@@ -25,6 +25,7 @@ export interface WizardData {
   consumptionMethod: 'upload' | 'manual' | 'preset';
   storageSize: string;
   wallbox: boolean;
+  futureCar: boolean;
   heatPump: boolean;
   backupPower: boolean;
   energyApp: boolean;
@@ -51,6 +52,7 @@ const initialData: WizardData = {
   consumptionMethod: 'manual',
   storageSize: '10',
   wallbox: false,
+  futureCar: false,
   heatPump: false,
   backupPower: false,
   energyApp: false,
@@ -143,6 +145,7 @@ export default function Configurator() {
           energyApp: data.energyApp,
           electricityPrice: Number(data.electricityPrice) || 0.32,
           constructionYear: data.constructionYear,
+          futureCar: data.futureCar,
           heatPump: data.heatPump,
         },
         dbCalc,
@@ -157,7 +160,7 @@ export default function Configurator() {
 
   // Key für Step7, der sich bei jeder Datenänderung ändert
   // damit React die Analyse-Komponente komplett neu mountet
-  const analysisKey = `step7-${data.consumption}-${data.roofArea}-${data.storageSize}-${data.zipCode}-${data.ownership}-${data.wallbox}-${data.heatPump}-${data.backupPower}-${data.energyApp}-${data.shading}-${data.roofOrientation}-${data.roofTilt}-${data.electricityPrice}-${data.constructionYear}`;
+  const analysisKey = `step7-${data.consumption}-${data.roofArea}-${data.storageSize}-${data.zipCode}-${data.ownership}-${data.wallbox}-${data.futureCar}-${data.heatPump}-${data.backupPower}-${data.energyApp}-${data.shading}-${data.roofOrientation}-${data.roofTilt}-${data.electricityPrice}-${data.constructionYear}`;
 
   const renderStep = () => {
     const props = { data, updateData };

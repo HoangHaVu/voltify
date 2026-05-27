@@ -21,6 +21,7 @@ export interface WizardData {
   householdSize: string;
   storageSize: number;
   wallbox: boolean;
+  futureCar: boolean;
   heatPump: boolean;
   backupPower: boolean;
   energyApp: boolean;
@@ -62,7 +63,7 @@ export async function submitLead(
     consumption: data.consumption || null,
     consumption_method: data.consumptionMethod || null,
     household_size: data.householdSize || null,
-    has_e_car: data.wallbox || false,
+    has_e_car: data.futureCar || false,
     has_heat_pump: data.heatPump || false,
     has_battery: (Number(data.storageSize) || 0) > 0,
     wallbox: data.wallbox || false,

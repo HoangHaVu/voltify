@@ -69,7 +69,7 @@ export function calculateROI(data: WizardData): ExtendedROICalculations {
 
   // Zukünftiger Verbrauch durch E-Auto und Wärmepumpe
   const adjustedConsumption = consumption
-    + (data.wallbox ? 2500 : 0)
+    + (data.futureCar ? 2500 : 0)
     + (data.heatPump ? 3000 : 0);
 
   // Jährlicher Ertrag

@@ -46,11 +46,11 @@ export interface ExtendedROICalculations extends ROICalculations {
 }
 
 export function calculateROI(data: WizardData): ExtendedROICalculations {
-  const consumption = Number(data.consumption) || 4000;
-  const roofArea = Number(data.roofArea) || 50;
+  const consumption = Math.max(0, Number(data.consumption) || 4000);
+  const roofArea = Math.max(0, Number(data.roofArea) || 50);
   const storageKwh = data.storageSize !== '' && data.storageSize !== undefined ? Number(data.storageSize) : 10;
   const hasBattery = storageKwh > 0;
-  const electricityPrice = Number(data.electricityPrice) || 0.32;
+  const electricityPrice = Math.max(0, Number(data.electricityPrice) || 0.32);
 
   // Einstrahlung basierend auf PLZ
   const irradiation = getIrradiationByZip(data.zipCode);

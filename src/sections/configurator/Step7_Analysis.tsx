@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { TrendingUp, DollarSign, Clock, Sun, ArrowRight, Zap, CheckCircle, Percent, Landmark, Download } from 'lucide-react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ROIPdfDocument from '../../components/pdf/ROIPdfDocument';
@@ -24,18 +24,6 @@ export default function Step7_Analysis({ data, onNext }: Props) {
   const range = maxVal - minVal;
 
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const mountRef = useRef(false);
-
-  useEffect(() => {
-    // Kleines Delay, damit die Transition nach dem Mount abspielt
-    const timer = setTimeout(() => setMounted(true), 50);
-    mountRef.current = true;
-    return () => {
-      clearTimeout(timer);
-      mountRef.current = false;
-    };
-  }, []);
 
   return (
     <div className="flex flex-col gap-8">
@@ -169,10 +157,7 @@ export default function Step7_Analysis({ data, onNext }: Props) {
                   className={`w-full rounded-t-sm ${
                     isPositive ? 'bg-[#F5A623]' : 'bg-gray-300'
                   } ${hoveredBar === i ? 'brightness-110' : ''}`}
-                  style={{
-                    height: mounted ? `${finalHeight}%` : '0%',
-                    transition: `height 0.7s ease-out ${i * 35}ms`,
-                  }}
+                  style={{ height: `${finalHeight}%` }}
                 />
               </div>
             );

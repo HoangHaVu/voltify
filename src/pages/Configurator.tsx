@@ -171,7 +171,7 @@ export default function Configurator() {
       case 4: return <Step4_Storage {...props} />;
       case 5: return <Step5_Options {...props} />;
       case 6: return <Step6_Subsidies {...props} />;
-      case 7: return <Step7_Analysis key={analysisKey} {...props} onNext={goNext} />;
+      case 7: return <Step7_Analysis {...props} onNext={goNext} />;
       case 8: return <Step8_Contact {...props} onSubmit={handleSubmit} isSubmitting={isSubmitting} submitError={submitError} />;
       case 9: return <Step9_ThankYou />;
       default: return null;

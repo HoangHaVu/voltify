@@ -18,10 +18,12 @@ export default function Step7_Analysis({ data, onNext }: Props) {
   const co2Saved = Math.round(calc.kwp * 900 / 1000 * 10) / 10;
   const grantSavings = calc.grantSavings;
   const effectiveInvestment = calc.effectiveInvestment;
-  const chartData = (calc.chartData ?? []).slice(1); // Jahr 1-20 (ohne Jahr 0)
-  const values = chartData.map(d => d.value).filter(Number.isFinite);
-  const maxVal = values.length > 0 ? Math.max(...values) : 100;
-  const minVal = values.length > 0 ? Math.min(...values) : 0;
+  const chartData = Array.from({ length: 20 }, (_, i) => {
+    const year = i + 1;
+    return { year, value: year * calc.annualSavings - effectiveInvestment };
+  });
+  const maxVal = Math.max(...chartData.map(d => d.value));
+  const minVal = Math.min(...chartData.map(d => d.value));
   const range = maxVal - minVal;
 
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
@@ -136,39 +138,33 @@ export default function Step7_Analysis({ data, onNext }: Props) {
           <span className="text-xs text-[#F5A623] bg-[#F5A623]/10 px-2 py-0.5 rounded-full">+{Math.round(calc.profit20Years).toLocaleString()} € nach 20 Jahren</span>
         </div>
         <div className="flex items-end gap-[2px] h-40 sm:h-48">
-          {chartData.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-xs text-gray-400">Chart-Daten nicht verfügbar</p>
-            </div>
-          ) : (
-            chartData.map((d, i) => {
-              const targetHeight = range === 0 || !Number.isFinite(range) ? 50 : ((d.value - minVal) / range) * 100;
-              const isPositive = d.value >= 0;
-              const finalHeight = Math.max(Number.isFinite(targetHeight) ? targetHeight : 50, 2);
-              return (
+          {chartData.map((d, i) => {
+            const targetHeight = range === 0 ? 50 : ((d.value - minVal) / range) * 100;
+            const isPositive = d.value >= 0;
+            const finalHeight = Math.max(targetHeight, 4);
+            return (
+              <div
+                key={i}
+                className="flex-1 flex flex-col items-center gap-1 relative"
+                onMouseEnter={() => setHoveredBar(i)}
+                onMouseLeave={() => setHoveredBar(null)}
+              >
+                {/* Tooltip */}
+                {hoveredBar === i && (
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-[#1A3A5C] text-white text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap z-10 shadow-lg">
+                    Jahr {d.year}: {d.value >= 0 ? '+' : ''}{d.value.toLocaleString()} €
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#1A3A5C] rotate-45" />
+                  </div>
+                )}
                 <div
-                  key={i}
-                  className="flex-1 flex flex-col items-center gap-1 relative"
-                  onMouseEnter={() => setHoveredBar(i)}
-                  onMouseLeave={() => setHoveredBar(null)}
-                >
-                  {/* Tooltip */}
-                  {hoveredBar === i && (
-                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-[#1A3A5C] text-white text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap z-10 shadow-lg">
-                      Jahr {d.year}: {d.value >= 0 ? '+' : ''}{d.value.toLocaleString()} €
-                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#1A3A5C] rotate-45" />
-                    </div>
-                  )}
-                  <div
-                    className={`w-full rounded-t-sm ${
-                      isPositive ? 'bg-[#F5A623]' : 'bg-gray-300'
-                    } ${hoveredBar === i ? 'brightness-110' : ''}`}
-                    style={{ height: `${finalHeight}%` }}
-                  />
-                </div>
-              );
-            })
-          )}
+                  className={`w-full rounded-t-sm ${
+                    isPositive ? 'bg-[#F5A623]' : 'bg-gray-300'
+                  } ${hoveredBar === i ? 'brightness-110' : ''}`}
+                  style={{ height: `${finalHeight}%` }}
+                />
+              </div>
+            );
+          })}
         </div>
         <div className="flex justify-between text-[10px] text-gray-400 mt-2">
           <span>Jahr 1</span>

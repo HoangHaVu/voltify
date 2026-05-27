@@ -74,6 +74,7 @@ const steps = [
 
 export default function Configurator() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [maxVisitedStep, setMaxVisitedStep] = useState(1);
   const [data, setData] = useState<WizardData>(initialData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -84,7 +85,13 @@ export default function Configurator() {
   };
 
   const goNext = () => {
-    if (currentStep < 9) setCurrentStep((s) => s + 1);
+    if (currentStep < 9) {
+      setCurrentStep((s) => {
+        const next = s + 1;
+        setMaxVisitedStep((m) => Math.max(m, next));
+        return next;
+      });
+    }
   };
 
   const goBack = () => {
@@ -92,7 +99,7 @@ export default function Configurator() {
   };
 
   const goToStep = (step: number) => {
-    if (step <= currentStep) setCurrentStep(step);
+    if (step <= maxVisitedStep) setCurrentStep(step);
   };
 
   const handleSubmit = async () => {
@@ -190,7 +197,7 @@ export default function Configurator() {
               {steps.map((step) => {
                 const isActive = step.id === currentStep;
                 const isCompleted = step.id < currentStep;
-                const isClickable = step.id <= currentStep;
+                const isClickable = step.id <= maxVisitedStep;
 
                 return (
                   <button
@@ -313,6 +320,23 @@ export default function Configurator() {
                     Individuelles Angebot anfordern
                     <ArrowRight className="w-4 h-4" />
                   </button>
+                ) : currentStep < 7 && maxVisitedStep >= 7 ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={goNext}
+                      className="flex items-center gap-2 bg-[#1A3A5C] text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-[#0F2440] transition-all"
+                    >
+                      Weiter
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setCurrentStep(7)}
+                      className="flex items-center gap-2 bg-[#F5A623]/10 border border-[#F5A623]/30 text-[#F5A623] px-4 py-3 rounded-xl text-sm font-medium hover:bg-[#F5A623]/20 transition-all"
+                    >
+                      <Zap className="w-4 h-4" />
+                      Zur Analyse
+                    </button>
+                  </div>
                 ) : (
                   <button
                     onClick={goNext}

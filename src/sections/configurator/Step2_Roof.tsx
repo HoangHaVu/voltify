@@ -94,8 +94,13 @@ export default function Step2_Roof({ data, updateData }: Props) {
         <div className="relative">
           <input
             type="number"
+            min="0"
             value={data.roofArea}
-            onChange={(e) => updateData({ roofArea: e.target.value })}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val !== '' && Number(val) < 0) return;
+              updateData({ roofArea: val });
+            }}
             placeholder="z.B. 60"
             className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-16 text-sm text-[#1A3A5C] placeholder:text-gray-400 focus:outline-none focus:border-[#1A3A5C] focus:ring-1 focus:ring-[#1A3A5C]"
           />

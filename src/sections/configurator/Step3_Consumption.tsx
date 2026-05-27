@@ -103,8 +103,13 @@ export default function Step3_Consumption({ data, updateData }: Props) {
           <div className="relative">
             <input
               type="number"
+              min="0"
               value={data.consumption}
-              onChange={(e) => handleManual(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val !== '' && Number(val) < 0) return;
+                handleManual(val);
+              }}
               placeholder="z.B. 4000"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-20 text-sm text-[#1A3A5C] placeholder:text-gray-400 focus:outline-none focus:border-[#1A3A5C] focus:ring-1 focus:ring-[#1A3A5C]"
             />
@@ -134,7 +139,11 @@ export default function Step3_Consumption({ data, updateData }: Props) {
           <input
             type="number"
             value={data.electricityPrice}
-            onChange={(e) => updateData({ electricityPrice: e.target.value })}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val !== '' && Number(val) < 0) return;
+              updateData({ electricityPrice: val });
+            }}
             placeholder="z.B. 0.32"
             step="0.01"
             min="0.10"

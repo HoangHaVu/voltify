@@ -13,7 +13,33 @@ export function calculateROI(data: WizardData): ExtendedROICalculations {
   const roofArea = Number(data.roofArea) || 50;
   const storageKwh = Number(data.storageSize) || 10;
 
-  const systemPower = Math.min(Math.round(roofArea * 0.18), Math.round(consumption / 850));
+  // Einstrahlungsfaktor basierend auf Dachausrichtung
+  const orientationFactor: Record<string, number> = {
+    'S': 1.0, 'Süd': 1.0,
+    'SO': 0.95, 'Süd-Ost': 0.95,
+    'SW': 0.95, 'Süd-West': 0.95,
+    'O': 0.85, 'Ost': 0.85,
+    'W': 0.85, 'West': 0.85,
+    'N': 0.65, 'Nord': 0.65,
+  };
+  const orientationMultiplier = orientationFactor[data.roofOrientation] ?? 1.0;
+
+  // Neigungsfaktor (30° = optimal)
+  const tiltDiff = Math.abs(data.roofTilt - 30);
+  const tiltMultiplier = Math.max(0.85, 1 - tiltDiff * 0.005);
+
+  // Verschattungsfaktor
+  const shadingMultiplier =
+    data.shading === 'stark' ? 0.75 :
+    data.shading === 'teilweise' ? 0.88 :
+    1.0;
+
+  const totalEfficiencyMultiplier = orientationMultiplier * tiltMultiplier * shadingMultiplier;
+
+  const systemPower = Math.min(
+    Math.round(roofArea * 0.18 * totalEfficiencyMultiplier),
+    Math.round(consumption / 850)
+  );
   const investPerKw = 1400;
   const totalInvest = systemPower * investPerKw + storageKwh * 700;
 
@@ -34,6 +60,8 @@ export function calculateROI(data: WizardData): ExtendedROICalculations {
   if (data.backupPower) score += 5;
   if (data.energyApp) score += 5;
   if (roofArea > 80) score += 10;
+  if (data.shading === 'keine' || data.shading === 'none') score += 5;
+  if (orientationMultiplier >= 0.95) score += 5;
   score = Math.min(100, score);
 
   return {

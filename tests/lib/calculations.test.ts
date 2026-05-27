@@ -62,7 +62,7 @@ describe('calculateROI', () => {
     };
     const result = calculateROI(renterData);
 
-    expect(result.score).toBeLessThan(60);
+    expect(result.score).toBeLessThanOrEqual(60);
   });
 
   it('berechnet kWp basierend auf Dachfläche (mit hohem Verbrauch)', () => {

@@ -137,7 +137,7 @@ export default function Step7_Analysis({ data, onNext }: Props) {
           <p className="text-sm font-medium text-[#1A3A5C]">Amortisationsverlauf (20 Jahre)</p>
           <span className="text-xs text-[#F5A623] bg-[#F5A623]/10 px-2 py-0.5 rounded-full">+{Math.round(calc.profit20Years).toLocaleString()} € nach 20 Jahren</span>
         </div>
-        <div className="flex items-end gap-[2px] h-40 sm:h-48">
+        <div className="flex gap-[2px] h-40 sm:h-48">
           {chartData.map((d, i) => {
             const targetHeight = range === 0 ? 50 : ((d.value - minVal) / range) * 100;
             const isPositive = d.value >= 0;
@@ -145,7 +145,7 @@ export default function Step7_Analysis({ data, onNext }: Props) {
             return (
               <div
                 key={i}
-                className="flex-1 flex flex-col items-center gap-1 relative"
+                className="flex-1 h-full flex flex-col justify-end items-center relative"
                 onMouseEnter={() => setHoveredBar(i)}
                 onMouseLeave={() => setHoveredBar(null)}
               >

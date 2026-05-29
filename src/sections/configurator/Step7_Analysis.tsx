@@ -18,10 +18,8 @@ export default function Step7_Analysis({ data, onNext }: Props) {
   const co2Saved = Math.round(calc.kwp * 900 / 1000 * 10) / 10;
   const grantSavings = calc.grantSavings;
   const effectiveInvestment = calc.effectiveInvestment;
-  const chartData = Array.from({ length: 20 }, (_, i) => {
-    const year = i + 1;
-    return { year, value: year * calc.annualSavings - effectiveInvestment };
-  });
+  // Realistischer Chart mit Folgekosten
+  const chartData = (calc.chartDataRealistic ?? calc.chartData).slice(1);
   const maxVal = Math.max(...chartData.map(d => d.value));
   const minVal = Math.min(...chartData.map(d => d.value));
   const range = maxVal - minVal;
@@ -135,7 +133,7 @@ export default function Step7_Analysis({ data, onNext }: Props) {
       <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm font-medium text-[#1A3A5C]">Amortisationsverlauf (20 Jahre)</p>
-          <span className="text-xs text-[#F5A623] bg-[#F5A623]/10 px-2 py-0.5 rounded-full">+{Math.round(calc.profit20Years).toLocaleString()} € nach 20 Jahren</span>
+          <span className="text-xs text-[#F5A623] bg-[#F5A623]/10 px-2 py-0.5 rounded-full">+{Math.round(calc.profit20YearsRealistic || calc.profit20Years).toLocaleString()} € nach 20 Jahren (mit Folgekosten)</span>
         </div>
         <div className="flex gap-[2px] h-40 sm:h-48">
           {chartData.map((d, i) => {
@@ -168,7 +166,7 @@ export default function Step7_Analysis({ data, onNext }: Props) {
         </div>
         <div className="flex justify-between text-[10px] text-gray-400 mt-2">
           <span>Jahr 1</span>
-          <span className="text-[#F5A623] font-medium">Break-even ca. Jahr {Math.ceil(calc.amortization)}</span>
+          <span className="text-[#F5A623] font-medium">Break-even ca. Jahr {Math.ceil(calc.amortizationRealistic || calc.amortization)}</span>
           <span>Jahr 20</span>
         </div>
       </div>

@@ -74,6 +74,12 @@
 
 ## ✅ Abgeschlossen — MVP
 
+### Bugfixes & Tests (2026-05-27)
+- [x] **Amortisationsgraph repariert** — `items-end` verhinderte Balkenanzeige (Flexbox-Height-Bug), `justify-end` + `h-full` fix
+- [x] **Negative Eingaben blockiert** — Dachfläche, Stromverbrauch, Strompreis: onChange-Guard + `min="0"`
+- [x] **calculateROI Clamping** — `Math.max(0, ...)` in calculations.ts als Defense-in-Depth
+- [x] **Tests erweitert** — 94 Tests (war 65): +14 Wirtschaftlichkeitsanalyse/Chart, +6 Step2_Roof, +8 Step3_Consumption
+
 ### Core Features
 - [x] Auth-System — Supabase Auth, 8 Rollen, AuthContext + ProtectedRoute
 - [x] Configurator — 9-Schritt Wizard mit Sidebar, ROI-Berechnung

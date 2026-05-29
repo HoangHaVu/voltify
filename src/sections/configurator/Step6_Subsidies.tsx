@@ -176,6 +176,29 @@ export default function Step6_Subsidies({ data }: Props) {
           ))}
         </div>
       </div>
+
+      {/* Verbraucherzentrale */}
+      <a
+        href="https://www.verbraucherzentrale.de/wissen/energie/erneuerbare-energien/photovoltaik-was-bei-der-planung-einer-solaranlage-wichtig-ist-5574"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-start gap-4 p-5 rounded-xl border border-blue-200 bg-blue-50/50 hover:bg-blue-50 transition-colors group"
+      >
+        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+          <Info className="w-5 h-5 text-blue-600" />
+        </div>
+        <div className="flex-1">
+          <h4 className="font-semibold text-sm text-blue-800 mb-1 flex items-center gap-1">
+            Unabhängige Informationen der Verbraucherzentrale
+            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </h4>
+          <p className="text-xs text-blue-600 leading-relaxed">
+            Die Verbraucherzentrale bietet einen umfassenden Ratgeber zur Planung einer Solaranlage — 
+            von der Dachbeschaffenheit über die Wahl des Installateurs bis hin zu Finanzierungstipps.
+            Ideal für alle, die sich vor dem Kauf gründlich informieren möchten.
+          </p>
+        </div>
+      </a>
     </div>
   );
 }

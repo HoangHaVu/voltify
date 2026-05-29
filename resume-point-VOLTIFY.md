@@ -1,9 +1,24 @@
 # Voltify — Resume Point
-<!-- Zuletzt aktualisiert: 2026-05-21 — Pipeline Erweiterung fertig, deployed -->
+<!-- Zuletzt aktualisiert: 2026-05-27 — Bugfixes + Tests deployed -->
 
-## Status: PIPELINE ERWEITERUNG FERTIG ✅
+## Status: BUGFIXES + TESTS DEPLOYED ✅
 
-Letzter Commit: `24da689` — Pipeline Erweiterung mit Vor-Ort-Termin, Rabatt-System, Lead-Scoring, Angebot-PDF
+Letzter Commit: `4b56ad7` — Tests erweitert (94/94), Amortisationsgraph, negative Eingaben blockiert
+
+---
+
+## Was ist neu? (2026-05-27)
+
+### Bugfixes
+- **Amortisationsgraph** — Balken wurden nicht angezeigt (`items-end` Flexbox-Bug). Fix: `justify-end` + `h-full` auf Spalten-Wrapper
+- **Negative Eingaben** — Dachfläche, Stromverbrauch, Strompreis: `onChange`-Guard blockt Werte < 0, leerer String bleibt erlaubt
+- **calculateROI Clamping** — `Math.max(0, ...)` in `calculations.ts` als Defense-in-Depth
+
+### Tests
+- `tests/lib/calculations.test.ts` — +14 Tests: chartData (21 Punkte), profit20Years, gridFeedIn, effectiveInvestment, Clamping-Fallbacks
+- `tests/sections/Step2_Roof.test.tsx` — 6 Tests: negative Dachfläche geblockt ✓
+- `tests/sections/Step3_Consumption.test.tsx` — 8 Tests: negativer Verbrauch + Strompreis geblockt ✓
+- **Gesamtergebnis: 94/94 Tests grün** (vorher: 65)
 
 ---
 
@@ -85,7 +100,7 @@ Letzter Commit: `24da689` — Pipeline Erweiterung mit Vor-Ort-Termin, Rabatt-Sy
 ## Wichtige Pfade & Befehle
 - Dev-Server: `npm run dev` (Port 5173)
 - Build: `npm run build` (0 TypeScript-Fehler)
-- Tests: `npm test` (65/65 passing)
+- Tests: `npm test` (94/94 passing)
 - Auth: `src/contexts/AuthContext.tsx`
 - Services: `src/services/`
 - PDF: `src/components/pdf/`

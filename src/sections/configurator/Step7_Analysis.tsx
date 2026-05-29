@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TrendingUp, DollarSign, Clock, Sun, ArrowRight, Zap, CheckCircle, Percent, Landmark, Download } from 'lucide-react';
+import { TrendingUp, DollarSign, Clock, Sun, ArrowRight, Zap, CheckCircle, Percent, Landmark, Download, HelpCircle, ExternalLink } from 'lucide-react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ROIPdfDocument from '../../components/pdf/ROIPdfDocument';
 import type { WizardData } from '../../pages/Configurator';
@@ -171,6 +171,57 @@ export default function Step7_Analysis({ data, onNext }: Props) {
           <span className="text-[#F5A623] font-medium">Break-even ca. Jahr {Math.ceil(calc.amortization)}</span>
           <span>Jahr 20</span>
         </div>
+      </div>
+
+      {/* Mini-FAQ — Verbraucherzentrale */}
+      <div className="bg-blue-50/50 border border-blue-200 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <HelpCircle className="w-4 h-4 text-blue-600" />
+          <h3 className="font-semibold text-blue-800 text-sm">Häufige Fragen vor dem Kauf</h3>
+        </div>
+        <div className="flex flex-col gap-2">
+          {[
+            {
+              q: 'Wie lange hält ein Wechselrichter?',
+              a: 'In der Regel 10–15 Jahre. Danach fällt ein Austausch an (ca. 1.500–3.000 €).',
+            },
+            {
+              q: 'Was kostet der Austausch der Batterie?',
+              a: 'Nach ca. 10.000 Ladezyklen (10–15 Jahre) sollte der Speicher erneuert werden (ca. 4.000–8.000 €).',
+            },
+            {
+              q: 'Wie oft muss die Anlage gewartet werden?',
+              a: 'Eine Inspektion alle 2–3 Jahre wird empfohlen (ca. 150–300 €).',
+            },
+            {
+              q: 'Sind die Amortisationszeiten realistisch?',
+              a: 'Diese Analyse berücksichtigt aktuelle Strompreise und EEG-Vergütung. Folgekosten verlängern die Amortisation typisch um 2–3 Jahre.',
+            },
+          ].map((item, i) => (
+            <a
+              key={i}
+              href="https://www.verbraucherzentrale.de/wissen/energie/erneuerbare-energien/photovoltaik-was-bei-der-planung-einer-solaranlage-wichtig-ist-5574"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-3 p-3 rounded-lg bg-white/60 hover:bg-white transition-colors"
+            >
+              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5 text-blue-600 text-xs font-bold">
+                {i + 1}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-blue-800 group-hover:underline underline-offset-2 flex items-center gap-1">
+                  {item.q}
+                  <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </p>
+                <p className="text-xs text-blue-600 mt-0.5">{item.a}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+        <p className="text-[10px] text-blue-400 mt-3 flex items-center gap-1">
+          <ExternalLink className="w-3 h-3" />
+          Alle Antworten basieren auf dem Ratgeber der Verbraucherzentrale — unabhängig und neutral.
+        </p>
       </div>
 
       {/* CO2 */}

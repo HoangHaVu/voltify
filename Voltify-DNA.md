@@ -27,7 +27,9 @@ Voltify ist eine Solar-Energie-Plattform mit zwei Zielgruppen:
 - **Kunden**: Solar-Konfigurator (9-Schritt-Wizard) zur Berechnung von Solaranlagen
 
 ### Vision
-Eine digitale All-in-One-Plattform fur Solarteure und Endkunden. Installateure verwalten Leads, Projekte und Anfragen uber ein CRM-Dashboard. Kunden konfigurieren ihre Solaranlage in wenigen Minuten und erhalten ein individuelles Angebot.
+Voltify ist die SaaS-Plattform für den **unterversorgten Solo-Solarteur-Markt** (1–5-Mann-Betriebe in DACH). Während Reonic & Co. mittlere bis große Betriebe bedienen, setzt Voltify auf günstigen Preis (149 €/Mo), schlankes Onboarding und einen Endkunden-Konfigurator als Lead-Generator. Installateure verwalten Leads, Projekte und Angebote in einem CRM. Endkunden konfigurieren ihre Solaranlage in wenigen Minuten — der Lead landet vollständig vorbereitet beim Installateur.
+
+> **Strategische Positionierung, Wettbewerbsanalyse, Flywheel-Modell und 90-Tage-Plan**: siehe Sektion 9 am Ende dieses Dokuments.
 
 ### Farbsystem
 | Token | Hex | Nutzung |
@@ -355,3 +357,150 @@ team_invitations (neu)
 - **Stripe** für wiederkehrende Abonnements (SEPA-Lastschrift + Karte)
 - **Stripe Checkout** für Setup-Fee + erste Zahlung
 - **Stripe Customer Portal** für Selbstverwaltung (Upgrade, Kündigung) |
+
+---
+
+## 9. Strategie & Wettbewerbspositionierung
+
+> Stand: 2026-05-29 — basierend auf Konkurrenzanalyse vs. Reonic + ehrlicher Markt-Einschätzung. Diese Sektion ist die strategische Quelle der Wahrheit. Bei Konflikten mit anderen Sektionen gewinnt diese.
+
+### 9.1 Positionierung — Was Voltify ist und was es NICHT ist
+
+**Voltify ist NICHT der "Reonic-Killer"** — das ist ein verlorener Kampf gegen 3.000 Bestandskunden, VC-Kapital und 50+ Devs. Voltify ist:
+
+> **"Solar-Konfigurator + CRM für Solo-Solarteure. Bekomm 3× mehr qualifizierte Leads — ohne Marketing-Agentur."**
+
+### 9.2 Buyer-Persona (scharf)
+
+- **Wer**: Solo-Solarteur oder 2–5-Mann-Familienbetrieb in DACH (DE/AT/CH)
+- **Schmerz**: 3–8 Leads/Monat, viele Zeitverschwender, kein eigenes Marketing-Budget, Angebot-Erstellung dauert 2 Tage
+- **Budget**: 100–250 €/Monat für Software, kein Setup über 500 €
+- **Sprache**: kWp, Eigenverbrauch, BAFA, Einspeisetarif — keine Marketing-Buzzwords
+- **Kein Buyer für Voltify**:
+  - Betriebe mit 10+ Mitarbeitern (gehören Reonic)
+  - Quereinsteiger ohne Solar-Erfahrung (gehören Plansoft / Excel)
+  - Reine Lead-Vermarkter ohne eigene Montage (anderes Geschäftsmodell)
+
+### 9.3 Wettbewerbsmatrix (vs. Reonic)
+
+| Aspekt | Reonic | Voltify | Wer gewinnt? |
+|--------|--------|---------|--------------|
+| Zielgruppe | 5–50-Mann-Betriebe | 1–5-Mann-Betriebe | ✅ Voltify (underserved) |
+| Preis | ~500–800 €/Mo (geschätzt) | 149 €/Mo | ✅ Voltify (3–5× günstiger) |
+| Setup-Fee | 1.500–2.500 € | 999 € (Beta: 0 €) | ✅ Voltify (niedrige Eintrittsbarriere) |
+| Lead-Generation | Nicht im Fokus | Konfigurator als Killer-Feature | ✅ Voltify (echtes Differenzial) |
+| Workflow-Tiefe | 360°-All-in-One | Solar-fokussiert, schlanker | ⚖️ Reonic, aber Voltify schneller einsetzbar |
+| Vertikal-Services (Förder, Netzanmeldung, Factoring) | ✅ | ❌ (bewusst out-of-scope) | ❌ Reonic — bewusst akzeptiert |
+| Dach-Visualisierung | 2D + 3D | 2D-Satellit (geplant) | ⚖️ Funktionale Parität |
+| Customer-Support | Account-Manager-Bürokratie | Direkt-Founder (für erste 50 Kunden) | ✅ Voltify (intimer Touch) |
+| Mobile App | Native iOS/Android | PWA (geplant) | ⚖️ Vergleichbar |
+| Vertriebsgeschwindigkeit | Enterprise-Sales-Zyklen | Self-Service + Code-Calls | ✅ Voltify |
+
+### 9.4 Das Voltify-Flywheel (strategischer Kern)
+
+```
+   ┌─────────────────────────────────────────────────────────┐
+   │                                                         │
+   │   Scoutly (Eigenproduct = CAC-Maschine)                 │
+   │   ├─ Lead-Listen-Scraping (HWK + Google Maps)           │
+   │   ├─ Cold E-Mail mit Personalisierung                   │
+   │   └─ E-Mail-Warmup + Sequencing                         │
+   │              │                                          │
+   │              ▼  Ziel: ~5–10 % Response-Rate             │
+   │   Discovery-Call (Founder-led, persönlich)              │
+   │              │                                          │
+   │              ▼  Ziel: ~30 % Beta-Anmelderate            │
+   │   Voltify Beta (30 Tage kostenlos, Pricing-Conv. ab W2) │
+   │              │                                          │
+   │              ▼  Ziel: ~20 % Beta-zu-Paid                │
+   │   Zahlender Kunde (149 €/Mo + Founding-Lock-In 50 %)    │
+   │              │                                          │
+   │              ▼                                          │
+   │   Referral + Case-Study + Testimonial-Video             │
+   │              │                                          │
+   │              └─── feeds back into Scoutly ──────────────┤
+   │                                                         │
+   └─────────────────────────────────────────────────────────┘
+```
+
+**Strategischer Strukturvorteil**: VC-Konkurrenten wie Reonic müssen CAC mit Geld kaufen (Google-Ads, SDR-Team). Voltify hat über Scoutly **0 € Marginalkosten pro Lead**. Skaliert ohne Personalwachstum.
+
+**Velocity-Vorteil**: AI-augmentierte Solo-Dev-Geschwindigkeit ≈ 2,5× klassischer Solo-Dev. Damit ist effektiver Velocity-Rückstand zu Reonic ~12× (nicht 50×) — aufholbar in Nische.
+
+### 9.5 90-Tage-Plan (operativ)
+
+#### Sprint 1 — Tag 0–30: "Sales-Ready"
+- [ ] Solar-Planer Phase 1 fertigstellen → Demo-Asset für Code-Calls
+- [ ] Digitale Unterschrift im Angebot → schließt offensichtliche Lücke
+- [ ] 3 echte Beta-Tester onboarden, **Pricing-Conversation in Woche 2**
+- [ ] Scoutly-Kampagne 1: 200 Solo-Solarteure DE, klare A/B-Hypothese
+
+#### Sprint 2 — Tag 31–60: "Conversion-Beweis"
+- [ ] **Erster zahlender Kunde** vor Tag 60
+- [ ] Angebots-Varianten (A/B/C) + Magic-Link-Portal als Conversion-Booster
+- [ ] Stripe-Integration scharfschalten (Self-Service-Subscription)
+- [ ] Scoutly-Kampagne 2 mit gelernten A/B-Erkenntnissen
+
+#### Sprint 3 — Tag 61–90: "Repeatability"
+- [ ] 5 zahlende Kunden → 1 Case-Study mit harten Zahlen
+- [ ] Solar-Planer Phase 2 (Installateur-Editor) auf Basis Kundenfeedback
+- [ ] Landingpage-Rework — Niche-Positioning klar herausarbeiten
+- [ ] Testimonial-Video mit 1–2 Beta-Partnern für Social-Proof
+
+### 9.6 Bewusste "Wir tun das NICHT"-Entscheidungen
+
+| Was wir nicht bauen | Warum |
+|---------------------|-------|
+| Wärmepumpen-Modul (DIN EN 12831) | Andere Vertikale, Reonic-Heimspiel, lenkt von Solar-Fokus ab |
+| Drohnen-Photogrammetrie-Service | Hardware-Aufwand + Schulungen + Versicherung |
+| Factoring / Finanzierung | Finanzdienstleister-Lizenz erforderlich |
+| Native iOS/Android-Apps (zunächst) | PWA deckt 80 % ab, native erst ab €500k ARR |
+| Custom-Webdesign-Service | Template + Branding = OK; Sonderwünsche = Distraktion |
+| Mehrsprachige Plattform (zunächst) | DACH-Markt zuerst, dann skalieren |
+| Voll-Whitelabel / Embedded-iframe (zunächst) | Enterprise-Feature, erst ab Reonic-Reife |
+| Meeting-/Call-Notizen mit Whisper | Zu viel Aufwand für unklaren Voltify-Use-Case |
+
+### 9.7 Risiken & Counter-Strategien
+
+| Risiko | Wahrscheinlichkeit | Counter |
+|--------|-------------------|---------|
+| Scoutly-Reply-Rate < 2 % | Mittel | Subject-Lines A/B-testen, Lead-Listen-Qualität optimieren |
+| Beta-zu-Paid < 10 % | Hoch | Pricing-Conversation in Woche 2, Founding-Lock-In-Angebot |
+| Reonic senkt Preise & startet Starter-Tier | Niedrig–Mittel | Konfigurator-First-Story als Moat ausbauen |
+| Solar-Markt-Konsolidierung 2027 | Hoch | EU-Expansion (AT, CH, NL) vorbereiten als Wachstumsfeld |
+| AI-Velocity-Vorteil schwindet (alle nutzen Claude) | Hoch | Vorsprung in Vertrieb + Brand jetzt aufbauen, nicht später |
+| UX-Lücke zu Reonic wird sichtbar | Mittel | Ab Tag 90: 2–4 Wochen Design-Sprint mit Freelancer |
+
+### 9.8 Erfolgs-KPIs (monatlich messen)
+
+- **MRR-Wachstum** — Ziel: +500 € Monat-zu-Monat ab Monat 3
+- **Beta-zu-Paid-Rate** — Ziel: ≥ 20 %
+- **Scoutly-Reply-Rate** — Ziel: ≥ 5 %
+- **Time-to-First-Konfigurator-Lead nach Onboarding** — Ziel: ≤ 14 Tage
+- **Churn nach Monat 3** — Ziel: ≤ 5 %
+- **NPS unter Beta-Testern** — Ziel: ≥ 40
+
+### 9.9 Stop-Loss-Bedingungen (ehrlich)
+
+Bei **Tag 180** (sechs Monate ab Strategie-Pivot 2026-05-29 → **Tag 180 = 2026-11-25**):
+
+Pivot-Trigger wenn:
+- < 3 zahlende Kunden ODER
+- Beta-zu-Paid-Rate < 10 % über 20+ Beta-Tester ODER
+- Scoutly-Response-Rate konstant < 1 %
+
+Pivot-Optionen:
+1. **Konfigurator-als-Service** — verkaufe nur den Solar-Konfigurator white-label an Solar-Werbeagenturen
+2. **Adjacent-Vertikale** — Voltify-Pattern für andere Handwerksbranchen (Bedachung, Wärmepumpe-only)
+3. **Voltify pausieren** — Fokus auf MediScrip / Scoutly bündeln
+
+### 9.10 Realistische Erfolgs-Szenarien
+
+| Szenario | Wahrscheinlichkeit (Stand 2026-05-29) | Voraussetzungen |
+|----------|---------------------------------------|-----------------|
+| Voltify wird der "Reonic der Solo-Solarteure" (€500k+ ARR) | ~12–15 % | Flywheel funktioniert, EU-Expansion gelingt |
+| Voltify wird solides €300k–800k ARR-Business | ~35–45 % | Fokus + Scoutly-Conversion + Beta-zu-Paid ≥ 20 % |
+| Voltify wird €80k–200k Solo-Side-Business | ~30–40 % | Realistischer Default-Pfad |
+| 0 zahlende Kunden in 18 Monaten | ~8–12 % | Nur wenn Vertrieb stagniert |
+
+---

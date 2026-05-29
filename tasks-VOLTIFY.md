@@ -56,11 +56,12 @@
 ## 🟢 Low — Backlog / Future Features
 
 ### Kundenportal (Magic-Link)
+> **PROMOTED → Tier 1 (Wettbewerbsanalyse)** — Aus Backlog in aktive Roadmap übernommen.
 > Nicht im MVP — Kunde bekommt alles per E-Mail. Später: Magic-Link statt Login.
-- [ ] **Magic-Link-System** — Link per E-Mail, keine Registrierung nötig
-- [ ] **Status-Seite** — Lead-Status, Projekt-Fortschritt, Termine
-- [ ] **Angebots-PDF Download** — Ohne Login, nur mit Token
-- [ ] **Rechnungen einsehen** — Alle Rechnungen mit Zahlungsstatus
+- [ ] ~~**Magic-Link-System**~~ → Siehe Tier 1: "Magic-Link Kunden-Portal hochziehen"
+- [ ] ~~**Status-Seite**~~ → Siehe Tier 1: "Magic-Link Kunden-Portal hochziehen"
+- [ ] ~~**Angebots-PDF Download**~~ → Siehe Tier 1: "Magic-Link Kunden-Portal hochziehen"
+- [ ] ~~**Rechnungen einsehen**~~ → Siehe Tier 1: "Magic-Link Kunden-Portal hochziehen"
 
 ### Echtzeit-Monitoring
 > Hoher Aufwand — jeder Wechselrichter-Hersteller hat eigene API.
@@ -76,7 +77,8 @@
 - [ ] **Kalender-Sync** — Google Calendar / Outlook
 
 ### Mobile App
-- [ ] **React Native oder PWA** — Für Monteur unterwegs
+> **PROMOTED → Tier 2 (Wettbewerbsanalyse)** — Aus Backlog in aktive Roadmap übernommen.
+- [ ] ~~**React Native oder PWA**~~ → Siehe Tier 2: "PWA für Monteure (Mobile-First)"
 
 ---
 
@@ -169,6 +171,7 @@
 - [ ] **Quiet-Hours Setting** — Keine Nachrichten 20–08 Uhr
 
 #### Förder-Datenbank statt -Service
+> **Hinweis:** Förder-System existiert bereits (Step 6, `src/data/grants.ts`). Diese Tasks erweitern das System von statisch → dynamisch (DB-gestützt + tagesaktuell).
 - [ ] **Schema `grants_database`** — `grant_type`, `valid_from`, `valid_to`, `zip_prefix`, `amount_eur`, `percentage`
 - [ ] **Initial-Seed** — BAFA/KfW-Sätze für Solar + Speicher (aktueller Stand)
 - [ ] **Wöchentlicher Cron-Update** — Manuell oder via Scraping (gesetzliche Quellen)
@@ -187,7 +190,7 @@
 ## ✅ Abgeschlossen — MVP
 
 ### Bugfixes & Tests (2026-05-27)
-- [x] **Amortisationsgraph repariert** — `items-end` verhinderte Balkenanzeige (Flexbox-Height-Bug), `justify-end` + `h-full` fix
+- [x] **Amortisationsgraph repariert** — CSS `@keyframes barGrow` mit `var(--target-height)` war zu fragil bei Re-Mounting. Fix: Inline-Style `height: ${finalHeight}%`, keine Animation. Zusätzlich: `chartData` direkt in Step7 berechnen statt aus `calc.chartData`.
 - [x] **Negative Eingaben blockiert** — Dachfläche, Stromverbrauch, Strompreis: onChange-Guard + `min="0"`
 - [x] **calculateROI Clamping** — `Math.max(0, ...)` in calculations.ts als Defense-in-Depth
 - [x] **Tests erweitert** — 94 Tests (war 65): +14 Wirtschaftlichkeitsanalyse/Chart, +6 Step2_Roof, +8 Step3_Consumption

@@ -1,112 +1,77 @@
 # Voltify — Resume Point
-<!-- Zuletzt aktualisiert: 2026-05-27 — Bugfixes + Tests deployed -->
+<!-- Zuletzt aktualisiert: 2026-05-29 — Strategie-Pivot + Reonic-Wettbewerbsanalyse -->
 
-## Status: BUGFIXES + TESTS DEPLOYED ✅
+## Status: STRATEGIE-PIVOT DOKUMENTIERT ✅
 
-Letzter Commit: `4b56ad7` — Tests erweitert (94/94), Amortisationsgraph, negative Eingaben blockiert
-
----
-
-## Was ist neu? (2026-05-27)
-
-### Bugfixes
-- **Amortisationsgraph** — Balken wurden nicht angezeigt (`items-end` Flexbox-Bug). Fix: `justify-end` + `h-full` auf Spalten-Wrapper
-- **Negative Eingaben** — Dachfläche, Stromverbrauch, Strompreis: `onChange`-Guard blockt Werte < 0, leerer String bleibt erlaubt
-- **calculateROI Clamping** — `Math.max(0, ...)` in `calculations.ts` als Defense-in-Depth
-
-### Tests
-- `tests/lib/calculations.test.ts` — +14 Tests: chartData (21 Punkte), profit20Years, gridFeedIn, effectiveInvestment, Clamping-Fallbacks
-- `tests/sections/Step2_Roof.test.tsx` — 6 Tests: negative Dachfläche geblockt ✓
-- `tests/sections/Step3_Consumption.test.tsx` — 8 Tests: negativer Verbrauch + Strompreis geblockt ✓
-- **Gesamtergebnis: 94/94 Tests grün** (vorher: 65)
+Letzter Commit (Code): `4b56ad7` — Tests erweitert (94/94), Amortisationsgraph, negative Eingaben blockiert
+Letzter Update (Strategie): DNA Sektion 9 + tasks-VOLTIFY.md "🎯 Wettbewerbsanalyse Reonic" + Solar-Planer-Pivot (3D → 2D-Satellit)
 
 ---
 
-## Was ist neu? (Mai 2026)
+## Was ist neu? (2026-05-29) — Strategie-Pivot
 
-### Pipeline-Spalte "Vor Ort"
-- Neue lila Spalte zwischen "Kontaktiert" und "Angebot versendet"
-- Status `vorort` zum Lead-Typ hinzugefügt
+### Wettbewerbsanalyse vs. Reonic durchgeführt
+- **Niche-Positionierung** klar festgelegt: **Solo-Solarteure + 1–5-Mann-Familienbetriebe in DACH** — bewusst NICHT die Reonic-Klientel (5+ Mitarbeiter)
+- **Flywheel-Modell** dokumentiert: Scoutly (CAC-Maschine) → Voltify (LTV-Maschine) → AI-Dev (Velocity-Multiplikator)
+- **DNA-Sektion 9** ergänzt: Buyer-Persona, Wettbewerbsmatrix, 90-Tage-Plan, "Wir-tun-das-NICHT"-Liste, Risiken, KPIs, Stop-Loss-Bedingungen
+- **Realistische Erfolgs-Szenarien**: €300k–800k ARR-Pfad realistisch (~35–45 %), "Reonic-Killer" unrealistisch (<15 %)
 
-### Vor-Ort-Termin
-- Date-Picker + Notizen + Durchgeführt-Toggle im Drawer
-- Automatische Kalender-Synchronisation via `upsertSiteVisitAppointment()`
+### Feature-Roadmap aus Reonic-Analyse (in tasks-VOLTIFY.md)
+- **Tier 1** Quick-Wins (1–2 Wochen): Digitale Unterschrift, Angebots-Varianten A/B/C, Magic-Link-Portal hochziehen, Lead-Scoring AI ausbauen
+- **Tier 2** Strategisch (2–6 Wochen): **Solar-Planer (2D-Satellit Google Maps)** statt 3D, PWA für Monteure
+- **Tier 3** Differenzierung (selektiv): WhatsApp-Integration, Förder-Datenbank, Netzanmeldungs-Pre-Fill-PDF
+- **Meeting-/Call-Notizen mit Whisper bewusst ausgeklammert**
 
-### Gemessene Daten
-- `roof_area_measured`, `roof_angle`, `shading_issues` editierbar im Bearbeiten-Modal
-
-### Konfiguration bearbeiten Modal
-- "Details sehen" entfernt — Daten werden immer angezeigt
-- "Bearbeiten" Button öffnet Modal mit allen Feldern
-- "Konfiguration neu berechnen" mit Live-Vorschau
-- Speichern persistiert ROI-Werte + Score
-
-### Rabatt-System
-- Installateur sieht Dropdown mit Owner-Codes (via `ownerId`)
-- Code anwenden → Preis aktualisiert
-- Individuellen Rabatt anfragen (Slider + Begründung)
-- Rabatt löschen
-- Rabatt-Hinweis im Angebots-Management (Code, %, Endpreis)
-
-### Angebot als PDF
-- Button im Angebots-Management → PDF generieren + Download
-- PDF berücksichtigt Rabatt automatisch
-
-### Lead-Scoring Fix
-- Score wird dynamisch aus Lead-Daten berechnet (nicht mehr statisch aus DB)
-- Heiß ≥ 80, Warm ≥ 50, Kalt < 50
-
-### Supabase Migration 029
-- Alle neuen Felder in `leads` (site_visit, gemessene Daten, Rabatt, Angebots-Status)
-- Neue Tabelle `discount_codes` mit RLS
-- RPC `redeem_discount_code` mit Owner-Lookup
+### Solar-Planer: 3D → 2D-Pivot
+- **Vorher**: React Three Fiber, generische 3D-Box, ~2–3 Wochen Aufwand
+- **Jetzt**: Google Maps Satellite + Canvas-Modul-Overlay (à la Reonic), ~1–2 Wochen Aufwand
+- **Begründung**: Realer Wow-Faktor (Kunde sieht **sein** Haus), mobile-stabil (kein WebGL), trivialer PDF-Export
+- **Map-Provider entschieden**: Google Maps (beste DE-Qualität, Domain-Restriction Pflicht)
+- **Adress-Eingabe bleibt in Step 8** → Visualizer erscheint in Step 9 (Thank-You)
 
 ---
 
-## Was ist drin? (MVP)
+## Was ist drin? (MVP-Stand vor Pivot)
 
-### Landingpage (`/`)
-- Hero mit Solar-Panel-Hintergrund, Stats-Bar
-- 3 Produkt-Kachelen (CRM, Konfigurator, Digitaler Auftritt)
-- CRM-Vorschau, Prozess-Workflow, 6 Feature-Cards
-- CTA → `/beta` (Beta-Programm)
-
-### Kunden-Demo (`/kunde`)
-- 15 Sektionen: Hero, Partner, Services, USP, Team, News, FAQ, Footer
-- Solar-Konfigurator-Einstieg (PLZ-Eingabe)
-- "Demo verlassen" → zurück zur Landingpage
-
-### Interne App (`/login` → Dashboard)
-- **Auth:** 8 Rollen, ProtectedRoute, AuthContext
-- **Configurator:** 9-Schritt Wizard mit ROI-Berechnung
-- **Admin CRM:** Kanban-Pipelines (5 Lead + 4 Projekt Spalten), Lead-/Projekt-Details, Kalender, Nachrichten
-- **PDF-System:** Angebots-PDF + 3 Rechnungs-PDFs mit dynamischem Branding
-- **E-Mail-Versand:** `send-offer` Edge Function (Resend) mit PDF-Anhang
-- **Team-Verwaltung:** Owner erstellt Accounts mit zufälligem Passwort
-- **Einstellungen:** Firmen-Branding (Logo, Farben, IBAN, Zahlungsziel)
-
-### Rechtliche Seiten
-- `/preise` — 3 Tiers (149€/299€/599€)
-- `/beta` — Beta-Programm-Anmeldung
-- `/agb`, `/datenschutz`, `/impressum`
+### Live & Deployed
+- Live auf Vercel ✅
+- 94/94 Tests grün ✅
+- 9-Schritt-Konfigurator mit ROI-Berechnung
+- Admin-CRM mit Kanban-Pipelines (Leads + Projekte)
+- Angebots-PDF + 3 Rechnungs-PDFs mit dynamischem Branding
+- Rabatt-System mit Codes + Live-Vorschau
+- Pipeline-Spalte "Vor Ort" + Site-Visit-Termine
+- Lead-Scoring (Heiß/Warm/Kalt — statisch)
+- E-Mail-Versand via Resend (`send-offer` Edge Function)
+- Multi-Role-System (8 Rollen) + Team-Verwaltung
 
 ---
 
-## Nächster Schritt (wenn gewünscht)
-1. **Vercel Deployment prüfen** — Ist der aktuelle Build live?
+## Nächster Schritt — Sales-Ready Sprint 1 (Tag 0–30)
+
+### Code-Prioritäten
+1. **Solar-Planer Phase 1** — `moduleLayout.ts` → Google Maps Setup → `SatelliteView.tsx` → `ModuleOverlay.tsx` → Step 9 Integration
+   → Ziel: Demo-Asset für Code-Calls in ~5 Tagen
+2. **Digitale Unterschrift** — Canvas-Pad + Magic-Link-Route + PDF-Embed → zweiter Tier-1-Quick-Win nach Solar-Planer
+
+### Vertriebs-Prioritäten (kritisch!)
+3. **3 Beta-Tester onboarden** mit **Pricing-Conversation in Woche 2** (Conversion-Risiko früh adressieren)
+4. **Scoutly-Kampagne 1** für Voltify: 200 Solo-Solarteure DE, klare A/B-Test-Hypothese, Tracking
+5. **Erfolgs-KPI**: 50 Discovery-Calls in 60 Tagen, 1 zahlender Kunde vor Tag 60
 
 ---
 
 ## Wichtige Pfade & Befehle
+
 - Dev-Server: `npm run dev` (Port 5173)
 - Build: `npm run build` (0 TypeScript-Fehler)
 - Tests: `npm test` (94/94 passing)
+- Strategie: `Voltify-DNA.md` → Sektion 9
+- Feature-Roadmap: `tasks-VOLTIFY.md` → "🎯 Wettbewerbsanalyse Reonic"
 - Auth: `src/contexts/AuthContext.tsx`
 - Services: `src/services/`
 - PDF: `src/components/pdf/`
 - Edge Functions: `supabase/functions/`
-- DNA: `Voltify-DNA.md`
-- Tasks: `tasks-VOLTIFY.md`
 
 ---
 
@@ -119,6 +84,13 @@ Letzter Commit: `4b56ad7` — Tests erweitert (94/94), Amortisationsgraph, negat
 |--------|-------|----------|
 | installateur@test.de | super_employee | Test123456 |
 | inhaber@test.de | owner | Test123456 |
+
+---
+
+## Stop-Loss-Datum: 2026-11-25 (Tag 180)
+
+Wenn dann: < 3 zahlende Kunden ODER Beta-zu-Paid < 10 % ODER Scoutly-Response < 1 %
+→ Ehrliche Retro + Pivot-Entscheidung (Konfigurator-als-Service, adjacent Vertikale, oder Pause).
 
 ---
 

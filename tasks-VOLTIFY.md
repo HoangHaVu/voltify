@@ -1,5 +1,5 @@
 # Voltify — Tasks & Roadmap
-<!-- Zuletzt aktualisiert: 2026-05-29 — MVP-Grenze gezogen -->
+<!-- Zuletzt aktualisiert: 2026-06-01 — Google Maps API Key live, Konfigurator 9 Schritte -->
 
 ---
 
@@ -12,14 +12,15 @@
 - [x] **Vercel-Projekt** — https://voltify-app.vercel.app
 - [x] **SPA-Redirect-Regeln** — `vercel.json`
 - [x] **Environment Variables** — Supabase URL + Anon Key in Vercel
-- [ ] **Edge Functions deployen** — `supabase functions deploy` für `send-offer`, `notify-signature`
+- [x] **Google Maps API Key** — `VITE_GOOGLE_MAPS_API_KEY` in Vercel + `.env.local`, Quota 200/Tag, Budget-Alert €20
+- [x] **Edge Functions deployen** — `send-offer` (v1) + `notify-signature` (v1) + alle anderen ACTIVE
 - [ ] **Cron Jobs einrichten** — `notify-offer-expiry` + `notify-payment-due` täglich 08:00
-- [ ] **Resend Domain-Verify** — `noreply@vu-studio.de` statt `onboarding@resend.dev`
-- [ ] **Migrationen pushen** — 030 (Signatures), 032 (Variants), 033 (Sources), 034 (Lead Activities), 035 (Module Layout)
+- [x] **Resend Domain-Verify** — `noreply@vu-studio.de` aktiv (geteilt mit Solar Konfigurator, selbes Supabase-Projekt)
+- [x] **Migrationen pushen** — 030 (Signatures), 032 (Variants), 033 (Sources), 034 (Lead Activities + Address Cache), 035 (Module Layout)
 
 ### Core Features (bereits implementiert)
 - [x] Auth-System — Supabase Auth, 8 Rollen, AuthContext + ProtectedRoute
-- [x] Configurator — 8-Schritt Wizard mit ROI-Berechnung (Step 3+5 gemergt, PLZ in Step 1)
+- [x] Configurator — 9-Schritt Wizard mit ROI-Berechnung (Step 3=Stromverbrauch, Step 4=Ausstattung & Pläne, PLZ in Step 1)
 - [x] Admin CRM — Kanban-Pipelines, Lead-/Projekt-Details, Kalender, Nachrichten
 - [x] Landingpage + Beta-Programm — `/beta` mit Formular
 - [x] Angebots-PDF — Dynamisches Branding, 0% MwSt, Angebotsnummer

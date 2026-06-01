@@ -1,10 +1,11 @@
 # Voltify — Resume Point
-<!-- Zuletzt aktualisiert: 2026-05-29 — Strategie-Pivot + Reonic-Wettbewerbsanalyse -->
+<!-- Zuletzt aktualisiert: 2026-05-31 — Konfigurator-UX + Wirtschaftlichkeitsanalyse verbessert -->
 
-## Status: STRATEGIE-PIVOT DOKUMENTIERT ✅
+## Status: KONFIGURATOR POLISH ✅
 
-Letzter Commit (Code): `4b56ad7` — Tests erweitert (94/94), Amortisationsgraph, negative Eingaben blockiert
-Letzter Update (Strategie): DNA Sektion 9 + tasks-VOLTIFY.md "🎯 Wettbewerbsanalyse Reonic" + Solar-Planer-Pivot (3D → 2D-Satellit)
+Letzter Stand (Code): 113/113 Tests, 0 TypeScript-Fehler
+Session 2026-05-31: Batteriekosten-Fix, Step-7-Verbesserungen, 8-Schritt-Konfigurator, PLZ in Step 1
+Session 2026-06-01: Step 3 gesplittet → 9-Schritt-Konfigurator (Step 3=Stromverbrauch, Step 4=Ausstattung & Pläne)
 
 ---
 
@@ -47,12 +48,31 @@ Letzter Update (Strategie): DNA Sektion 9 + tasks-VOLTIFY.md "🎯 Wettbewerbsan
 
 ---
 
+## Was ist neu? (2026-05-31) — Konfigurator-Polish
+
+### Wirtschaftlichkeitsanalyse (Step 6, war Step 7)
+- **Batteriekosten proportional**: `500 * kWh + 2.000€` statt flat 6.000€ — passt zu Step-4-Preisen
+- **Batterie-Ersatz** ebenfalls skaliert: `500 * kWh + 1.000€` (gibt 6.000€ für 10 kWh = stabil)
+- **Gewinn-20J-Kachel** ersetzt Systemleistung — wichtigste Zahl prominent sichtbar (grün/rot)
+- **Optimierungshinweis** bei Amortisation > 16 J. — personalisiert (kein E-Auto/WP → konkreter Tipp)
+- **analysisKey** war definiert aber nie als `key`-Prop gesetzt — jetzt korrekt angewendet
+
+### Konfigurator-Flow (9 → 8 Schritte)
+- **Step 3 + Step 5 gemergt** → "Stromverbrauch & Zukunftspläne" (Verbrauch + E-Auto/WP/Wallbox/Notstrom)
+- **PLZ in Step 1** → Analyse ab Step 6 vollständig PLZ-personalisiert (Einstrahlung + Förderungen)
+- **PLZ aus Step 8 entfernt** (Kontakt) — nur Ort bleibt dort
+- Alle `/9`-Referenzen auf `/8` aktualisiert, Step-7/8/9-Buttons auf Step-6/7/8 gesetzt
+
+---
+
 ## Nächster Schritt — Sales-Ready Sprint 1 (Tag 0–30)
 
 ### Code-Prioritäten
-1. **Solar-Planer Phase 1** — `moduleLayout.ts` → Google Maps Setup → `SatelliteView.tsx` → `ModuleOverlay.tsx` → Step 9 Integration
-   → Ziel: Demo-Asset für Code-Calls in ~5 Tagen
-2. **Digitale Unterschrift** — Canvas-Pad + Magic-Link-Route + PDF-Embed → zweiter Tier-1-Quick-Win nach Solar-Planer
+1. **Solar-Planer Phase 2 — DONE ✅** (2026-05-29)
+   - `InstallerPlanner.tsx`, `SolarPlanningSection.tsx`, `OfferPdfDocument` ✅
+   → **OFFEN**: `VITE_GOOGLE_MAPS_API_KEY` setzen + Migrationen 034+035 in Supabase deployen
+
+2. **Digitale Unterschrift** — Canvas-Pad + Magic-Link-Route + PDF-Embed
 
 ### Vertriebs-Prioritäten (kritisch!)
 3. **3 Beta-Tester onboarden** mit **Pricing-Conversation in Woche 2** (Conversion-Risiko früh adressieren)
@@ -65,7 +85,7 @@ Letzter Update (Strategie): DNA Sektion 9 + tasks-VOLTIFY.md "🎯 Wettbewerbsan
 
 - Dev-Server: `npm run dev` (Port 5173)
 - Build: `npm run build` (0 TypeScript-Fehler)
-- Tests: `npm test` (94/94 passing)
+- Tests: `npm test` (113/113 passing)
 - Strategie: `Voltify-DNA.md` → Sektion 9
 - Feature-Roadmap: `tasks-VOLTIFY.md` → "🎯 Wettbewerbsanalyse Reonic"
 - Auth: `src/contexts/AuthContext.tsx`

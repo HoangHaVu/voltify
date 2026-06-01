@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     );
   }
 
-  const from = `Voltify <onboarding@resend.dev>`;
+  const from = `Voltify <noreply@vu-studio.de>`;
   const dateStr = new Date(signedAt).toLocaleDateString('de-DE', {
     day: '2-digit',
     month: 'long',

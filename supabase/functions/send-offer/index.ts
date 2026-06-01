@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
   // Resend API call
   const from = from_email
     ? `${from_name || 'Voltify'} <${from_email}>`
-    : 'onboarding@resend.dev'; // Resend default für unverifizierte Domains
+    : `${from_name || 'Voltify'} <noreply@vu-studio.de>`;
 
   try {
     const res = await fetch('https://api.resend.com/emails', {

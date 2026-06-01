@@ -17,6 +17,7 @@ import { recalculateLead } from '../lib/calculations';
 import { computeLeadScoreFromLead } from '../utils/leadScore';
 import { useProjects } from '../hooks/useProjects';
 import { AdminSidebar } from '../components/layout/AdminSidebar';
+import AddLeadModal from '../components/modals/AddLeadModal';
 import { KanbanColumn } from '../components/pipeline/KanbanColumn';
 import { LeadCard } from '../components/pipeline/LeadCard';
 import { ProjectCard } from '../components/pipeline/ProjectCard';
@@ -156,13 +157,15 @@ function LeadPipelineView({
   const [filterZip, setFilterZip] = useState('');
   const [filterMinKwp, setFilterMinKwp] = useState('');
   const [filterDate, setFilterDate] = useState('');
+  const [filterSource, setFilterSource] = useState('');
 
-  const hasActiveFilter = filterZip || filterMinKwp || filterDate;
+  const hasActiveFilter = filterZip || filterMinKwp || filterDate || filterSource;
 
   function resetFilters() {
     setFilterZip('');
     setFilterMinKwp('');
     setFilterDate('');
+    setFilterSource('');
   }
 
   const allActiveLeads = leads.filter(l => ACTIVE_LEAD_STATUSES.has(l.status));
@@ -170,6 +173,7 @@ function LeadPipelineView({
     if (filterZip && !l.zip?.startsWith(filterZip.trim())) return false;
     if (filterMinKwp && (l.kwp == null || l.kwp < Number(filterMinKwp))) return false;
     if (filterDate && l.created_at < filterDate) return false;
+    if (filterSource && l.source !== filterSource) return false;
     return true;
   });
 
@@ -251,6 +255,26 @@ function LeadPipelineView({
               value={filterDate}
               onChange={e => setFilterDate(e.target.value)}
             />
+          </div>
+        </div>
+        <div className="flex flex-col gap-1 w-full sm:w-44">
+          <label className="text-xs font-bold text-gray-500" htmlFor="filter-source">Quelle</label>
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 w-4 h-4" />
+            <select
+              className="w-full bg-[#0F0F0F] border border-white/10 text-white rounded-lg pl-10 pr-8 py-2.5 text-sm focus:ring-1 focus:ring-[#F5A623] outline-none appearance-none"
+              id="filter-source"
+              value={filterSource}
+              onChange={e => setFilterSource(e.target.value)}
+            >
+              <option value="">Alle Quellen</option>
+              <option value="landingpage">Landingpage</option>
+              <option value="direct">Direkt</option>
+              <option value="referral">Empfehlung</option>
+              <option value="social">Social Media</option>
+              <option value="google">Google Ads/SEO</option>
+              <option value="other">Sonstiges</option>
+            </select>
           </div>
         </div>
         <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-3">
@@ -434,6 +458,23 @@ export default function AdminDashboard() {
   const [availableDiscountCodes, setAvailableDiscountCodes] = useState<DiscountCode[]>([]);
   const [isLoadingCodes, setIsLoadingCodes] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showAddLeadModal, setShowAddLeadModal] = useState(false);
+
+  // ── Team-Mitglieder laden (für Team-Performance) ──
+  const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string }[]>([]);
+  useEffect(() => {
+    if (!user) return;
+    const ownerId = user.role === 'owner' ? user.id : (user.ownerId || user.id);
+    supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('owner_id', ownerId)
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setTeamMembers(data);
+        }
+      });
+  }, [user?.id, user?.role, user?.ownerId]);
 
   // Rabattcodes laden wenn Drawer geöffnet wird
   useEffect(() => {
@@ -725,7 +766,8 @@ export default function AdminDashboard() {
     try {
       const company = loadCompanySettings();
       const offerNumber = generateOfferNumber(lead);
-      const blob = await pdf(<OfferPdfDocument lead={lead} company={company} offerNumber={offerNumber} />).toBlob();
+      const signaturePng = lead.offer_signatures?.[0]?.signature_png;
+      const blob = await pdf(<OfferPdfDocument lead={lead} company={company} offerNumber={offerNumber} signaturePng={signaturePng} />).toBlob();
 
       // Download
       const url = URL.createObjectURL(blob);
@@ -808,10 +850,46 @@ export default function AdminDashboard() {
       .sort((a, b) => (b.investment || 0) - (a.investment || 0))
       .slice(0, 5);
 
+    // Lead-Quellen Verteilung
+    const sourceLabels: Record<string, string> = {
+      landingpage: 'Landingpage',
+      direct: 'Direkt',
+      referral: 'Empfehlung',
+      social: 'Social Media',
+      google: 'Google Ads/SEO',
+      other: 'Sonstiges',
+    };
+    const sourceDistribution = Array.from(
+      leads.reduce((map, lead) => {
+        const source = lead.source || 'landingpage';
+        const existing = map.get(source) || { source, label: sourceLabels[source] || source, count: 0 };
+        existing.count++;
+        map.set(source, existing);
+        return map;
+      }, new Map<string, { source: string; label: string; count: number }>())
+    ).map(([, stats]) => stats).sort((a, b) => b.count - a.count);
+
+    // Team-Performance: Leads pro Installateur
+    const teamPerformance = Array.from(
+      leads.reduce((map, lead) => {
+        const id = lead.installer_id || 'unassigned';
+        const existing = map.get(id) || { id, total: 0, won: 0, lost: 0, revenue: 0 };
+        existing.total++;
+        if (lead.status === 'gewonnen') { existing.won++; existing.revenue += lead.investment || 0; }
+        if (lead.status === 'verloren') existing.lost++;
+        map.set(id, existing);
+        return map;
+      }, new Map<string, { id: string; total: number; won: number; lost: number; revenue: number }>())
+    ).map(([, stats]) => ({
+      ...stats,
+      conversionRate: stats.total > 0 ? (stats.won / stats.total) * 100 : 0,
+    })).sort((a, b) => b.revenue - a.revenue);
+
     return {
       totalLeads, wonLeads: wonLeads.length, lostLeads: lostLeads.length,
       openLeads: openLeads.length, revenue, avgDeal, conversionRate,
-      winLossRatio, pipeline, monthly, topDeals,
+      winLossRatio, pipeline, monthly, topDeals, teamPerformance,
+      sourceDistribution,
     };
   }, [leads]);
 
@@ -848,6 +926,18 @@ export default function AdminDashboard() {
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Aktionen */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white">Pipeline-Übersicht</h3>
+                <button
+                  onClick={() => setShowAddLeadModal(true)}
+                  className="flex items-center gap-2 bg-[#F5A623] hover:bg-[#E09000] text-[#1A3A5C] font-bold text-sm px-4 py-2 rounded-xl transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Neuer Lead
+                </button>
               </div>
 
               {/* Charts Row */}
@@ -1224,6 +1314,41 @@ export default function AdminDashboard() {
                 })}
               </div>
 
+              {/* Lead-Quellen */}
+              {reportStats.sourceDistribution.length > 0 && (
+                <div className="bg-[#1A1A1A] rounded-2xl p-5 border border-white/5">
+                  <h3 className="text-sm font-semibold text-white mb-4">Lead-Quellen</h3>
+                  <div className="space-y-3">
+                    {reportStats.sourceDistribution.map((s) => {
+                      const maxCount = Math.max(...reportStats.sourceDistribution.map(x => x.count), 1);
+                      const width = maxCount > 0 ? (s.count / maxCount) * 100 : 0;
+                      const colors: Record<string, string> = {
+                        landingpage: '#3B82F6',
+                        direct: '#10B981',
+                        referral: '#F5A623',
+                        social: '#EC4899',
+                        google: '#EF4444',
+                        other: '#6B7280',
+                      };
+                      return (
+                        <div key={s.source} className="flex items-center gap-4">
+                          <span className="text-xs text-gray-500 w-28 text-right flex-shrink-0">{s.label}</span>
+                          <div className="flex-1 h-8 bg-[#252525] rounded-lg overflow-hidden relative">
+                            <div
+                              className="h-full rounded-lg flex items-center px-3 transition-all"
+                              style={{ width: `${Math.max(width, 5)}%`, background: colors[s.source] || '#6B7280', opacity: 0.7 }}
+                            >
+                              <span className="text-xs font-semibold text-white whitespace-nowrap">{s.count}</span>
+                            </div>
+                          </div>
+                          <span className="text-xs text-gray-500 w-12 text-right">{((s.count / reportStats.totalLeads) * 100).toFixed(0)}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-12 gap-5">
                 {/* Pipeline Breakdown */}
                 <div className="col-span-7 bg-[#1A1A1A] rounded-2xl p-5 border border-white/5">
@@ -1307,6 +1432,55 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               )}
+
+              {/* Team-Performance */}
+              {user?.role === 'owner' && reportStats.teamPerformance.length > 0 && (
+                <div className="bg-[#1A1A1A] rounded-2xl p-5 border border-white/5">
+                  <h3 className="text-sm font-semibold text-white mb-4">Team-Performance</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-white/5">
+                          <th className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pb-3 pr-4">Mitarbeiter</th>
+                          <th className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pb-3 pr-4 text-right">Leads</th>
+                          <th className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pb-3 pr-4 text-right">Gewonnen</th>
+                          <th className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pb-3 pr-4 text-right">Verloren</th>
+                          <th className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pb-3 pr-4 text-right">Conversion</th>
+                          <th className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pb-3 text-right">Umsatz</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {reportStats.teamPerformance.map((member) => {
+                          const name = teamMembers.find(t => t.id === member.id)?.full_name
+                            || (member.id === user.id ? 'Du (Owner)' : 'Unbekannt');
+                          return (
+                            <tr key={member.id} className="hover:bg-white/[0.02]">
+                              <td className="py-3 pr-4">
+                                <span className="text-sm font-medium text-white">{name}</span>
+                              </td>
+                              <td className="py-3 pr-4 text-right">
+                                <span className="text-sm text-white">{member.total}</span>
+                              </td>
+                              <td className="py-3 pr-4 text-right">
+                                <span className="text-sm text-emerald-400">{member.won}</span>
+                              </td>
+                              <td className="py-3 pr-4 text-right">
+                                <span className="text-sm text-red-400">{member.lost}</span>
+                              </td>
+                              <td className="py-3 pr-4 text-right">
+                                <span className="text-sm text-[#F5A623]">{member.conversionRate.toFixed(1)}%</span>
+                              </td>
+                              <td className="py-3 text-right">
+                                <span className="text-sm font-bold text-white">€ {member.revenue.toLocaleString('de-DE')}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1331,6 +1505,14 @@ export default function AdminDashboard() {
           )}
         </div>
       </main>
+
+      {/* ─── ADD LEAD MODAL ─── */}
+      <AddLeadModal
+        isOpen={showAddLeadModal}
+        onClose={() => setShowAddLeadModal(false)}
+        installerId={user?.id || ''}
+        onSuccess={() => window.location.reload()}
+      />
 
       {/* ─── LEAD DETAIL DRAWER ─── */}
       {selectedLead && (

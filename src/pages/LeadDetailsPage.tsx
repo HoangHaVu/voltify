@@ -10,14 +10,17 @@ import {
   Download, Check, AlertTriangle,
 } from 'lucide-react';
 import { AdminSidebar } from '../components/layout/AdminSidebar';
+import SolarPlanningSection from '../components/solar-planner/SolarPlanningSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useInstallerLead } from '../hooks/useInstallerLead';
 import { useDiscountCodes } from '../hooks/useDiscountCodes';
 import { supabase } from '../lib/supabase';
 import { updateLeadFields } from '../services/data';
-import { getScoreResult } from '../utils/leadScore';
+import { getScoreResult, computeLeadScoreDetailed } from '../utils/leadScore';
+import { calculateROI, generateStorageVariants } from '../lib/calculations';
 import OfferPdfDocument, { type CompanySettings } from '../components/pdf/OfferPdfDocument';
 import InvoicePdfDocument from '../components/pdf/InvoicePdfDocument';
+import ActivityLog from '../components/lead/ActivityLog';
 import type { Lead, Project } from '../services/data';
 
 const TIER_ICON = { heiss: Flame, warm: Zap, kalt: Snowflake };
@@ -144,6 +147,7 @@ function AngebotsManagementSection({
   setSendEmail,
   setShowSendModal,
   formatDate,
+  planningPng,
 }: {
   lead: Lead;
   changeOfferStatus: (status: Lead['offer_status'], extra?: { offer_sent_at?: string; offer_viewed_at?: string }) => Promise<void>;
@@ -151,11 +155,16 @@ function AngebotsManagementSection({
   setSendEmail: (email: string) => void;
   setShowSendModal: (show: boolean) => void;
   formatDate: (iso: string) => string;
+  planningPng?: string;
 }) {
   const cfg = OFFER_CONFIG[lead.offer_status];
   const OfferIcon = cfg.icon;
   const company = loadCompanySettings();
   const offerNumber = generateOfferNumber(lead);
+  const signaturePng = lead.offer_signatures?.[0]?.signature_png;
+  const [showVariants, setShowVariants] = useState(lead.offer_variants && lead.offer_variants.length > 0);
+  const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
+  const [localVariants, setLocalVariants] = useState(lead.offer_variants || []);
 
   return (
     <section className="bg-[#1A1A1A] rounded-xl border border-white/5 p-6">
@@ -169,7 +178,7 @@ function AngebotsManagementSection({
       </div>
       <div className="flex flex-wrap gap-2">
         <PDFDownloadLink
-          document={<OfferPdfDocument lead={lead} company={company} offerNumber={offerNumber} />}
+          document={<OfferPdfDocument lead={lead} company={company} offerNumber={offerNumber} signaturePng={signaturePng} planningPng={planningPng} />}
           fileName={`Angebot-${offerNumber}.pdf`}
           className="flex items-center gap-2 bg-[#252525] border border-white/10 text-white font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-[#333] transition-colors cursor-pointer"
         >
@@ -220,6 +229,92 @@ function AngebotsManagementSection({
           </button>
         )}
       </div>
+
+      {/* Varianten-Toggle */}
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          onClick={async () => {
+            if (!showVariants) {
+              // Varianten generieren & speichern
+              setIsGeneratingVariants(true);
+              const variants = generateStorageVariants(lead);
+              // Alte Varianten löschen, neue einfügen
+              await supabase.from('offer_variants').delete().eq('lead_id', lead.id);
+              await supabase.from('offer_variants').insert(variants.map(v => ({ ...v, lead_id: lead.id })));
+              setIsGeneratingVariants(false);
+            } else {
+              // Varianten löschen
+              await supabase.from('offer_variants').delete().eq('lead_id', lead.id);
+            }
+            setShowVariants(!showVariants);
+            // Seite neu laden um Varianten anzuzeigen
+            window.location.reload();
+          }}
+          disabled={isGeneratingVariants}
+          className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${
+            showVariants
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+              : 'bg-[#252525] border-white/10 text-gray-400 hover:text-white'
+          }`}
+        >
+          {isGeneratingVariants ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+          {showVariants ? 'Varianten aktiv' : 'Varianten anbieten'}
+        </button>
+        {showVariants && (
+          <span className="text-[10px] text-gray-500">3 Speicher-Optionen werden angezeigt</span>
+        )}
+      </div>
+
+      {/* Varianten-Karten */}
+      {showVariants && lead.offer_variants && lead.offer_variants.length > 0 && (
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {lead.offer_variants.map((variant) => (
+            <div
+              key={variant.variant_key}
+              className={`relative rounded-xl border p-4 ${
+                variant.is_recommended
+                  ? 'bg-amber-500/5 border-amber-500/30'
+                  : 'bg-[#1A1A1A] border-white/5'
+              }`}
+            >
+              {variant.is_recommended && (
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-amber-500 text-[#1A1A1A] px-2 py-0.5 rounded-full">
+                  Empfohlen
+                </span>
+              )}
+              <h4 className={`text-sm font-bold ${variant.is_recommended ? 'text-amber-400' : 'text-white'}`}>
+                {variant.label}
+              </h4>
+              <p className="text-[10px] text-gray-500 mt-0.5 mb-2">{variant.description}</p>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Speicher</span>
+                  <span className="text-white">{variant.storage_kwh > 0 ? `${variant.storage_kwh} kWh` : 'Keiner'}</span>
+                </div>
+                {variant.has_wallbox && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Wallbox</span>
+                    <span className="text-white">✓</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Preis</span>
+                  <span className="text-white font-bold">{variant.price_eur?.toLocaleString('de-DE')} €</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Amortisation</span>
+                  <span className="text-white">{variant.amortization} J.</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Autarkie</span>
+                  <span className="text-white">{variant.autarky} %</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {lead.offer_status === 'accepted' && (
         <div className="mt-5 pt-5 border-t border-white/5">
           <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
@@ -308,9 +403,49 @@ export default function LeadDetailsPage() {
   const [isApplyingCode, setIsApplyingCode] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
+  const [planningPng, setPlanningPng] = useState<string | undefined>(
+    lead?.module_layout?.previewPng ?? undefined
+  );
 
   const scoreResult = lead?.score != null ? getScoreResult(lead.score) : null;
+  const detailedScore = lead ? computeLeadScoreDetailed({
+    kwp: lead.kwp,
+    investment: lead.investment,
+    zip: lead.zip,
+    isOwner: true,
+    hasBattery: lead.has_battery,
+    area: lead.roof_area,
+    planningHorizon: lead.planning_horizon ?? undefined,
+  }) : null;
   const TierIcon = scoreResult ? TIER_ICON[scoreResult.tier] : null;
+
+  // Realistische Amortisation mit Folgekosten berechnen
+  const realisticCalc = lead ? calculateROI({
+    buildingType: lead.building_type || 'efh',
+    ownership: lead.ownership || 'eigentuemer',
+    roofTilt: lead.roof_tilt || 30,
+    roofOrientation: lead.roof_orientation || 'S',
+    roofArea: String(lead.roof_area || 50),
+    shading: lead.shading || 'none',
+    consumption: String(lead.consumption || 4000),
+    consumptionMethod: 'manual',
+    storageSize: lead.has_battery ? '10' : 'none',
+    wallbox: false,
+    futureCar: lead.has_e_car || false,
+    heatPump: lead.has_heat_pump || false,
+    backupPower: false,
+    energyApp: false,
+    electricityPrice: String(lead.electricity_price || 0.32),
+    constructionYear: lead.construction_year || 'after2010',
+    firstName: lead.first_name,
+    lastName: lead.last_name,
+    email: lead.email,
+    phone: lead.phone || '',
+    zipCode: lead.zip || '',
+    city: '',
+    company: '',
+    privacyConsent: true,
+  }) : null;
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -370,7 +505,8 @@ export default function LeadDetailsPage() {
       // 1. PDF generieren
       const company = loadCompanySettings();
       const offerNumber = generateOfferNumber(lead);
-      const blob = await pdf(<OfferPdfDocument lead={lead} company={company} offerNumber={offerNumber} />).toBlob();
+      const signaturePng = lead.offer_signatures?.[0]?.signature_png;
+      const blob = await pdf(<OfferPdfDocument lead={lead} company={company} offerNumber={offerNumber} signaturePng={signaturePng} planningPng={planningPng} />).toBlob();
 
       // 2. Blob zu Base64
       const arrayBuffer = await blob.arrayBuffer();
@@ -713,11 +849,32 @@ export default function LeadDetailsPage() {
                       <StatCard label="Anlagengröße" value={lead.kwp != null ? `${lead.kwp} kWp` : '—'} icon={<Zap className="w-3.5 h-3.5" />} accent="text-yellow-400" />
                       <StatCard label="Investition" value={lead.investment != null ? `${lead.investment.toLocaleString('de-DE')} €` : '—'} icon={<Euro className="w-3.5 h-3.5" />} accent="text-gray-400" />
                       <StatCard label="Ersparnis/Jahr" value={lead.annual_savings != null ? `${lead.annual_savings.toLocaleString('de-DE')} €` : '—'} icon={<TrendingUp className="w-3.5 h-3.5" />} accent="text-green-400" />
-                      <StatCard label="Amortisation" value={lead.amortization != null ? `${lead.amortization} Jahre` : '—'} icon={<Calendar className="w-3.5 h-3.5" />} accent="text-indigo-400" />
+                      <div className="relative">
+                        <StatCard label="Amortisation" value={lead.amortization != null ? `${lead.amortization} Jahre` : '—'} icon={<Calendar className="w-3.5 h-3.5" />} accent="text-indigo-400" />
+                        {realisticCalc && realisticCalc.amortizationRealistic > (lead.amortization || 0) && (
+                          <div className="absolute -bottom-1 left-0 right-0 text-center">
+                            <span className="text-[10px] text-amber-400 font-medium bg-amber-500/10 px-1.5 py-0.5 rounded-full">
+                              Realistisch: {realisticCalc.amortizationRealistic} J.
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <StatCard label="Autarkie" value={lead.autarky != null ? `${lead.autarky} %` : '—'} sub="Eigenverbrauchsanteil" icon={<BatteryCharging className="w-3.5 h-3.5" />} accent="text-teal-400" />
                       <StatCard label="Gewinn 20 J." value={lead.profit_20_years != null ? `${lead.profit_20_years.toLocaleString('de-DE')} €` : '—'} sub="nach Investitionsabzug" icon={<BarChart2 className="w-3.5 h-3.5" />} accent="text-emerald-400" />
                     </div>
                   </section>
+
+                  {/* Solar-Planung */}
+                  <SolarPlanningSection
+                    leadId={lead.id}
+                    leadName={`${lead.first_name} ${lead.last_name}`}
+                    kwp={lead.kwp}
+                    roofAreaM2={lead.roof_area}
+                    orientation={lead.roof_orientation}
+                    zip={lead.zip}
+                    existingLayout={lead.module_layout}
+                    onPdfReady={(png) => setPlanningPng(png)}
+                  />
 
                   {/* Lead-Score */}
                   {scoreResult && (
@@ -728,11 +885,30 @@ export default function LeadDetailsPage() {
                           {TierIcon && <TierIcon className={`w-6 h-6 mb-0.5 ${scoreResult.color}`} />}
                           <span className={`text-lg font-black ${scoreResult.color}`}>{scoreResult.score}</span>
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p className={`text-base font-black ${scoreResult.color}`}>{scoreResult.label}</p>
-                          <p className="text-xs text-gray-500 mt-0.5 max-w-xs">
-                            Score aus kWp, Investition, PLZ-Einstrahlung, Eigentumsform, Speicher & Planungshorizont.
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Top-Faktoren: {detailedScore?.factors.slice(0, 3).map(f => f.label).join(', ')}
                           </p>
+                          {/* Score-Faktoren Detail */}
+                          <div className="mt-3 space-y-1.5">
+                            {detailedScore?.factors.map((factor) => (
+                              <div key={factor.label} className="flex items-center gap-2">
+                                <span className="text-xs">{factor.icon}</span>
+                                <span className="text-[11px] text-gray-400 flex-1 truncate">{factor.label}</span>
+                                <div className="w-16 h-1.5 bg-[#252525] rounded-full overflow-hidden flex-shrink-0">
+                                  <div
+                                    className={`h-full rounded-full ${
+                                      factor.earned >= factor.maxPoints * 0.7 ? 'bg-green-400' :
+                                      factor.earned >= factor.maxPoints * 0.4 ? 'bg-amber-400' : 'bg-gray-500'
+                                    }`}
+                                    style={{ width: `${(factor.earned / factor.maxPoints) * 100}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] text-gray-500 w-8 text-right">{factor.earned}/{factor.maxPoints}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                         <div className="ml-auto">
                           <div className="w-32 h-3 bg-[#252525] rounded-full overflow-hidden">
@@ -1012,7 +1188,10 @@ export default function LeadDetailsPage() {
                   )}
 
                   {/* Angebots-Management */}
-                  {leadAsProject && <AngebotsManagementSection lead={lead} changeOfferStatus={changeOfferStatus} changeStatus={changeStatus} setSendEmail={setSendEmail} setShowSendModal={setShowSendModal} formatDate={formatDate} />}
+                  {leadAsProject && <AngebotsManagementSection lead={lead} changeOfferStatus={changeOfferStatus} changeStatus={changeStatus} setSendEmail={setSendEmail} setShowSendModal={setShowSendModal} formatDate={formatDate} planningPng={planningPng} />}
+
+                  {/* Aktivitäts-Log */}
+                  <ActivityLog lead={lead} userName={user?.fullName || 'System'} />
                 </div>
               </div>
             </>

@@ -18,6 +18,7 @@ import TeamPage from './pages/TeamPage';
 import LandingPage from './pages/LandingPage';
 import Datenschutz from './pages/Datenschutz';
 import Impressum from './pages/Impressum';
+import SignOfferPage from './pages/SignOfferPage';
 import PricingPage from './pages/PricingPage';
 import BetaSignupPage from './pages/BetaSignupPage';
 import AGB from './pages/AGB';
@@ -120,6 +121,7 @@ export default function App() {
       <Route path="/agb" element={<AGB />} />
       <Route path="/datenschutz" element={<Datenschutz />} />
       <Route path="/impressum" element={<Impressum />} />
+      <Route path="/sign/:token" element={<SignOfferPage />} />
     </Routes>
     </>
   );

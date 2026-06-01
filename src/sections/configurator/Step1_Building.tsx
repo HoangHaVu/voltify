@@ -1,4 +1,4 @@
-import { Home, Building2, Building, Factory, HelpCircle, UserCheck, KeyRound, Calendar } from 'lucide-react';
+import { Home, Building2, Building, Factory, HelpCircle, UserCheck, KeyRound, Calendar, MapPin } from 'lucide-react';
 import type { WizardData } from '../../pages/Configurator';
 
 interface Props {
@@ -31,6 +31,27 @@ export default function Step1_Building({ data, updateData }: Props) {
       <div>
         <h2 className="text-2xl md:text-3xl font-semibold text-[#1A3A5C] mb-2">Gebäude & Eigentum</h2>
         <p className="text-gray-500 text-sm">Wählen Sie Ihren Gebäudetyp und Ihre Eigentumsform aus.</p>
+      </div>
+
+      {/* PLZ */}
+      <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200 p-5">
+        <label className="text-sm font-medium text-[#1A3A5C] mb-3 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-[#F5A623]" />
+          Ihr Standort
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            value={data.zipCode}
+            onChange={(e) => updateData({ zipCode: e.target.value.replace(/\D/g, '').slice(0, 5) })}
+            placeholder="z.B. 80331"
+            maxLength={5}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#1A3A5C] placeholder:text-gray-400 focus:outline-none focus:border-[#1A3A5C] focus:ring-1 focus:ring-[#1A3A5C]"
+          />
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          Für regionalisierte Sonneneinstrahlung und lokale Förderprogramme.
+        </p>
       </div>
 
       {/* Building Type */}

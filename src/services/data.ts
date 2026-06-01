@@ -51,6 +51,7 @@ export interface Lead {
   email: string;
   phone: string | null;
   zip: string | null;
+  installer_id: string | null;
   building_type: string | null;
   ownership: string | null;
   roof_orientation: string | null;
@@ -94,6 +95,44 @@ export interface Lead {
   roof_angle: number | null;
   shading_issues: boolean | null;
   created_at: string;
+  offer_signatures?: { signature_png: string; signed_at: string }[];
+  signing_token?: string;
+  signing_token_expires_at?: string;
+  offer_variants?: OfferVariant[];
+  module_layout?: import('../types/solarPlanner').ModuleLayoutJson | null;
+  source?: 'landingpage' | 'direct' | 'referral' | 'social' | 'google' | 'other';
+  activities?: LeadActivity[];
+}
+
+export interface LeadActivity {
+  id: string;
+  lead_id: string;
+  type: string;
+  description: string;
+  user_id: string | null;
+  user_name: string | null;
+  created_at: string;
+}
+
+export interface OfferVariant {
+  id: string;
+  lead_id: string;
+  variant_key: 'einstieg' | 'optimal' | 'zukunftssicher';
+  label: string;
+  description: string | null;
+  storage_kwh: number;
+  has_wallbox: boolean;
+  has_backup: boolean;
+  kwp: number | null;
+  investment: number | null;
+  annual_savings: number | null;
+  amortization: number | null;
+  autarky: number | null;
+  profit_20_years: number | null;
+  price_eur: number | null;
+  is_primary: boolean;
+  is_recommended: boolean;
+  created_at: string;
 }
 
 export interface Appointment {
@@ -112,7 +151,7 @@ export interface Appointment {
 }
 
 const PROJECT_SELECT = '*, customer:profiles!customer_id(id, full_name, phone, zip), lead:leads!lead_id(first_name, last_name, email, phone, zip)';
-const LEAD_SELECT = 'id, first_name, last_name, email, phone, zip, roof_orientation, roof_area, construction_year, consumption, has_e_car, has_heat_pump, has_battery, electricity_price, kwp, investment, annual_savings, amortization, autarky, profit_20_years, score, planning_horizon, needs_financing, wants_zoom_call, status, offer_status, offer_sent_at, offer_viewed_at, payment_1_paid, payment_2_paid, payment_3_paid, discount_code, discount_percentage, discount_status, final_price, discount_note, discount_requested_at, discount_resolved_at, site_visit_date, site_visit_notes, site_visit_done, roof_area_measured, roof_angle, shading_issues, created_at';
+const LEAD_SELECT = 'id, first_name, last_name, email, phone, zip, installer_id, building_type, ownership, roof_orientation, roof_tilt, roof_area, shading, construction_year, consumption, has_e_car, has_heat_pump, has_battery, electricity_price, kwp, investment, annual_savings, amortization, autarky, profit_20_years, score, planning_horizon, needs_financing, wants_zoom_call, status, offer_status, offer_sent_at, offer_viewed_at, payment_1_paid, payment_2_paid, payment_3_paid, discount_code, discount_percentage, discount_status, final_price, discount_note, discount_requested_at, discount_resolved_at, site_visit_date, site_visit_notes, site_visit_done, roof_area_measured, roof_angle, shading_issues, source, module_layout, created_at, offer_signatures(signature_png, signed_at), offer_variants(*), lead_activities(id, type, description, user_name, created_at)';
 
 // ── Projekte ─────────────────────────────────────────────────────────
 
@@ -316,6 +355,23 @@ export async function updateLeadOfferStatus(
     .from('leads')
     .update({ offer_status: offerStatus, ...extra })
     .eq('id', leadId);
+  if (error) throw error;
+}
+
+export async function addLeadActivity(
+  leadId: string,
+  type: string,
+  description: string,
+  userId?: string,
+  userName?: string
+): Promise<void> {
+  const { error } = await supabase.from('lead_activities').insert({
+    lead_id: leadId,
+    type,
+    description,
+    user_id: userId || null,
+    user_name: userName || null,
+  });
   if (error) throw error;
 }
 

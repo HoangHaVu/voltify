@@ -27,8 +27,8 @@ export default function Step3_Consumption({ data, updateData }: Props) {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h2 className="text-2xl md:text-3xl font-semibold text-[#1A3A5C] mb-2">Stromverbrauch</h2>
-        <p className="text-gray-500 text-sm">Wie viel Strom verbrauchen Sie jährlich?</p>
+        <h2 className="text-2xl md:text-3xl font-semibold text-[#1A3A5C] mb-2">Ihr Stromverbrauch</h2>
+        <p className="text-gray-500 text-sm">Wie viel Strom verbrauchen Sie aktuell im Jahr?</p>
       </div>
 
       {/* Upload Option */}

@@ -7,8 +7,8 @@ import { calculateROI } from '../lib/calculations';
 import Step1_Building from '../sections/configurator/Step1_Building';
 import Step2_Roof from '../sections/configurator/Step2_Roof';
 import Step3_Consumption from '../sections/configurator/Step3_Consumption';
-import Step4_Storage from '../sections/configurator/Step4_Storage';
 import Step5_Options from '../sections/configurator/Step5_Options';
+import Step4_Storage from '../sections/configurator/Step4_Storage';
 import Step6_Subsidies from '../sections/configurator/Step6_Subsidies';
 import Step7_Analysis from '../sections/configurator/Step7_Analysis';
 import Step8_Contact from '../sections/configurator/Step8_Contact';
@@ -72,8 +72,8 @@ const steps = [
   { id: 1, label: 'Gebäude & Eigentum', icon: '🏠' },
   { id: 2, label: 'Dach konfigurieren', icon: '🏗️' },
   { id: 3, label: 'Stromverbrauch', icon: '⚡' },
-  { id: 4, label: 'Speicher wählen', icon: '🔋' },
-  { id: 5, label: 'Optionen', icon: '⚙️' },
+  { id: 4, label: 'Ausstattung & Pläne', icon: '🔧' },
+  { id: 5, label: 'Speicher wählen', icon: '🔋' },
   { id: 6, label: 'Förderungen', icon: '💰' },
   { id: 7, label: 'Wirtschaftlichkeit', icon: '📊' },
   { id: 8, label: 'Kontaktdaten', icon: '📝' },
@@ -168,10 +168,10 @@ export default function Configurator() {
       case 1: return <Step1_Building {...props} />;
       case 2: return <Step2_Roof {...props} />;
       case 3: return <Step3_Consumption {...props} />;
-      case 4: return <Step4_Storage {...props} />;
-      case 5: return <Step5_Options {...props} />;
+      case 4: return <Step5_Options {...props} />;
+      case 5: return <Step4_Storage {...props} />;
       case 6: return <Step6_Subsidies {...props} />;
-      case 7: return <Step7_Analysis {...props} onNext={goNext} />;
+      case 7: return <Step7_Analysis key={analysisKey} {...props} onNext={goNext} />;
       case 8: return <Step8_Contact {...props} onSubmit={handleSubmit} isSubmitting={isSubmitting} submitError={submitError} />;
       case 9: return <Step9_ThankYou />;
       default: return null;
@@ -307,7 +307,7 @@ export default function Configurator() {
           </div>
 
           {/* Navigation Buttons */}
-          {currentStep < 9 && (
+          {currentStep < 8 && (
             <div className="px-6 md:px-12 lg:px-16 py-6 bg-white/80 backdrop-blur-sm border-t border-gray-100">
               <div className="max-w-[680px] mx-auto flex items-center justify-between">
                 <button
@@ -323,15 +323,15 @@ export default function Configurator() {
                   Zurück
                 </button>
 
-                {currentStep === 7 ? (
+                {currentStep === 6 ? (
                   <button
-                    onClick={() => setCurrentStep(8)}
+                    onClick={() => setCurrentStep(7)}
                     className="flex items-center gap-2 bg-[#F5A623] text-[#1A3A5C] px-6 py-3 rounded-xl text-sm font-semibold hover:bg-[#E09000] transition-all"
                   >
                     Individuelles Angebot anfordern
                     <ArrowRight className="w-4 h-4" />
                   </button>
-                ) : currentStep < 7 && maxVisitedStep >= 7 ? (
+                ) : currentStep < 6 && maxVisitedStep >= 6 ? (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={goNext}
@@ -341,7 +341,7 @@ export default function Configurator() {
                       <ArrowRight className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => setCurrentStep(7)}
+                      onClick={() => setCurrentStep(6)}
                       className="flex items-center gap-2 bg-[#F5A623]/10 border border-[#F5A623]/30 text-[#F5A623] px-4 py-3 rounded-xl text-sm font-medium hover:bg-[#F5A623]/20 transition-all"
                     >
                       <Zap className="w-4 h-4" />

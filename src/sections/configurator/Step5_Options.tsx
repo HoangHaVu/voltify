@@ -48,8 +48,8 @@ export default function Step5_Options({ data, updateData }: Props) {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h2 className="text-2xl md:text-3xl font-semibold text-[#1A3A5C] mb-2">Optionen wählen</h2>
-        <p className="text-gray-500 text-sm">Ergänzen Sie Ihre Solaranlage mit praktischen Zusatzfunktionen.</p>
+        <h2 className="text-2xl md:text-3xl font-semibold text-[#1A3A5C] mb-2">Ausstattung & Pläne</h2>
+        <p className="text-gray-500 text-sm">Planen Sie ein E-Auto oder eine Wärmepumpe — und ergänzen Sie Ihre Anlage mit praktischen Extras.</p>
       </div>
 
       {/* Future Needs */}

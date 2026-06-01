@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { AdminSidebar } from '../components/layout/AdminSidebar';
 import { useInstallerProject } from '../hooks/useInstallerProject';
+import SolarPlanningSection from '../components/solar-planner/SolarPlanningSection';
 import type { Project } from '../services/data';
 
 const STATUS_LABELS: Record<Project['status'], string> = {
@@ -220,6 +221,21 @@ export default function ProjectDetailsPage() {
                       </p>
                     </div>
                   </section>
+
+                  {/* Solar-Planung */}
+                  {project.lead && project.lead_id && (
+                    <SolarPlanningSection
+                      leadId={project.lead_id}
+                      leadName={project.lead.first_name && project.lead.last_name
+                        ? `${project.lead.first_name} ${project.lead.last_name}`
+                        : project.customer?.full_name ?? 'Kunde'}
+                      kwp={project.kwp}
+                      roofAreaM2={null}
+                      orientation={null}
+                      zip={project.lead.zip ?? project.customer?.zip ?? null}
+                      existingLayout={null}
+                    />
+                  )}
 
                   {/* Dokumente */}
                   <section className="bg-[#1A1A1A] rounded-xl border-2 border-dashed border-white/5 p-8 flex flex-col justify-center items-center text-center">

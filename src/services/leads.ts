@@ -79,6 +79,7 @@ export async function submitLead(
     autarky: calc.autarky,
     profit_20_years: calc.profit20Years,
     score: calc.score,
+    source: 'landingpage',
     ...(installerId ? { installer_id: installerId } : {}),
   });
 

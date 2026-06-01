@@ -334,6 +334,12 @@ export default function CalendarPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Kalender-Sync */}
+                    <div className="px-6 pb-3">
+                      <CalendarSyncButtons appointment={selected} />
+                    </div>
+
                     <div className="px-6 pb-5 flex gap-2">
                       <button
                         onClick={openReschedule}
@@ -572,6 +578,48 @@ export default function CalendarPage() {
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+// ── Kalender-Sync Komponente ──────────────────────────────────────────
+
+function toGoogleCalendarDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+}
+
+function CalendarSyncButtons({ appointment }: { appointment: { title: string; starts_at: string; ends_at: string; location?: string | null; notes?: string | null } }) {
+  const title = encodeURIComponent(appointment.title);
+  const details = encodeURIComponent(appointment.notes || '');
+  const location = encodeURIComponent(appointment.location || '');
+  const start = toGoogleCalendarDate(appointment.starts_at);
+  const end = toGoogleCalendarDate(appointment.ends_at);
+
+  const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`;
+  const outlookUrl = `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${appointment.starts_at}&enddt=${appointment.ends_at}&body=${details}&location=${location}`;
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mr-1">Sync:</span>
+      <a
+        href={googleUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#252525] border border-white/10 text-xs font-bold text-gray-400 hover:text-white hover:border-white/20 transition-colors"
+      >
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 4h-15A2.5 2.5 0 0 0 2 6.5v11A2.5 2.5 0 0 0 4.5 20h15a2.5 2.5 0 0 0 2.5-2.5v-11A2.5 2.5 0 0 0 19.5 4zm-15 1.5h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1zM7 9h2v2H7V9zm4 0h2v2h-2V9zm4 0h2v2h-2V9zM7 13h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2z"/></svg>
+        Google
+      </a>
+      <a
+        href={outlookUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#252525] border border-white/10 text-xs font-bold text-gray-400 hover:text-white hover:border-white/20 transition-colors"
+      >
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M21 7.5V6c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-1.5l4 2V5.5l-4 2zM20 18H5V6h15v12z"/></svg>
+        Outlook
+      </a>
     </div>
   );
 }

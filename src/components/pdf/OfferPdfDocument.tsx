@@ -25,16 +25,21 @@ interface Props {
   lead: Lead;
   company: CompanySettings;
   offerNumber: string;
+  signaturePng?: string;
+  planningPng?: string;
 }
 
 // ── Base colors (neutral) ──
 const BASE = {
   green: '#16A34A',
+  amber200: '#FDE68A',
+  amber700: '#B45309',
   slate50: '#F8FAFC',
   slate100: '#F1F5F9',
   slate200: '#E2E8F0',
   slate400: '#94A3B8',
   slate500: '#64748B',
+  slate600: '#475569',
   slate700: '#334155',
   white: '#FFFFFF',
 };
@@ -97,6 +102,26 @@ function getStyles(primary: string, accent: string) {
     signatureBox: { flex: 1 },
     signatureLine: { borderBottom: `1 solid ${BASE.slate200}`, paddingBottom: 24, marginBottom: 4 },
     signatureLabel: { fontSize: 8, color: BASE.slate500 },
+    signatureImage: { width: 120, height: 40, objectFit: 'contain', marginBottom: 4 },
+
+    lifecycleBox: { marginTop: 16, padding: 12, backgroundColor: '#FEF3C7', borderRadius: 6, border: `1 solid ${BASE.amber200}` },
+    lifecycleTitle: { fontSize: 9, fontWeight: 'bold', color: BASE.amber700, marginBottom: 6 },
+    lifecycleText: { fontSize: 7.5, color: BASE.slate600, lineHeight: 1.4 },
+
+    // Variant comparison table styles
+    variantPage: { padding: 32, paddingTop: 28 },
+    variantTitle: { fontSize: 16, fontWeight: 'black', color: BASE.slate700, marginBottom: 4 },
+    variantSubtitle: { fontSize: 8, color: BASE.slate500, marginBottom: 20 },
+    variantTable: { width: '100%', border: `1 solid ${BASE.slate200}`, borderRadius: 6, overflow: 'hidden' },
+    variantHeaderRow: { flexDirection: 'row', backgroundColor: BASE.slate100, borderBottom: `1 solid ${BASE.slate200}` },
+    variantHeaderCell: { flex: 1, padding: 8, fontSize: 8, fontWeight: 'bold', color: BASE.slate700, textAlign: 'center' as const },
+    variantHeaderCellFirst: { width: 120, padding: 8, fontSize: 8, fontWeight: 'bold', color: BASE.slate500, borderRight: `1 solid ${BASE.slate200}` },
+    variantRow: { flexDirection: 'row', borderBottom: `1 solid ${BASE.slate100}` },
+    variantRowLast: { flexDirection: 'row' },
+    variantCellFirst: { width: 120, padding: 8, fontSize: 8, color: BASE.slate500, borderRight: `1 solid ${BASE.slate200}`, backgroundColor: BASE.slate50 },
+    variantCell: { flex: 1, padding: 8, fontSize: 8, color: BASE.slate700, textAlign: 'center' as const },
+    variantCellRecommended: { flex: 1, padding: 8, fontSize: 8, color: BASE.slate700, textAlign: 'center' as const, backgroundColor: '#FEF3C7' },
+    variantRecommendedBadge: { fontSize: 7, color: BASE.amber700, fontWeight: 'bold', marginTop: 2 },
   });
 }
 
@@ -112,7 +137,7 @@ function fmtNum(n: number | null | undefined, suffix = ''): string {
 }
 
 // ── Document ──
-export default function OfferPdfDocument({ lead, company, offerNumber }: Props) {
+export default function OfferPdfDocument({ lead, company, offerNumber, signaturePng, planningPng }: Props) {
   const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
   const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
 
@@ -319,6 +344,19 @@ export default function OfferPdfDocument({ lead, company, offerNumber }: Props) 
           </Text>
         </View>
 
+        {/* Lifecycle Costs Disclaimer */}
+        <View style={s.lifecycleBox}>
+          <Text style={s.lifecycleTitle}>Hinweis zu Folgekosten & Transparenz</Text>
+          <Text style={s.lifecycleText}>
+            Diese Analyse rechnet ehrlich — die meisten Anbieter verschweigen Folgekosten.{'\n\n'}
+            Berücksichtigte Lebenszykluskosten:{'\n'}
+            • Wechselrichter-Austausch nach ca. 12 Jahren: ~2.000 €{'\n'}
+            {lead.has_battery ? '• Batterie-Austausch nach ca. 12 Jahren: ~6.000 €\n' : ''}
+            • Jährliche Wartung & Inspektion: ~200 €/Jahr{'\n\n'}
+            Die angegebenen Amortisations- und Gewinnwerte sind Planungswerte auf Basis von Einstrahlungsdaten und Standardannahmen. Tatsächliche Erträge können je nach Wetter, Strompreisentwicklung und technischer Ausfallquote davon abweichen.
+          </Text>
+        </View>
+
         {/* Signature */}
         <View style={s.signatureRow}>
           <View style={s.signatureBox}>
@@ -326,8 +364,14 @@ export default function OfferPdfDocument({ lead, company, offerNumber }: Props) 
             <Text style={s.signatureLabel}>Ort, Datum</Text>
           </View>
           <View style={s.signatureBox}>
-            <View style={s.signatureLine} />
-            <Text style={s.signatureLabel}>Unterschrift Kunde</Text>
+            {signaturePng ? (
+              <Image src={signaturePng} style={s.signatureImage} />
+            ) : (
+              <View style={s.signatureLine} />
+            )}
+            <Text style={s.signatureLabel}>
+              {signaturePng ? 'Digital unterschrieben' : 'Unterschrift Kunde'}
+            </Text>
           </View>
         </View>
 
@@ -339,6 +383,172 @@ export default function OfferPdfDocument({ lead, company, offerNumber }: Props) 
           </View>
         </View>
       </Page>
+
+      {/* Seite 2: Varianten-Vergleich */}
+      {lead.offer_variants && lead.offer_variants.length > 1 && (
+        <Page size="A4" style={s.variantPage}>
+          <Text style={s.variantTitle}>Angebots-Varianten im Vergleich</Text>
+          <Text style={s.variantSubtitle}>Wählen Sie die für Sie passende Konfiguration. Alle Varianten basieren auf Ihren Angaben.</Text>
+
+          <View style={s.variantTable}>
+            {/* Header */}
+            <View style={s.variantHeaderRow}>
+              <View style={s.variantHeaderCellFirst}>
+                <Text>Merkmal</Text>
+              </View>
+              {lead.offer_variants.map((v) => (
+                <View key={v.variant_key} style={s.variantHeaderCell}>
+                  <Text>{v.label}</Text>
+                  {v.is_recommended && <Text style={s.variantRecommendedBadge}>★ Empfohlen</Text>}
+                </View>
+              ))}
+            </View>
+
+            {/* Speicher */}
+            <View style={s.variantRow}>
+              <View style={s.variantCellFirst}><Text>Speicher</Text></View>
+              {lead.offer_variants.map((v) => (
+                <View key={v.variant_key} style={v.is_recommended ? s.variantCellRecommended : s.variantCell}>
+                  <Text>{v.storage_kwh > 0 ? `${v.storage_kwh} kWh` : 'Keiner'}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Wallbox */}
+            <View style={s.variantRow}>
+              <View style={s.variantCellFirst}><Text>Wallbox</Text></View>
+              {lead.offer_variants.map((v) => (
+                <View key={v.variant_key} style={v.is_recommended ? s.variantCellRecommended : s.variantCell}>
+                  <Text>{v.has_wallbox ? '✓ Inklusive' : '—'}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* kWp */}
+            <View style={s.variantRow}>
+              <View style={s.variantCellFirst}><Text>Anlagengröße</Text></View>
+              {lead.offer_variants.map((v) => (
+                <View key={v.variant_key} style={v.is_recommended ? s.variantCellRecommended : s.variantCell}>
+                  <Text>{v.kwp != null ? `${v.kwp} kWp` : '—'}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Investition */}
+            <View style={s.variantRow}>
+              <View style={s.variantCellFirst}><Text>Investition</Text></View>
+              {lead.offer_variants.map((v) => (
+                <View key={v.variant_key} style={v.is_recommended ? s.variantCellRecommended : s.variantCell}>
+                  <Text>{fmtEUR(v.investment)}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Ersparnis/Jahr */}
+            <View style={s.variantRow}>
+              <View style={s.variantCellFirst}><Text>Ersparnis / Jahr</Text></View>
+              {lead.offer_variants.map((v) => (
+                <View key={v.variant_key} style={v.is_recommended ? s.variantCellRecommended : s.variantCell}>
+                  <Text>{fmtEUR(v.annual_savings)}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Amortisation */}
+            <View style={s.variantRow}>
+              <View style={s.variantCellFirst}><Text>Amortisation</Text></View>
+              {lead.offer_variants.map((v) => (
+                <View key={v.variant_key} style={v.is_recommended ? s.variantCellRecommended : s.variantCell}>
+                  <Text>{v.amortization != null ? `${v.amortization} Jahre` : '—'}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Autarkie */}
+            <View style={s.variantRow}>
+              <View style={s.variantCellFirst}><Text>Autarkie</Text></View>
+              {lead.offer_variants.map((v) => (
+                <View key={v.variant_key} style={v.is_recommended ? s.variantCellRecommended : s.variantCell}>
+                  <Text>{v.autarky != null ? `${v.autarky} %` : '—'}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Gewinn 20 J. */}
+            <View style={s.variantRowLast}>
+              <View style={s.variantCellFirst}><Text>Gewinn 20 Jahre</Text></View>
+              {lead.offer_variants.map((v) => (
+                <View key={v.variant_key} style={v.is_recommended ? s.variantCellRecommended : s.variantCell}>
+                  <Text style={{ fontWeight: 'bold' }}>{fmtEUR(v.profit_20_years)}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Hinweis */}
+          <View style={{ marginTop: 16, padding: 10, backgroundColor: BASE.slate50, borderRadius: 6 }}>
+            <Text style={{ fontSize: 7.5, color: BASE.slate500, lineHeight: 1.4 }}>
+              Die Empfehlung basiert auf einer Wirtschaftlichkeitsanalyse unter Berücksichtigung Ihres aktuellen Stromverbrauchs, der Dachfläche und der regionalen Sonneneinstrahlung. Die "Optimal"-Variante bietet in der Regel das beste Preis-Leistungs-Verhältnis.
+            </Text>
+          </View>
+
+          {/* Footer */}
+          <View style={{ ...s.footer, position: 'absolute', bottom: 24, left: 32, right: 32 }}>
+            <View style={s.footerRow}>
+              <Text style={s.footerText}>{company.firmenname} · {company.adresse} · {company.ort}</Text>
+              <Text style={s.footerText}>Seite 2 von 2 · {today}</Text>
+            </View>
+          </View>
+        </Page>
+      )}
+      {/* Planungs-Seite: Satellitenbild + Modul-Overlay */}
+      {planningPng && (
+        <Page size="A4" style={s.page}>
+          <View style={s.header}>
+            <View style={s.headerLeft}>
+              <Text style={s.companyName}>{company.firmenname}</Text>
+              <Text style={s.companySlogan}>{company.slogan}</Text>
+            </View>
+            <View style={s.headerRight}>
+              <Text style={[s.offerMeta, { fontFamily: 'Helvetica-Bold' }]}>Solar-Planung</Text>
+              <Text style={s.offerMeta}>{lead.first_name} {lead.last_name}</Text>
+              {lead.zip && <Text style={s.offerMeta}>PLZ {lead.zip}</Text>}
+            </View>
+          </View>
+          <View style={s.accentBar} />
+
+          <Text style={{ fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#1A3A5C', marginBottom: 6 }}>
+            Visualisierung Ihrer Solaranlage
+          </Text>
+          <Text style={{ fontSize: 8, color: BASE.slate400, marginBottom: 14 }}>
+            Die folgende Darstellung zeigt eine Übersicht der geplanten Modulanordnung auf Ihrem Dach.
+            Die genaue Positionierung erfolgt durch Ihren Installateur vor Ort.
+          </Text>
+
+          <Image
+            src={planningPng}
+            style={{ width: '100%', borderRadius: 6, marginBottom: 10 }}
+          />
+
+          {lead.module_layout && (
+            <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
+              <Text style={{ fontSize: 8, color: BASE.slate500 }}>
+                Adresse: {lead.module_layout.address}
+              </Text>
+              <Text style={{ fontSize: 8, color: BASE.slate500 }}>
+                {lead.module_layout.moduleCount} Module · {lead.module_layout.kwp} kWp
+              </Text>
+            </View>
+          )}
+
+          <View style={s.footer}>
+            <View style={s.footerRow}>
+              <Text style={s.footerText}>{company.firmenname} · {company.adresse} · {company.ort}</Text>
+              <Text style={s.footerText}>{today}</Text>
+            </View>
+          </View>
+        </Page>
+      )}
     </Document>
   );
 }

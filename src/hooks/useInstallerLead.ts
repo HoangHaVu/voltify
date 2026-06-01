@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  fetchLeadByIdScoped, updateLeadStatus, updateLeadOfferStatus,
+  fetchLeadByIdScoped, updateLeadStatus, updateLeadOfferStatus, addLeadActivity,
   applyDiscountCode, requestDiscount, clearDiscount, redeemDiscountCode,
   type Lead,
 } from '../services/data';
@@ -23,6 +23,11 @@ export function useInstallerLead(leadId: string) {
   async function changeStatus(status: Lead['status']) {
     if (!lead) return;
     await updateLeadStatus(lead.id, status);
+    const statusLabels: Record<string, string> = {
+      neu: 'Neu', kontaktiert: 'Kontaktiert', angebot: 'Angebot', termin: 'Termin vereinbart',
+      gewonnen: 'Gewonnen', verloren: 'Verloren', abgelehnt: 'Abgelehnt',
+    };
+    await addLeadActivity(lead.id, 'status_change', `Status geändert zu „${statusLabels[status] || status}"`, user?.id, user?.fullName);
     setLead((prev) => prev ? { ...prev, status } : prev);
   }
 
@@ -32,6 +37,11 @@ export function useInstallerLead(leadId: string) {
   ) {
     if (!lead) return;
     await updateLeadOfferStatus(lead.id, offerStatus, extra);
+    const offerLabels: Record<string, string> = {
+      created: 'Angebot erstellt', sent: 'Angebot versendet', viewed: 'Angebot angesehen',
+      accepted: 'Angebot angenommen', rejected: 'Angebot abgelehnt',
+    };
+    await addLeadActivity(lead.id, `offer_${offerStatus}`, offerLabels[offerStatus] || `Angebot-Status: ${offerStatus}`, user?.id, user?.fullName);
     setLead((prev) => prev ? { ...prev, offer_status: offerStatus, ...extra } : prev);
   }
 

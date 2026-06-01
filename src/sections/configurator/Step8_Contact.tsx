@@ -82,28 +82,16 @@ export default function Step8_Contact({ data, updateData, onSubmit, isSubmitting
           />
         </div>
 
-        {/* ZIP + City */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-[#1A3A5C]">PLZ</label>
-            <input
-              type="text"
-              value={data.zipCode}
-              onChange={(e) => updateData({ zipCode: e.target.value })}
-              placeholder="10115"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#1A3A5C] placeholder:text-gray-400 focus:outline-none focus:border-[#1A3A5C] focus:ring-1 focus:ring-[#1A3A5C]"
-            />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-[#1A3A5C]">Ort</label>
-            <input
-              type="text"
-              value={data.city}
-              onChange={(e) => updateData({ city: e.target.value })}
-              placeholder="Berlin"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#1A3A5C] placeholder:text-gray-400 focus:outline-none focus:border-[#1A3A5C] focus:ring-1 focus:ring-[#1A3A5C]"
-            />
-          </div>
+        {/* City */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-[#1A3A5C]">Ort</label>
+          <input
+            type="text"
+            value={data.city}
+            onChange={(e) => updateData({ city: e.target.value })}
+            placeholder="Berlin"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#1A3A5C] placeholder:text-gray-400 focus:outline-none focus:border-[#1A3A5C] focus:ring-1 focus:ring-[#1A3A5C]"
+          />
         </div>
 
         {/* Company (optional) */}

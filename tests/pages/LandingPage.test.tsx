@@ -68,28 +68,28 @@ describe('LandingPage', () => {
     expect(screen.getByText('Digitaler Auftritt')).toBeInTheDocument();
   });
 
-  it('navigiert zu /login beim Klick auf Dashboard öffnen', () => {
+  it('navigiert zu /beta beim Klick auf "Im Demo-Call ansehen" (CRM-Kachel)', () => {
     render(<LandingPage />);
 
-    const dashboardButton = screen.getByRole('button', { name: /Dashboard öffnen/i });
-    fireEvent.click(dashboardButton);
+    const crmButton = screen.getByRole('button', { name: /Im Demo-Call ansehen/i });
+    fireEvent.click(crmButton);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/login');
+    expect(mockNavigate).toHaveBeenCalledWith('/beta');
   });
 
-  it('navigiert zu /konfigurator beim Klick auf Konfigurator testen', () => {
+  it('navigiert zu /konfigurator beim Klick auf Live-Demo ansehen (CTA)', () => {
     render(<LandingPage />);
 
-    const configButtons = screen.getAllByRole('button', { name: /Konfigurator testen/i });
+    const configButtons = screen.getAllByRole('button', { name: /Live-Demo ansehen/i });
     fireEvent.click(configButtons[configButtons.length - 1]);
 
     expect(mockNavigate).toHaveBeenCalledWith('/konfigurator');
   });
 
-  it('navigiert zu /konfigurator beim Klick auf Konfigurator testen (Hero)', () => {
+  it('navigiert zu /konfigurator beim Klick auf Live-Demo ansehen (Hero)', () => {
     render(<LandingPage />);
 
-    const configButton = screen.getAllByRole('button', { name: /Konfigurator testen/i })[0];
+    const configButton = screen.getAllByRole('button', { name: /Live-Demo ansehen/i })[0];
     fireEvent.click(configButton);
 
     expect(mockNavigate).toHaveBeenCalledWith('/konfigurator');
@@ -107,8 +107,8 @@ describe('LandingPage', () => {
   it('rendert die Stats-Bar', () => {
     render(<LandingPage />);
 
-    expect(screen.getByText('30 Tage')).toBeInTheDocument();
-    expect(screen.getByText('20%')).toBeInTheDocument();
+    expect(screen.getByText('3 Monate')).toBeInTheDocument();
+    expect(screen.getByText('30%')).toBeInTheDocument();
     expect(screen.getByText('50%+')).toBeInTheDocument();
     expect(screen.getByText('Sofort')).toBeInTheDocument();
   });
@@ -116,7 +116,7 @@ describe('LandingPage', () => {
   it('rendert den Footer mit rechtlichen Links', () => {
     render(<LandingPage />);
 
-    expect(screen.getByText('Datenschutz')).toBeInTheDocument();
+    expect(screen.getAllByText('Datenschutz').length).toBeGreaterThan(0);
     expect(screen.getByText('AGB')).toBeInTheDocument();
   });
 });

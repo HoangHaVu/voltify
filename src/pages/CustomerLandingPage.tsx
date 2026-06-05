@@ -1,4 +1,5 @@
 import SEO from '../components/seo/SEO';
+import FloatingBetaCTA from '../components/layout/FloatingBetaCTA';
 import Header from '../sections/Header';
 import Hero from '../sections/Hero';
 import Partners from '../sections/Partners';
@@ -41,6 +42,8 @@ export default function Home() {
         <FAQ />
         <Footer />
       </main>
+      {/* Demo-Framing: Pfad zurück zur Beta für Installateure */}
+      <FloatingBetaCTA />
     </>
   );
 }

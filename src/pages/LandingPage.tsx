@@ -6,9 +6,12 @@ import {
   Zap, Menu, X, ArrowRight, Check, Users, Sun,
   BarChart3, Shield,
   LayoutDashboard, SlidersHorizontal, Globe,
-  Clock, Layers, FileText, Calendar, MessageSquare,
+  Clock, FileText, Calendar, MessageSquare,
   TrendingUp, Briefcase
 } from 'lucide-react';
+import { BETA, BETA_COPY } from '../lib/betaConfig';
+import ExitIntentModal from '../components/layout/ExitIntentModal';
+import { useExitIntent } from '../hooks/useExitIntent';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -20,10 +23,10 @@ const navLinks = [
 ];
 
 const stats = [
-  { value: '30 Tage', label: 'Kostenlos testen', icon: Clock },
-  { value: '20%', label: 'Gründerrabatt für Beta-Partner', icon: Zap },
+  { value: `${BETA.freeMonths} Monate`, label: 'Kostenlos testen', icon: Clock },
+  { value: `${BETA.discountPercent}%`, label: 'Gründerrabatt für Beta-Partner', icon: Zap },
   { value: '50%+', label: 'Weniger Admin-Aufwand', icon: TrendingUp },
-  { value: 'Sofort', label: 'Startklar nach Onboarding', icon: Zap },
+  { value: 'Sofort', label: 'Startklar nach Demo-Call', icon: Zap },
 ];
 
 const steps = [
@@ -46,24 +49,24 @@ const services: ServiceItem[] = [
   {
     icon: SlidersHorizontal,
     title: 'Solar-Konfigurator',
-    desc: 'Ihre Kunden konfigurieren ihre Anlage selbst — Dach, Verbrauch, Speicher, Förderungen. Sie erhalten den Lead mit allen Daten.',
-    features: ['9-Schritt-Wizard für Endkunden', 'Automatische ROI-Berechnung', 'BAFA / KfW Förderungen', 'Lead-Erfassung auf Ihrer Webseite', 'DSGVO-konform'],
+    desc: 'Deine Kunden konfigurieren ihre Anlage selbst — Dach, Verbrauch, Speicher, Förderungen. Du erhältst den Lead mit allen Daten.',
+    features: ['9-Schritt-Wizard für Endkunden', 'Automatische ROI-Berechnung', 'BAFA / KfW Förderungen', 'Lead-Erfassung auf deiner Webseite', 'DSGVO-konform'],
     link: '/konfigurator',
-    linkLabel: 'Konfigurator testen',
+    linkLabel: 'Jetzt live testen',
   },
   {
     icon: LayoutDashboard,
     title: 'CRM & Dashboard',
     desc: 'Alle Leads, Projekte und Termine an einem Ort. Kanban-Pipeline, Kalender und Team-Verwaltung — speziell für Solar-Betriebe.',
     features: ['Lead-Pipeline (Kanban)', 'Projekt-Tracking', 'Kalender & Termine', 'Team & Rollen', 'Notizen & Kommunikation'],
-    link: '/login',
-    linkLabel: 'Dashboard öffnen',
+    link: '/beta',
+    linkLabel: 'Im Demo-Call ansehen',
   },
   {
     icon: Globe,
     title: 'Digitaler Auftritt',
-    desc: 'Ihre eigene Webseite mit integriertem Konfigurator — unter Ihrer Domain, mit Ihrem Logo, Ihren Farben und Kontaktdaten.',
-    features: ['Eigene Domain', 'Ihr Logo & Branding', 'Konfigurator-Einbindung', 'Lead-Weiterleitung', 'DSGVO-konform'],
+    desc: 'Deine eigene Webseite mit integriertem Konfigurator — unter deiner Domain, mit deinem Logo, deinen Farben und Kontaktdaten.',
+    features: ['Eigene Domain', 'Dein Logo & Branding', 'Konfigurator-Einbindung', 'Lead-Weiterleitung', 'DSGVO-konform'],
     link: '/demo',
     linkLabel: 'Demo-Webseite ansehen',
   },
@@ -78,16 +81,11 @@ const features = [
   { icon: Briefcase, title: 'Rechnungs-PDFs', desc: 'Abschlags- und Schlussrechnungen mit automatischer Fälligkeitsberechnung und Zahlungsstatus.' },
 ];
 
-const footerLinks = {
-  pages: ['Produkte', 'Funktionen', 'Ablauf'],
-  company: ['Preise', 'Kontakt'],
-  inner: ['Beta-Programm', 'Anmelden'],
-};
-
 export default function LandingPage() {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [exitIntent, dismissExitIntent] = useExitIntent();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -116,6 +114,9 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white text-black">
+      {/* Exit-Intent Last-Chance-CTA */}
+      {exitIntent && <ExitIntentModal onClose={dismissExitIntent} />}
+
       {/* ═══════════════ HEADER ═══════════════ */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-sm shadow-sm' : 'bg-transparent'}`}>
         <div className="max-w-[1280px] mx-auto px-6 h-[72px] flex items-center justify-between">
@@ -174,13 +175,13 @@ export default function LandingPage() {
         </div>
         <div className="relative z-10 text-center max-w-[840px] mx-auto px-6 py-20">
           <span className="reveal inline-flex items-center gap-2 bg-[#F5A623]/10 backdrop-blur-sm text-sm text-[#1A3A5C] font-bold px-5 py-2 rounded-full border border-[#F5A623]/20 mb-6">
-            <Zap className="w-4 h-4 text-[#F5A623]" fill="currentColor" /> 🚀 Beta-Programm — Nur noch 10 Plätze verfügbar
+            <Zap className="w-4 h-4 text-[#F5A623]" fill="currentColor" /> 🚀 Beta-Programm — {BETA_COPY.spotsBadge}
           </span>
           <h1 className="reveal text-5xl md:text-6xl lg:text-7xl font-semibold text-[#1A3A5C] leading-[1.05] tracking-tight mb-6">
             Solar-Angebote<br />in <span className="text-[#F5A623]">20 Minuten</span><br />statt 2 Tagen.
           </h1>
           <p className="reveal text-gray-600 text-lg max-w-[600px] mx-auto mb-8 leading-relaxed">
-            Voltify erstellt automatisch professionelle Solar-Angebots-PDFs mit ROI, Förderungen und Zahlungsplan. Ihre Kunden konfigurieren selbst — Sie klicken auf "Versenden".
+            Die All-in-One-Software für Solo-Solarteure: Deine Kunden konfigurieren selbst, du klickst auf "Versenden". Professionelle Angebots-PDFs mit ROI, Förderungen und Zahlungsplan — automatisch.
           </p>
           <div className="reveal flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
@@ -193,9 +194,12 @@ export default function LandingPage() {
               onClick={() => navigate('/konfigurator')}
               className="inline-flex items-center gap-2 bg-white text-[#1A3A5C] text-base font-medium px-8 py-4 rounded-full border border-gray-200 hover:bg-gray-50 transition-all"
             >
-              Konfigurator testen
+              Live-Demo ansehen
             </button>
           </div>
+          <p className="reveal text-xs text-gray-400 mt-4">
+            {BETA_COPY.freeTrial} · Keine Kreditkarte · {BETA.callMinutes}-Min Demo-Call
+          </p>
         </div>
       </section>
 
@@ -367,10 +371,10 @@ export default function LandingPage() {
         </div>
         <div className="relative z-10 max-w-[640px] mx-auto px-6 text-center">
           <span className="reveal inline-flex items-center gap-2 bg-[#F5A623]/10 text-sm text-[#1A3A5C] font-bold px-4 py-1.5 rounded-full border border-[#F5A623]/20 mb-4">
-            <Zap className="w-4 h-4 text-[#F5A623]" fill="currentColor" /> Nur noch 10 Beta-Plätze — Dauerhafter Gründerrabatt
+            <Zap className="w-4 h-4 text-[#F5A623]" fill="currentColor" /> {BETA_COPY.spotsBadge} — Dauerhafter Gründerrabatt
           </span>
-          <h2 className="reveal text-4xl md:text-5xl font-semibold text-[#1A3A5C] tracking-tight mb-4">Bereit, Ihr Solar-Geschäft<br />zu <span className="text-[#F5A623]">skalieren</span>?</h2>
-          <p className="reveal text-gray-600 text-base mb-8">30 Tage kostenlos testen. Keine Kreditkarte. Persönliches Onboarding. Als Beta-Partner sichern Sie sich dauerhaft 20% Rabatt auf jeden Tarif.</p>
+          <h2 className="reveal text-4xl md:text-5xl font-semibold text-[#1A3A5C] tracking-tight mb-4">Bereit, dein Solar-Geschäft<br />zu <span className="text-[#F5A623]">skalieren</span>?</h2>
+          <p className="reveal text-gray-600 text-base mb-8">{BETA.freeMonths} Monate kostenlos testen. Keine Kreditkarte. Persönlicher Demo-Call. Als Beta-Partner sicherst du dir dauerhaft {BETA.discountPercent}% Rabatt auf jeden Tarif.</p>
           <div className="reveal flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={() => navigate('/beta')}
@@ -382,7 +386,7 @@ export default function LandingPage() {
               onClick={() => navigate('/konfigurator')}
               className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm text-[#1A3A5C] text-base font-medium px-8 py-4 rounded-full border border-[#1A3A5C]/10 hover:bg-white transition-all"
             >
-              Konfigurator testen
+              Live-Demo ansehen
             </button>
           </div>
         </div>
@@ -402,26 +406,27 @@ export default function LandingPage() {
               </Link>
               <div className="grid grid-cols-3 gap-8">
                 <div>
-                  <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Seiten</p>
+                  <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Produkt</p>
                   <div className="flex flex-col gap-2">
-                    {footerLinks.pages.map((l) => (
-                      <a key={l} href="#" className="text-sm text-white/70 hover:text-white transition-colors">{l}</a>
-                    ))}
+                    <a href="#services" onClick={(e) => { e.preventDefault(); scrollTo('#services'); }} className="text-sm text-white/70 hover:text-white transition-colors">Produkte</a>
+                    <a href="#features" onClick={(e) => { e.preventDefault(); scrollTo('#features'); }} className="text-sm text-white/70 hover:text-white transition-colors">Funktionen</a>
+                    <a href="#process" onClick={(e) => { e.preventDefault(); scrollTo('#process'); }} className="text-sm text-white/70 hover:text-white transition-colors">Ablauf</a>
                   </div>
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Unternehmen</p>
                   <div className="flex flex-col gap-2">
-                    {footerLinks.company.map((l) => (
-                      <a key={l} href="#" className="text-sm text-white/70 hover:text-white transition-colors">{l}</a>
-                    ))}
+                    <Link to="/preise" className="text-sm text-white/70 hover:text-white transition-colors">Preise</Link>
+                    <Link to="/beta" className="text-sm text-white/70 hover:text-white transition-colors">Beta-Programm</Link>
+                    <Link to="/konfigurator" className="text-sm text-white/70 hover:text-white transition-colors">Live-Demo</Link>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Interne Seiten</p>
+                  <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Account</p>
                   <div className="flex flex-col gap-2">
-                    <Link to="/preise" className="text-sm text-white/70 hover:text-white transition-colors">Preise</Link>
                     <Link to="/login" className="text-sm text-white/70 hover:text-white transition-colors">Anmelden</Link>
+                    <Link to="/datenschutz" className="text-sm text-white/70 hover:text-white transition-colors">Datenschutz</Link>
+                    <Link to="/impressum" className="text-sm text-white/70 hover:text-white transition-colors">Impressum</Link>
                   </div>
                 </div>
               </div>

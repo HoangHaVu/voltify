@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, CheckCircle, ArrowRight, AlertCircle, Phone, Mail, Building2, MapPin, MessageSquare, User, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { BETA, BETA_COPY } from '../lib/betaConfig';
 import SEO from '../components/seo/SEO';
 
 export default function BetaSignupPage() {
@@ -100,10 +101,10 @@ export default function BetaSignupPage() {
             ) : (
               <>
                 <span className="inline-flex items-center gap-1.5 bg-[#F5A623]/10 text-[#F5A623] text-xs font-bold px-3 py-1 rounded-full mb-3">
-                  🚀 Nur noch 5 Plätze verfügbar
+                  🚀 {BETA_COPY.spotsBadge}
                 </span>
                 <h1 className="text-3xl md:text-4xl font-semibold text-[#1A3A5C] mb-3">Jetzt Beta-Partner werden</h1>
-                <p className="text-gray-500 text-sm mb-8">Hinterlasse deine Kontaktdaten — wir melden uns persönlich bei dir. Als Beta-Partner sicherst du dir die nächsten 3 Monate <span className="text-[#F5A623] font-bold">kostenlos</span> und danach dauerhaft <span className="text-[#F5A623] font-bold">30% Gründerrabatt</span>.</p>
+                <p className="text-gray-500 text-sm mb-8">Hinterlasse deine Kontaktdaten — wir melden uns persönlich bei dir. Als Beta-Partner sicherst du dir die nächsten {BETA.freeMonths} Monate <span className="text-[#F5A623] font-bold">kostenlos</span> und danach dauerhaft <span className="text-[#F5A623] font-bold">{BETA.discountPercent}% Gründerrabatt</span>.</p>
 
                 {error && (
                   <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-6">
@@ -244,12 +245,12 @@ export default function BetaSignupPage() {
           <div className="relative max-w-[540px] w-full">
             {/* Tagline */}
             <div className="inline-flex items-center gap-2 bg-[#F5A623]/20 border border-[#F5A623]/30 rounded-full px-3 py-1 text-xs font-bold text-[#F5A623] uppercase tracking-widest mb-6">
-              ⭐ Beta-Programm — Nur 5 Plätze
+              ⭐ Beta-Programm — Nur {BETA.spotsLeft} Plätze
             </div>
             <h2 className="text-3xl font-semibold text-white mb-2 leading-snug">
-              Werde einer der ersten<br />5 Voltify-Partner
+              Werde einer der ersten<br />{BETA.spotsLeft} Voltify-Partner
             </h2>
-            <p className="text-white/60 text-sm mb-8">3 Monate kostenlos testen. Danach 30% dauerhafter Rabatt. Kein Setup-Aufwand — nur ein Demo-Call mit uns.</p>
+            <p className="text-white/60 text-sm mb-8">{BETA.freeMonths} Monate kostenlos testen. Danach {BETA.discountPercent}% dauerhafter Rabatt. Kein Setup-Aufwand — nur ein Demo-Call mit uns.</p>
 
             {/* Benefits Cards */}
             <div className="space-y-4">
@@ -310,7 +311,7 @@ export default function BetaSignupPage() {
               <div className="flex-1 overflow-y-auto p-6">
                 <div
                   className="calendly-inline-widget"
-                  data-url="https://calendly.com/contact-vu-studio/30min"
+                  data-url={BETA.calendlyUrl}
                   style={{ minWidth: '320px', height: '630px' }}
                 />
               </div>
@@ -321,7 +322,7 @@ export default function BetaSignupPage() {
                   ✓ Nach Terminbuchung: Bestätigung per Email mit Zoom-Link
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Die 3 Monate kostenlos starten sofort nach der Demo
+                  Die {BETA.freeMonths} Monate kostenlos starten sofort nach der Demo
                 </p>
               </div>
             </div>

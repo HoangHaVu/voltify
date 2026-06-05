@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, ArrowRight, ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { Zap, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import SEO from '../components/seo/SEO';
+import DemoBanner from '../components/layout/DemoBanner';
 import { submitLead } from '../services/leads';
 import { calculateROI } from '../lib/calculations';
 import Step1_Building from '../sections/configurator/Step1_Building';
@@ -173,7 +174,9 @@ export default function Configurator() {
       case 6: return <Step6_Subsidies {...props} />;
       case 7: return <Step7_Analysis key={analysisKey} {...props} onNext={goNext} />;
       case 8: return <Step8_Contact {...props} onSubmit={handleSubmit} isSubmitting={isSubmitting} submitError={submitError} />;
-      case 9: return <Step9_ThankYou />;
+      // demoMode=true: /konfigurator ist die Demo für Installateure (pre-launch).
+      // Später beim echten Embed auf Installateur-Seiten: demoMode=false setzen.
+      case 9: return <Step9_ThankYou demoMode />;
       default: return null;
     }
   };
@@ -186,7 +189,10 @@ export default function Configurator() {
         canonical="/konfigurator"
         noindex
       />
-      <div className="min-h-screen flex">
+      <div className="min-h-screen flex flex-col">
+      {/* Demo-Modus-Banner — signalisiert Installateuren die Kundensicht */}
+      <DemoBanner label="Demo-Modus — so konfigurieren deine Kunden ihre Solaranlage" />
+      <div className="flex flex-1 min-h-0">
       {/* LEFT - Sidebar */}
       <div className="hidden lg:flex lg:w-[320px] xl:w-[360px] flex-col bg-[#1A3A5C] text-white relative overflow-hidden">
         {/* Decorative bg */}
@@ -361,6 +367,7 @@ export default function Configurator() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
     </>

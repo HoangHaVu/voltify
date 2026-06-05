@@ -20,6 +20,7 @@ import { getScoreResult, computeLeadScoreDetailed } from '../utils/leadScore';
 import { calculateROI, generateStorageVariants } from '../lib/calculations';
 import OfferPdfDocument, { type CompanySettings } from '../components/pdf/OfferPdfDocument';
 import InvoicePdfDocument from '../components/pdf/InvoicePdfDocument';
+import CalculationPdfDocument from '../components/pdf/CalculationPdfDocument';
 import ActivityLog from '../components/lead/ActivityLog';
 import type { Lead, Project } from '../services/data';
 
@@ -186,6 +187,18 @@ function AngebotsManagementSection({
             <>
               <FileText className="w-4 h-4" />
               {loading ? 'PDF wird erstellt…' : 'Angebot als PDF'}
+            </>
+          )}
+        </PDFDownloadLink>
+        <PDFDownloadLink
+          document={<CalculationPdfDocument lead={lead} company={company} />}
+          fileName={`Berechnungsnachweis-${lead.first_name}-${lead.last_name}.pdf`}
+          className="flex items-center gap-2 bg-[#252525] border border-white/10 text-white font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-[#333] transition-colors cursor-pointer"
+        >
+          {({ loading }) => (
+            <>
+              <BarChart2 className="w-4 h-4" />
+              {loading ? 'PDF wird erstellt…' : 'Berechnungsnachweis'}
             </>
           )}
         </PDFDownloadLink>
@@ -514,9 +527,20 @@ export default function LeadDetailsPage() {
 
       // 3. E-Mail via Edge Function senden
       const subject = sendSubject.trim() || `Ihr persönliches Solar-Angebot — ${company.firmenname}`;
+      const signatureLink = lead.signing_token ? `${window.location.origin}/sign/${lead.signing_token}` : null;
       const html = sendMessage.trim().replace(/\n/g, '<br>') || `
         <p>Guten Tag ${lead.first_name} ${lead.last_name},</p>
         <p>vielen Dank für Ihr Interesse an einer Photovoltaikanlage. Anbei finden Sie Ihr persönliches Angebot.</p>
+        ${signatureLink ? `
+          <p>
+            <a href="${signatureLink}" style="display: inline-block; padding: 12px 24px; background-color: #F5A623; color: #1A3A5C; text-decoration: none; font-weight: bold; border-radius: 6px;">
+              Angebot digital unterschreiben
+            </a>
+          </p>
+          <p style="font-size: 12px; color: #666; margin-top: 8px;">
+            Sie können das Angebot auch bequem digital unterzeichnen. Der obige Link bleibt 30 Tage gültig.
+          </p>
+        ` : ''}
         <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
         <p>Mit freundlichen Grüßen<br>${company.firmenname}</p>
       `;

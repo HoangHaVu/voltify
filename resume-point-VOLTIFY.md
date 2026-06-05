@@ -1,5 +1,5 @@
 # Voltify — Resume Point
-<!-- Zuletzt aktualisiert: 2026-06-05 — Unterschrift-Link in E-Mail, Digitale Unterschrift komplett -->
+<!-- Zuletzt aktualisiert: 2026-06-05 — Funnel-Tracking, Lead-Gate, Scoutly-Integration, Build-Fix -->
 
 ## Status: MVP-INFRASTRUKTUR KOMPLETT ✅
 
@@ -10,16 +10,21 @@ Session 2026-06-01:
   - Google Maps API Key live (Vercel + .env.local, Quota 200/Tag, Budget-Alert €20)
   - Migrationen 030+032+033+034a+034b+035 in Supabase deployed
   - Edge Functions: notify-signature deployed, send-offer + notify-signature auf noreply@vu-studio.de
-Session 2026-06-05:
+Session 2026-06-05 (Teil 1):
   - **Digitale Unterschrift komplett** ✅ (signing_token in LEAD_SELECT + Link in E-Mail)
-  - Customer-Journey: Angebot → E-Mail mit Unterschrift-CTA → /sign/:token → Canvas-Pad → PDF mit Unterschrift
   - **Calendly-Integration** ✅ Beta-Formular → Demo-Call-Modal (contact-vu-studio/30min)
-  - **Funnel-Umbau (Demo-as-Trojan-Horse)** ✅
-    - src/lib/betaConfig.ts = Single Source of Truth (5 Plätze / 3 Mo / 30% / Calendly)
-    - Konfigurator Step9: demoMode-Pivot → Beta-CTA statt Endkunden-Sackgasse
-    - DemoBanner (Konfigurator) + FloatingBetaCTA (/demo) + ExitIntentModal (Landing)
-    - CRM-Kachel → /beta statt /login-Sackgasse; Copy auf Installateur (du/Solo-Solarteure)
-    - Tote Footer-Links repariert. 113/113 Tests grün.
+  - **Funnel-Umbau (Demo-as-Trojan-Horse)** ✅ — betaConfig.ts, Step9 demoMode, DemoBanner, ExitIntentModal, FloatingBetaCTA
+  - CRM-Kachel → /login (Demo-Accounts für Prospects) · 113/113 Tests grün
+
+Session 2026-06-05 (Teil 2):
+  - **Funnel-Tracking** ✅ — `funnel_events` Tabelle (Migrationen 036–038), fire-and-forget Events
+  - **Step0_EmailGate** ✅ — E-Mail-Capture vor Konfigurator (nur Live-Modus, Skip-Option)
+  - **Demo-Modus via ?demo=1** ✅ — URL-Param trennt Demo (Banner, kein Gate) von Live (Gate, kein Banner)
+  - **UTM-Persistenz** ✅ — `cacheFunnelSourceFromUrl()` auf Landing; sl_email + utm_* überleben Navigation
+  - **Scoutly-Integration** ✅ — VoltifyPanel in Scoutly IntegrationsPage, funnel_events_public View
+  - **Smartlead P.S.-Link** ✅ — `?sl_email={{email}}&utm_source=scoutly&utm_campaign=...`
+  - **Vercel Build-Fix** ✅ — Promise.resolve() wrapper + CalculationPdfDocument.tsx committed
+  - Letzter Commit: `543decf` · 113/113 Tests grün · 0 TypeScript-Fehler
 
 ---
 
@@ -91,7 +96,10 @@ Session 2026-06-05:
    - PDF-Embed ✅
    - **NEW:** signing_token in E-Mail-Link ✅
 
-5. **Next:** 3 Beta-Tester onboarden (Pricing-Conversation Woche 2) ← NÄCHSTER SCHRITT
+5. ~~**Funnel-Tracking + Lead-Gate + Scoutly-Integration**~~ ✅ DONE (2026-06-05)
+
+6. **Next:** 3 Beta-Tester onboarden (Pricing-Conversation Woche 2) ← NÄCHSTER SCHRITT
+7. **Optional:** Conversion-Webhook aktivieren — Make.com einrichten + `VITE_SCOUTLY_WEBHOOK_URL` in Vercel
 
 ### Vertriebs-Prioritäten (kritisch!)
 3. **3 Beta-Tester onboarden** mit **Pricing-Conversation in Woche 2** (Conversion-Risiko früh adressieren)

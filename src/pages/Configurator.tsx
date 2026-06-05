@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Zap, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import SEO from '../components/seo/SEO';
 import DemoBanner from '../components/layout/DemoBanner';
 import { submitLead } from '../services/leads';
 import { calculateROI } from '../lib/calculations';
+import { trackFunnelEvent, getFunnelSource } from '../lib/funnelTracking';
+import Step0_EmailGate from '../sections/configurator/Step0_EmailGate';
 import Step1_Building from '../sections/configurator/Step1_Building';
 import Step2_Roof from '../sections/configurator/Step2_Roof';
 import Step3_Consumption from '../sections/configurator/Step3_Consumption';
@@ -82,12 +84,22 @@ const steps = [
 ];
 
 export default function Configurator() {
+  const [searchParams] = useSearchParams();
+  const isDemo = searchParams.get('demo') === '1';
+
+  const [gateCleared, setGateCleared] = useState(isDemo);
   const [currentStep, setCurrentStep] = useState(1);
   const [maxVisitedStep, setMaxVisitedStep] = useState(1);
   const [data, setData] = useState<WizardData>(initialData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const navigate = useNavigate();
+
+  // Tracking: Session starten sobald Gate cleared ist
+  useEffect(() => {
+    if (!gateCleared) return;
+    trackFunnelEvent(1, 'started', { demoMode: isDemo });
+  }, [gateCleared, isDemo]);
 
   const updateData = (partial: Partial<WizardData>) => {
     setData((prev) => ({ ...prev, ...partial }));
@@ -98,6 +110,7 @@ export default function Configurator() {
       setCurrentStep((s) => {
         const next = s + 1;
         setMaxVisitedStep((m) => Math.max(m, next));
+        trackFunnelEvent(next, 'step_reached', { demoMode: isDemo });
         return next;
       });
     }
@@ -151,6 +164,28 @@ export default function Configurator() {
         },
         dbCalc,
       );
+      trackFunnelEvent(9, 'completed', { demoMode: isDemo });
+
+      // Scoutly-Conversion-Webhook: nur bei echten Leads (kein Demo) mit sl_lead-Param
+      const webhookUrl = import.meta.env.VITE_SCOUTLY_WEBHOOK_URL;
+      const { sourceId, utmSource, utmCampaign } = getFunnelSource();
+      if (webhookUrl && sourceId && !isDemo) {
+        fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sl_lead_id:   sourceId,
+            utm_source:   utmSource,
+            utm_campaign: utmCampaign,
+            email:        data.email,
+            first_name:   data.firstName,
+            last_name:    data.lastName,
+            event:        'voltify_conversion',
+            converted_at: new Date().toISOString(),
+          }),
+        }).catch(() => {}); // silent — Webhook-Fehler darf nichts blockieren
+      }
+
       setCurrentStep(9);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Übermittlung fehlgeschlagen.');
@@ -174,12 +209,25 @@ export default function Configurator() {
       case 6: return <Step6_Subsidies {...props} />;
       case 7: return <Step7_Analysis key={analysisKey} {...props} onNext={goNext} />;
       case 8: return <Step8_Contact {...props} onSubmit={handleSubmit} isSubmitting={isSubmitting} submitError={submitError} />;
-      // demoMode=true: /konfigurator ist die Demo für Installateure (pre-launch).
-      // Später beim echten Embed auf Installateur-Seiten: demoMode=false setzen.
-      case 9: return <Step9_ThankYou demoMode />;
+      case 9: return <Step9_ThankYou demoMode={isDemo} />;
       default: return null;
     }
   };
+
+  const handleGateSubmit = (firstName: string, email: string) => {
+    updateData({ firstName, email });
+    trackFunnelEvent(0, 'email_captured', { email, demoMode: false });
+    setGateCleared(true);
+  };
+
+  const handleGateSkip = () => {
+    trackFunnelEvent(0, 'skipped_gate', { demoMode: false });
+    setGateCleared(true);
+  };
+
+  if (!gateCleared) {
+    return <Step0_EmailGate onSubmit={handleGateSubmit} onSkip={handleGateSkip} />;
+  }
 
   return (
     <>
@@ -190,8 +238,8 @@ export default function Configurator() {
         noindex
       />
       <div className="min-h-screen flex flex-col">
-      {/* Demo-Modus-Banner — signalisiert Installateuren die Kundensicht */}
-      <DemoBanner label="Demo-Modus — so konfigurieren deine Kunden ihre Solaranlage" />
+      {/* Demo-Modus-Banner — nur bei ?demo=1 (Installateur-Preview) */}
+      {isDemo && <DemoBanner label="Demo-Modus — so konfigurieren deine Kunden ihre Solaranlage" />}
       <div className="flex flex-1 min-h-0">
       {/* LEFT - Sidebar */}
       <div className="hidden lg:flex lg:w-[320px] xl:w-[360px] flex-col bg-[#1A3A5C] text-white relative overflow-hidden">

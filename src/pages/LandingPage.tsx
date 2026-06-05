@@ -10,6 +10,7 @@ import {
   TrendingUp, Briefcase
 } from 'lucide-react';
 import { BETA, BETA_COPY } from '../lib/betaConfig';
+import { cacheFunnelSourceFromUrl } from '../lib/funnelTracking';
 import ExitIntentModal from '../components/layout/ExitIntentModal';
 import { useExitIntent } from '../hooks/useExitIntent';
 
@@ -51,7 +52,7 @@ const services: ServiceItem[] = [
     title: 'Solar-Konfigurator',
     desc: 'Deine Kunden konfigurieren ihre Anlage selbst — Dach, Verbrauch, Speicher, Förderungen. Du erhältst den Lead mit allen Daten.',
     features: ['9-Schritt-Wizard für Endkunden', 'Automatische ROI-Berechnung', 'BAFA / KfW Förderungen', 'Lead-Erfassung auf deiner Webseite', 'DSGVO-konform'],
-    link: '/konfigurator',
+    link: '/konfigurator?demo=1',
     linkLabel: 'Jetzt live testen',
   },
   {
@@ -59,8 +60,8 @@ const services: ServiceItem[] = [
     title: 'CRM & Dashboard',
     desc: 'Alle Leads, Projekte und Termine an einem Ort. Kanban-Pipeline, Kalender und Team-Verwaltung — speziell für Solar-Betriebe.',
     features: ['Lead-Pipeline (Kanban)', 'Projekt-Tracking', 'Kalender & Termine', 'Team & Rollen', 'Notizen & Kommunikation'],
-    link: '/beta',
-    linkLabel: 'Im Demo-Call ansehen',
+    link: '/login',
+    linkLabel: 'Demo-Account testen',
   },
   {
     icon: Globe,
@@ -86,6 +87,10 @@ export default function LandingPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [exitIntent, dismissExitIntent] = useExitIntent();
+
+  // UTM-Params (sl_lead, utm_source, utm_campaign) sofort cachen —
+  // damit sie beim späteren Klick auf "Live-Demo ansehen" → /konfigurator noch verfügbar sind.
+  useEffect(() => { cacheFunnelSourceFromUrl(); }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -191,7 +196,7 @@ export default function LandingPage() {
               Jetzt Beta-Partner werden <ArrowRight className="w-5 h-5" />
             </button>
             <button
-              onClick={() => navigate('/konfigurator')}
+              onClick={() => navigate('/konfigurator?demo=1')}
               className="inline-flex items-center gap-2 bg-white text-[#1A3A5C] text-base font-medium px-8 py-4 rounded-full border border-gray-200 hover:bg-gray-50 transition-all"
             >
               Live-Demo ansehen
@@ -383,7 +388,7 @@ export default function LandingPage() {
               Jetzt Beta-Partner werden <ArrowRight className="w-5 h-5" />
             </button>
             <button
-              onClick={() => navigate('/konfigurator')}
+              onClick={() => navigate('/konfigurator?demo=1')}
               className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm text-[#1A3A5C] text-base font-medium px-8 py-4 rounded-full border border-[#1A3A5C]/10 hover:bg-white transition-all"
             >
               Live-Demo ansehen
@@ -418,7 +423,7 @@ export default function LandingPage() {
                   <div className="flex flex-col gap-2">
                     <Link to="/preise" className="text-sm text-white/70 hover:text-white transition-colors">Preise</Link>
                     <Link to="/beta" className="text-sm text-white/70 hover:text-white transition-colors">Beta-Programm</Link>
-                    <Link to="/konfigurator" className="text-sm text-white/70 hover:text-white transition-colors">Live-Demo</Link>
+                    <Link to="/konfigurator?demo=1" className="text-sm text-white/70 hover:text-white transition-colors">Live-Demo</Link>
                   </div>
                 </div>
                 <div>

@@ -68,13 +68,13 @@ describe('LandingPage', () => {
     expect(screen.getByText('Digitaler Auftritt')).toBeInTheDocument();
   });
 
-  it('navigiert zu /beta beim Klick auf "Im Demo-Call ansehen" (CRM-Kachel)', () => {
+  it('navigiert zu /login beim Klick auf "Demo-Account testen" (CRM-Kachel)', () => {
     render(<LandingPage />);
 
-    const crmButton = screen.getByRole('button', { name: /Im Demo-Call ansehen/i });
+    const crmButton = screen.getByRole('button', { name: /Demo-Account testen/i });
     fireEvent.click(crmButton);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/beta');
+    expect(mockNavigate).toHaveBeenCalledWith('/login');
   });
 
   it('navigiert zu /konfigurator beim Klick auf Live-Demo ansehen (CTA)', () => {
@@ -83,7 +83,7 @@ describe('LandingPage', () => {
     const configButtons = screen.getAllByRole('button', { name: /Live-Demo ansehen/i });
     fireEvent.click(configButtons[configButtons.length - 1]);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/konfigurator');
+    expect(mockNavigate).toHaveBeenCalledWith('/konfigurator?demo=1');
   });
 
   it('navigiert zu /konfigurator beim Klick auf Live-Demo ansehen (Hero)', () => {
@@ -92,7 +92,7 @@ describe('LandingPage', () => {
     const configButton = screen.getAllByRole('button', { name: /Live-Demo ansehen/i })[0];
     fireEvent.click(configButton);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/konfigurator');
+    expect(mockNavigate).toHaveBeenCalledWith('/konfigurator?demo=1');
   });
 
   it('navigiert zu /demo beim Klick auf Demo-Webseite ansehen', () => {

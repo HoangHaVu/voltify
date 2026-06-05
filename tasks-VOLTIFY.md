@@ -1,5 +1,5 @@
 # Voltify — Tasks & Roadmap
-<!-- Zuletzt aktualisiert: 2026-06-01 — Google Maps API Key live, Konfigurator 9 Schritte -->
+<!-- Zuletzt aktualisiert: 2026-06-05 — Funnel-Tracking, Lead-Capture Gate, Scoutly-Integration -->
 
 ---
 
@@ -16,7 +16,10 @@
 - [x] **Edge Functions deployen** — `send-offer` (v1) + `notify-signature` (v1) + alle anderen ACTIVE
 - [ ] **Cron Jobs einrichten** — `notify-offer-expiry` + `notify-payment-due` täglich 08:00
 - [x] **Resend Domain-Verify** — `noreply@vu-studio.de` aktiv (geteilt mit Solar Konfigurator, selbes Supabase-Projekt)
-- [x] **Migrationen pushen** — 030 (Signatures), 032 (Variants), 033 (Sources), 034 (Lead Activities + Address Cache), 035 (Module Layout)
+- [x] **Migrationen pushen** — 030–035 (Signatures, Variants, Sources, Activities, Address Cache, Module Layout)
+- [x] **Migration 036** — `funnel_events` Tabelle (Tracking) mit anon-Insert-Policy
+- [x] **Migration 037** — `source_id`, `utm_source`, `utm_campaign` Spalten in `funnel_events`
+- [x] **Migration 038** — `funnel_events_public` View (anon lesbar, E-Mail ausgeblendet)
 
 ### Core Features (bereits implementiert)
 - [x] Auth-System — Supabase Auth, 8 Rollen, AuthContext + ProtectedRoute
@@ -65,6 +68,39 @@
 - [x] **Activity-Log pro Lead** — Automatisch bei Status/Angebots-Änderungen, manuelle Notizen möglich
 - [ ] **Mobile-Optimierung Dashboard** — Installateure sind unterwegs. Aktuell sehr Desktop-lastig
 - [ ] **DNS + Custom Domain** — Optional: voltify.de verbinden
+
+---
+
+## 🟢 Funnel & Wachstum — Erledigt (2026-06-05)
+
+### Demo-as-Trojan-Horse Funnel
+- [x] **betaConfig.ts** — Single Source of Truth (5 Plätze / 3 Mo / 30% / Calendly)
+- [x] **Step9 demoMode-Pivot** — Beta-CTA statt Endkunden-Sackgasse
+- [x] **DemoBanner** — Konfigurator signalisiert Installateur die Kundensicht
+- [x] **FloatingBetaCTA** — /demo Seite, erscheint nach 600px Scroll
+- [x] **ExitIntentModal** — Landing, 1×/Session bei Maus-Verlassen oben
+- [x] **Demo-Modus via ?demo=1** — URL-Param trennt Demo (kein Gate, Banner) von Live (Gate, kein Banner)
+
+### Lead-Capture & Tracking
+- [x] **Step0_EmailGate** — E-Mail + Vorname vor dem Konfigurator (nur Live-Modus, Skip-Option)
+- [x] **funnelTracking.ts** — fire-and-forget Events in `funnel_events` (started / step_reached / email_captured / skipped_gate / completed)
+- [x] **UTM-Persistenz** — `cacheFunnelSourceFromUrl()` auf Landingpage; Params überleben Navigation zu /konfigurator
+- [x] **Scoutly-Attribution** — `sl_email` + `utm_source` + `utm_campaign` in allen Events; Conversion-Webhook vorbereitet (`VITE_SCOUTLY_WEBHOOK_URL`)
+- [ ] **Conversion-Webhook aktivieren** — `VITE_SCOUTLY_WEBHOOK_URL` in Vercel eintragen sobald Make.com/n8n-Endpoint existiert
+- [ ] **Cron Jobs einrichten** — `notify-offer-expiry` + `notify-payment-due` täglich 08:00
+
+### Nützliche SQL-Abfragen (Supabase Dashboard)
+```sql
+-- Abbruchrate pro Step (nur echte Leads, kein Demo)
+SELECT step, COUNT(DISTINCT session_id) FROM funnel_events
+WHERE event='step_reached' AND demo_mode=false GROUP BY step ORDER BY step;
+
+-- Nicht abgeschlossene Leads mit E-Mail
+SELECT DISTINCT source_id AS email, MAX(step) AS letzter_step FROM funnel_events
+WHERE utm_source='scoutly' AND demo_mode=false
+AND session_id NOT IN (SELECT session_id FROM funnel_events WHERE event='completed')
+GROUP BY source_id;
+```
 
 ---
 

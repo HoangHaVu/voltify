@@ -44,9 +44,8 @@ export function trackFunnelEvent(
 ) {
   const { sourceId, utmSource, utmCampaign } = getSourceParams();
 
-  supabase
-    .from('funnel_events')
-    .insert({
+  void Promise.resolve(
+    supabase.from('funnel_events').insert({
       session_id:   getSessionId(),
       step,
       event,
@@ -56,8 +55,7 @@ export function trackFunnelEvent(
       utm_source:   utmSource,
       utm_campaign: utmCampaign,
     })
-    .then(() => {})
-    .catch(() => {});
+  ).catch(() => {});
 }
 
 // Gibt die Source-Params zurück — wird im Konfigurator für den Conversion-Webhook genutzt.

@@ -13,6 +13,13 @@ Session 2026-06-01:
 Session 2026-06-05:
   - **Digitale Unterschrift komplett** ✅ (signing_token in LEAD_SELECT + Link in E-Mail)
   - Customer-Journey: Angebot → E-Mail mit Unterschrift-CTA → /sign/:token → Canvas-Pad → PDF mit Unterschrift
+  - **Calendly-Integration** ✅ Beta-Formular → Demo-Call-Modal (contact-vu-studio/30min)
+  - **Funnel-Umbau (Demo-as-Trojan-Horse)** ✅
+    - src/lib/betaConfig.ts = Single Source of Truth (5 Plätze / 3 Mo / 30% / Calendly)
+    - Konfigurator Step9: demoMode-Pivot → Beta-CTA statt Endkunden-Sackgasse
+    - DemoBanner (Konfigurator) + FloatingBetaCTA (/demo) + ExitIntentModal (Landing)
+    - CRM-Kachel → /beta statt /login-Sackgasse; Copy auf Installateur (du/Solo-Solarteure)
+    - Tote Footer-Links repariert. 113/113 Tests grün.
 
 ---
 

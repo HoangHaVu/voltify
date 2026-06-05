@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, CheckCircle, ArrowRight, AlertCircle, Phone, Mail, Building2, MapPin, MessageSquare, User } from 'lucide-react';
+import { Zap, CheckCircle, ArrowRight, AlertCircle, Phone, Mail, Building2, MapPin, MessageSquare, User, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SEO from '../components/seo/SEO';
 
@@ -16,6 +16,7 @@ export default function BetaSignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [showCalendly, setShowCalendly] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,13 +40,30 @@ export default function BetaSignupPage() {
         body: { company_name: companyName, contact_name: contactName, email, phone, zip, message },
       }).catch(() => {/* ignorieren — Daten sind in DB */});
 
-      setSuccess(true);
+      // Calendly Modal öffnen statt success-screen
+      setShowCalendly(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Etwas ist schiefgelaufen. Bitte versuche es erneut.');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Calendly Script laden, wenn Modal sichtbar
+  useEffect(() => {
+    if (!showCalendly) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://assets.calendly.com/assets/external/widget.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, [showCalendly]);
 
   return (
     <>
@@ -191,13 +209,13 @@ export default function BetaSignupPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full bg-[#1A3A5C] text-white font-medium py-3 rounded-xl hover:bg-[#0F2440] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-[#F5A623] text-[#1A3A5C] font-medium py-3 rounded-xl hover:bg-[#E09000] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isSubmitting ? (
                       <Zap className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
-                        Beta-Platz sichern — 20% Rabatt
+                        Anfragen
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
@@ -268,6 +286,44 @@ export default function BetaSignupPage() {
             </div>
           </div>
         </div>
+
+        {/* Calendly Modal Overlay */}
+        {showCalendly && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div>
+                  <h2 className="text-xl font-bold text-[#1A3A5C]">Termin vereinbaren</h2>
+                  <p className="text-sm text-gray-500 mt-1">Wähle einen Termin für dein Onboarding</p>
+                </div>
+                <button
+                  onClick={() => setShowCalendly(false)}
+                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                  aria-label="Schließen"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Calendly Widget */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div
+                  className="calendly-inline-widget"
+                  data-url="https://calendly.com/contact-vu-studio/30min"
+                  style={{ minWidth: '320px', height: '630px' }}
+                />
+              </div>
+
+              {/* Footer Info */}
+              <div className="border-t border-gray-200 bg-gray-50 p-4 text-center">
+                <p className="text-xs text-gray-500">
+                  Nach der Terminbuchung erhältst du eine Bestätigungsemail mit Zoom-Link.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

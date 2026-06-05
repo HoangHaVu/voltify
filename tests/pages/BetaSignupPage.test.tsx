@@ -40,7 +40,7 @@ describe('BetaSignupPage', () => {
     expect(screen.getByPlaceholderText('Mustermann GmbH')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Max Mustermann')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('max@firma.de')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Beta-Platz sichern — 20% Rabatt/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Anfragen/i })).toBeInTheDocument();
   });
 
   it('zeigt den Login-Link im Footer', () => {

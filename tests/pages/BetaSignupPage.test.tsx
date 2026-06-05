@@ -61,7 +61,7 @@ describe('BetaSignupPage', () => {
 
     expect(screen.getByText('3 Monate kostenlos')).toBeInTheDocument();
     expect(screen.getAllByText(/-30% Gründerrabatt/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Persönliches Onboarding')).toBeInTheDocument();
+    expect(screen.getByText('Persönliches Demo')).toBeInTheDocument();
     expect(screen.getByText('Direkter Einfluss')).toBeInTheDocument();
   });
 

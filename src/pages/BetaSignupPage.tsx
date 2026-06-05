@@ -249,14 +249,14 @@ export default function BetaSignupPage() {
             <h2 className="text-3xl font-semibold text-white mb-2 leading-snug">
               Werde einer der ersten<br />5 Voltify-Partner
             </h2>
-            <p className="text-white/60 text-sm mb-8">3 Monate kostenlos testen. Danach 30% dauerhafter Rabatt. Kein Passwort, kein Setup — wir onboarden dich persönlich.</p>
+            <p className="text-white/60 text-sm mb-8">3 Monate kostenlos testen. Danach 30% dauerhafter Rabatt. Kein Setup-Aufwand — nur ein Demo-Call mit uns.</p>
 
             {/* Benefits Cards */}
             <div className="space-y-4">
               {[
                 { icon: '🎁', title: '3 Monate kostenlos', text: 'Vollständiger Zugriff ohne Kreditkarte — null Risiko.' },
                 { icon: '💰', title: '-30% Gründerrabatt', text: 'Dauerhaft auf jeden Tarif — auch nach der Beta-Phase.' },
-                { icon: '🚀', title: 'Persönliches Onboarding', text: '30-Min Setup-Call. Wir richten Voltify für dich ein.' },
+                { icon: '🚀', title: 'Persönliches Demo', text: '30-Min Live-Demo. Wir zeigen dir die volle Power von Voltify.' },
                 { icon: '⭐', title: 'Direkter Einfluss', text: 'Dein Feedback formt das Produkt. Werde Case-Study.' },
               ].map(item => (
                 <div key={item.title} className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 flex items-start gap-4">
@@ -294,8 +294,8 @@ export default function BetaSignupPage() {
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
                 <div>
-                  <h2 className="text-xl font-bold text-[#1A3A5C]">Starten wir dein Onboarding!</h2>
-                  <p className="text-sm text-gray-500 mt-1">Wähle einen Termin für dein 30-Min Setup-Gespräch</p>
+                  <h2 className="text-xl font-bold text-[#1A3A5C]">Demo-Call buchen</h2>
+                  <p className="text-sm text-gray-500 mt-1">Wähle einen Termin für dein 30-Min Demo-Gespräch</p>
                 </div>
                 <button
                   onClick={() => setShowCalendly(false)}
@@ -321,7 +321,7 @@ export default function BetaSignupPage() {
                   ✓ Nach Terminbuchung: Bestätigung per Email mit Zoom-Link
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Die 3 Monate kostenlosen Zugang starten nach dem Setup-Call
+                  Die 3 Monate kostenlos starten sofort nach der Demo
                 </p>
               </div>
             </div>

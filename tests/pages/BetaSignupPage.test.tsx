@@ -59,17 +59,17 @@ describe('BetaSignupPage', () => {
   it('zeigt Beta-Vorteile auf der rechten Seite', () => {
     render(<BetaSignupPage />);
 
-    expect(screen.getByText('Kostenloser Zugang')).toBeInTheDocument();
-    expect(screen.getAllByText(/20% Gründerrabatt/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('3 Monate kostenlos')).toBeInTheDocument();
+    expect(screen.getAllByText(/-30% Gründerrabatt/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Persönliches Onboarding')).toBeInTheDocument();
     expect(screen.getByText('Direkter Einfluss')).toBeInTheDocument();
   });
 
-  it('zeigt Stats (30 Tage, 0€, 1:1)', () => {
+  it('zeigt Stats (3 Mo., -30%, 30 min)', () => {
     render(<BetaSignupPage />);
 
-    expect(screen.getByText('30')).toBeInTheDocument();
-    expect(screen.getByText('-20%')).toBeInTheDocument();
-    expect(screen.getByText('1:1')).toBeInTheDocument();
+    expect(screen.getByText('3 Mo.')).toBeInTheDocument();
+    expect(screen.getByText('-30%')).toBeInTheDocument();
+    expect(screen.getByText('30 min')).toBeInTheDocument();
   });
 });

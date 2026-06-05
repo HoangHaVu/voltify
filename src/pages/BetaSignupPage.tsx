@@ -100,10 +100,10 @@ export default function BetaSignupPage() {
             ) : (
               <>
                 <span className="inline-flex items-center gap-1.5 bg-[#F5A623]/10 text-[#F5A623] text-xs font-bold px-3 py-1 rounded-full mb-3">
-                  🚀 Nur noch 10 Plätze verfügbar
+                  🚀 Nur noch 5 Plätze verfügbar
                 </span>
                 <h1 className="text-3xl md:text-4xl font-semibold text-[#1A3A5C] mb-3">Jetzt Beta-Partner werden</h1>
-                <p className="text-gray-500 text-sm mb-8">Hinterlasse deine Kontaktdaten — wir melden uns persönlich bei dir. Als Beta-Partner sicherst du dir dauerhaft <span className="text-[#F5A623] font-bold">20% Gründerrabatt</span> auf jeden Tarif.</p>
+                <p className="text-gray-500 text-sm mb-8">Hinterlasse deine Kontaktdaten — wir melden uns persönlich bei dir. Als Beta-Partner sicherst du dir die nächsten 3 Monate <span className="text-[#F5A623] font-bold">kostenlos</span> und danach dauerhaft <span className="text-[#F5A623] font-bold">30% Gründerrabatt</span>.</p>
 
                 {error && (
                   <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-6">
@@ -244,20 +244,20 @@ export default function BetaSignupPage() {
           <div className="relative max-w-[540px] w-full">
             {/* Tagline */}
             <div className="inline-flex items-center gap-2 bg-[#F5A623]/20 border border-[#F5A623]/30 rounded-full px-3 py-1 text-xs font-bold text-[#F5A623] uppercase tracking-widest mb-6">
-              ⭐ Beta-Programm — Limitiert
+              ⭐ Beta-Programm — Nur 5 Plätze
             </div>
             <h2 className="text-3xl font-semibold text-white mb-2 leading-snug">
-              Werde einer der ersten<br />10 Voltify-Partner
+              Werde einer der ersten<br />5 Voltify-Partner
             </h2>
-            <p className="text-white/60 text-sm mb-8">Kein Account-Setup, kein Passwort. Wir melden uns persönlich bei dir.</p>
+            <p className="text-white/60 text-sm mb-8">3 Monate kostenlos testen. Danach 30% dauerhafter Rabatt. Kein Passwort, kein Setup — wir onboarden dich persönlich.</p>
 
             {/* Benefits Cards */}
             <div className="space-y-4">
               {[
-                { icon: '🎯', title: 'Kostenloser Zugang', text: '30 Tage vollständiger Zugriff ohne Kreditkarte.' },
-                { icon: '💰', title: '20% Gründerrabatt', text: 'Dauerhafter Rabatt auf jeden Tarif — auch nach der Beta.' },
-                { icon: '📞', title: 'Persönliches Onboarding', text: 'Wir richten alles gemeinsam mit dir ein.' },
-                { icon: '💡', title: 'Direkter Einfluss', text: 'Dein Feedback formt das Produkt. Video-Testimonial erwünscht.' },
+                { icon: '🎁', title: '3 Monate kostenlos', text: 'Vollständiger Zugriff ohne Kreditkarte — null Risiko.' },
+                { icon: '💰', title: '-30% Gründerrabatt', text: 'Dauerhaft auf jeden Tarif — auch nach der Beta-Phase.' },
+                { icon: '🚀', title: 'Persönliches Onboarding', text: '30-Min Setup-Call. Wir richten Voltify für dich ein.' },
+                { icon: '⭐', title: 'Direkter Einfluss', text: 'Dein Feedback formt das Produkt. Werde Case-Study.' },
               ].map(item => (
                 <div key={item.title} className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 flex items-start gap-4">
                   <span className="text-2xl">{item.icon}</span>
@@ -272,16 +272,16 @@ export default function BetaSignupPage() {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3 mt-6">
               <div className="bg-white/10 rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold text-white">30</p>
-                <p className="text-[10px] text-white/50">Tage kostenlos</p>
+                <p className="text-2xl font-bold text-white">3 Mo.</p>
+                <p className="text-[10px] text-white/50">Kostenlos testen</p>
               </div>
               <div className="bg-white/10 rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold text-[#F5A623]">-20%</p>
+                <p className="text-2xl font-bold text-[#F5A623]">-30%</p>
                 <p className="text-[10px] text-white/50">Dauerhafter Rabatt</p>
               </div>
               <div className="bg-white/10 rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold text-white">1:1</p>
-                <p className="text-[10px] text-white/50">Onboarding</p>
+                <p className="text-2xl font-bold text-white">30 min</p>
+                <p className="text-[10px] text-white/50">Setup-Call</p>
               </div>
             </div>
           </div>
@@ -294,8 +294,8 @@ export default function BetaSignupPage() {
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
                 <div>
-                  <h2 className="text-xl font-bold text-[#1A3A5C]">Termin vereinbaren</h2>
-                  <p className="text-sm text-gray-500 mt-1">Wähle einen Termin für dein Onboarding</p>
+                  <h2 className="text-xl font-bold text-[#1A3A5C]">Starten wir dein Onboarding!</h2>
+                  <p className="text-sm text-gray-500 mt-1">Wähle einen Termin für dein 30-Min Setup-Gespräch</p>
                 </div>
                 <button
                   onClick={() => setShowCalendly(false)}
@@ -316,9 +316,12 @@ export default function BetaSignupPage() {
               </div>
 
               {/* Footer Info */}
-              <div className="border-t border-gray-200 bg-gray-50 p-4 text-center">
-                <p className="text-xs text-gray-500">
-                  Nach der Terminbuchung erhältst du eine Bestätigungsemail mit Zoom-Link.
+              <div className="border-t border-gray-200 bg-gradient-to-r from-[#F5A623]/5 to-[#1A3A5C]/5 p-4 text-center">
+                <p className="text-xs text-gray-600 font-medium">
+                  ✓ Nach Terminbuchung: Bestätigung per Email mit Zoom-Link
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Die 3 Monate kostenlosen Zugang starten nach dem Setup-Call
                 </p>
               </div>
             </div>

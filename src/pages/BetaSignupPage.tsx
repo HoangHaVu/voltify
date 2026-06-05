@@ -281,7 +281,7 @@ export default function BetaSignupPage() {
               </div>
               <div className="bg-white/10 rounded-xl p-3 text-center">
                 <p className="text-2xl font-bold text-white">30 min</p>
-                <p className="text-[10px] text-white/50">Setup-Call</p>
+                <p className="text-[10px] text-white/50">Demo-Call</p>
               </div>
             </div>
           </div>

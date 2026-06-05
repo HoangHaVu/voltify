@@ -1,11 +1,18 @@
 # Voltify — Resume Point
-<!-- Zuletzt aktualisiert: 2026-05-31 — Konfigurator-UX + Wirtschaftlichkeitsanalyse verbessert -->
+<!-- Zuletzt aktualisiert: 2026-06-05 — Unterschrift-Link in E-Mail, Digitale Unterschrift komplett -->
 
-## Status: KONFIGURATOR POLISH ✅
+## Status: MVP-INFRASTRUKTUR KOMPLETT ✅
 
 Letzter Stand (Code): 113/113 Tests, 0 TypeScript-Fehler
 Session 2026-05-31: Batteriekosten-Fix, Step-7-Verbesserungen, 8-Schritt-Konfigurator, PLZ in Step 1
-Session 2026-06-01: Step 3 gesplittet → 9-Schritt-Konfigurator (Step 3=Stromverbrauch, Step 4=Ausstattung & Pläne)
+Session 2026-06-01:
+  - Step 3 gesplittet → 9-Schritt-Konfigurator (Step 3=Stromverbrauch, Step 4=Ausstattung & Pläne)
+  - Google Maps API Key live (Vercel + .env.local, Quota 200/Tag, Budget-Alert €20)
+  - Migrationen 030+032+033+034a+034b+035 in Supabase deployed
+  - Edge Functions: notify-signature deployed, send-offer + notify-signature auf noreply@vu-studio.de
+Session 2026-06-05:
+  - **Digitale Unterschrift komplett** ✅ (signing_token in LEAD_SELECT + Link in E-Mail)
+  - Customer-Journey: Angebot → E-Mail mit Unterschrift-CTA → /sign/:token → Canvas-Pad → PDF mit Unterschrift
 
 ---
 
@@ -67,12 +74,17 @@ Session 2026-06-01: Step 3 gesplittet → 9-Schritt-Konfigurator (Step 3=Stromve
 
 ## Nächster Schritt — Sales-Ready Sprint 1 (Tag 0–30)
 
-### Code-Prioritäten
-1. **Solar-Planer Phase 2 — DONE ✅** (2026-05-29)
-   - `InstallerPlanner.tsx`, `SolarPlanningSection.tsx`, `OfferPdfDocument` ✅
-   → **OFFEN**: `VITE_GOOGLE_MAPS_API_KEY` setzen + Migrationen 034+035 in Supabase deployen
+### Code-Prioritäten — MVP Feature-Complete ✅
+1. **Google Maps API Key — DONE ✅** (2026-06-01)
+2. ~~**Migrationen**~~ — ✅ DONE (2026-06-01)
+3. ~~**Edge Functions + Resend**~~ — ✅ DONE (2026-06-01)
+4. ~~**Digitale Unterschrift**~~ — ✅ DONE (2026-06-05)
+   - Canvas-Pad ✅
+   - Magic-Link-Route (`/sign/:token`) ✅
+   - PDF-Embed ✅
+   - **NEW:** signing_token in E-Mail-Link ✅
 
-2. **Digitale Unterschrift** — Canvas-Pad + Magic-Link-Route + PDF-Embed
+5. **Next:** 3 Beta-Tester onboarden (Pricing-Conversation Woche 2) ← NÄCHSTER SCHRITT
 
 ### Vertriebs-Prioritäten (kritisch!)
 3. **3 Beta-Tester onboarden** mit **Pricing-Conversation in Woche 2** (Conversion-Risiko früh adressieren)

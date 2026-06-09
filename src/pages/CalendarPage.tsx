@@ -14,9 +14,10 @@ const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli
 const WEEKDAY_NAMES = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
 const TYPE_CONFIG: Record<Appointment['type'], { label: string; bg: string; border: string; text: string; dot: string }> = {
-  beratung: { label: 'Beratung', bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400', dot: 'bg-blue-400' },
-  installation: { label: 'Installation', bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400', dot: 'bg-orange-400' },
-  abnahme: { label: 'Abnahme', bg: 'bg-green-500/10', border: 'border-green-500/20', text: 'text-green-400', dot: 'bg-green-400' },
+  beratung:       { label: 'Beratung',        bg: 'bg-blue-500/10',   border: 'border-blue-500/20',   text: 'text-blue-400',   dot: 'bg-blue-400' },
+  installation:   { label: 'Installation',    bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400', dot: 'bg-orange-400' },
+  abnahme:        { label: 'Abnahme',         bg: 'bg-green-500/10',  border: 'border-green-500/20',  text: 'text-green-400',  dot: 'bg-green-400' },
+  partnermeeting: { label: 'Partner-Meeting', bg: 'bg-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-400', dot: 'bg-purple-400' },
 };
 
 const PERSON_PALETTE: PersonColor[] = [

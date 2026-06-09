@@ -3,9 +3,10 @@ import type { PersonColor } from './CalendarEvent';
 import type { Appointment } from '../../services/data';
 
 const TYPE_MAP: Record<Appointment['type'], 'consultation' | 'installation' | 'acceptance'> = {
-  beratung: 'consultation',
-  installation: 'installation',
-  abnahme: 'acceptance',
+  beratung:       'consultation',
+  installation:   'installation',
+  abnahme:        'acceptance',
+  partnermeeting: 'consultation',
 };
 
 function formatTime(iso: string): string {

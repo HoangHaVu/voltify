@@ -45,25 +45,28 @@ export default function AgencySettingsPage() {
 
   useEffect(() => {
     if (!user?.id) return;
-    supabase
-      .from('profiles')
-      .select('full_name, phone, zip, agency_website, agency_default_commission_type, agency_default_commission_value, agency_notify_on_response')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('full_name, phone, zip, agency_website, agency_default_commission_type, agency_default_commission_value, agency_notify_on_response')
+          .eq('id', user.id)
+          .single();
         if (data) {
           setForm({
-            full_name:                        data.full_name ?? '',
-            phone:                            data.phone ?? '',
-            zip:                              data.zip ?? '',
-            agency_website:                   data.agency_website ?? '',
-            agency_default_commission_type:   data.agency_default_commission_type ?? 'fixed',
-            agency_default_commission_value:  data.agency_default_commission_value ?? 0,
-            agency_notify_on_response:        data.agency_notify_on_response ?? true,
+            full_name:                       data.full_name ?? '',
+            phone:                           data.phone ?? '',
+            zip:                             data.zip ?? '',
+            agency_website:                  data.agency_website ?? '',
+            agency_default_commission_type:  data.agency_default_commission_type ?? 'fixed',
+            agency_default_commission_value: data.agency_default_commission_value ?? 0,
+            agency_notify_on_response:       data.agency_notify_on_response ?? true,
           });
         }
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [user?.id]);
 
   async function handleSave(e: React.FormEvent) {

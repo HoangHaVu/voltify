@@ -53,9 +53,11 @@ export function isAgencyAgent(role: UserRole): boolean {
   return role === 'agency_agent';
 }
 
-/** Gibt die agency_id des Users zurück — für agents ist das die owner_id. */
-export function resolveAgencyId(user: Profile): string {
-  return user.role === 'agency_agent' ? (user.owner_id ?? user.id) : user.id;
+/** Gibt die agency_id des Users zurück — für agents ist das die owner_id.
+ *  Akzeptiert sowohl Profile (owner_id) als auch AuthUser (ownerId). */
+export function resolveAgencyId(user: { id: string; role: UserRole; owner_id?: string | null; ownerId?: string | null }): string {
+  const parentId = user.owner_id ?? (user as { ownerId?: string | null }).ownerId ?? null;
+  return user.role === 'agency_agent' ? (parentId ?? user.id) : user.id;
 }
 
 export async function fetchProfile(userId: string): Promise<Profile> {

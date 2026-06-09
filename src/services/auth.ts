@@ -9,7 +9,9 @@ export type UserRole =
   | 'projektleiter'
   | 'monteur'
   | 'backoffice'
-  | 'super_employee';
+  | 'super_employee'
+  | 'sales_agency'
+  | 'agency_agent';
 
 export interface Profile {
   id: string;
@@ -22,7 +24,7 @@ export interface Profile {
 }
 
 export const EMPLOYEE_ROLES: UserRole[] = [
-  'installer', 'vertrieb', 'projektleiter', 'monteur', 'backoffice', 'super_employee',
+  'installer', 'vertrieb', 'projektleiter', 'monteur', 'backoffice', 'super_employee', 'sales_agency', 'agency_agent',
 ];
 
 export const MANAGER_ROLES: UserRole[] = ['owner', 'super_employee'];
@@ -37,6 +39,23 @@ export function isEmployee(role: UserRole): boolean {
 
 export function isSuperEmployee(role: UserRole): boolean {
   return role === 'super_employee';
+}
+
+export function isSalesAgency(role: UserRole): boolean {
+  return role === 'sales_agency' || role === 'agency_agent';
+}
+
+export function isAgencyAdmin(role: UserRole): boolean {
+  return role === 'sales_agency';
+}
+
+export function isAgencyAgent(role: UserRole): boolean {
+  return role === 'agency_agent';
+}
+
+/** Gibt die agency_id des Users zurück — für agents ist das die owner_id. */
+export function resolveAgencyId(user: Profile): string {
+  return user.role === 'agency_agent' ? (user.owner_id ?? user.id) : user.id;
 }
 
 export async function fetchProfile(userId: string): Promise<Profile> {
@@ -81,6 +100,21 @@ export async function signUpInstaller(
     email,
     password,
     options: { data: { role: 'installer', full_name: companyName, zip, phone: phone || null } },
+  });
+  if (error) throw new Error(mapAuthError(error.message));
+}
+
+export async function signUpSalesAgency(
+  email: string,
+  password: string,
+  companyName: string,
+  zip: string,
+  phone?: string,
+): Promise<void> {
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { role: 'sales_agency', full_name: companyName, zip, phone: phone || null } },
   });
   if (error) throw new Error(mapAuthError(error.message));
 }

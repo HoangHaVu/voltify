@@ -19,14 +19,23 @@ import LandingPage from './pages/LandingPage';
 import Datenschutz from './pages/Datenschutz';
 import Impressum from './pages/Impressum';
 import SignOfferPage from './pages/SignOfferPage';
+import PartnersPage from './pages/agency/PartnersPage';
+import LeadRouterPage from './pages/agency/LeadRouterPage';
+import CommissionsPage from './pages/agency/CommissionsPage';
+import PartnerPortalPage from './pages/agency/PartnerPortalPage';
+import AgencyCalendarPage from './pages/agency/AgencyCalendarPage';
+import AgencyTeamPage from './pages/agency/AgencyTeamPage';
+import AgencySettingsPage from './pages/agency/AgencySettingsPage';
 import PricingPage from './pages/PricingPage';
 import BetaSignupPage from './pages/BetaSignupPage';
 import AGB from './pages/AGB';
 
 /** Alle Rollen, die Admin-Bereich Zugriff haben */
 const ADMIN_ROLES: UserRole[] = [
-  'owner', 'installer', 'vertrieb', 'projektleiter', 'monteur', 'backoffice', 'super_employee',
+  'owner', 'installer', 'vertrieb', 'projektleiter', 'monteur', 'backoffice', 'super_employee', 'sales_agency', 'agency_agent',
 ];
+
+const AGENCY_ROLES: UserRole[] = ['sales_agency', 'agency_agent'];
 
 /** Rollen, die Leads sehen dürfen */
 const LEAD_ROLES: UserRole[] = ['owner', 'vertrieb', 'super_employee', 'installer'];
@@ -122,6 +131,58 @@ export default function App() {
       <Route path="/datenschutz" element={<Datenschutz />} />
       <Route path="/impressum" element={<Impressum />} />
       <Route path="/sign/:token" element={<SignOfferPage />} />
+      {/* Agency Routes — Admin only */}
+      <Route
+        path="/admin/partners"
+        element={
+          <ProtectedRoute allowedRoles={['sales_agency']}>
+            <PartnersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/commissions"
+        element={
+          <ProtectedRoute allowedRoles={['sales_agency']}>
+            <CommissionsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/agency-team"
+        element={
+          <ProtectedRoute allowedRoles={['sales_agency']}>
+            <AgencyTeamPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/agency-settings"
+        element={
+          <ProtectedRoute allowedRoles={['sales_agency']}>
+            <AgencySettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* Agency Routes — Admin + Vertriebler */}
+      <Route
+        path="/admin/router"
+        element={
+          <ProtectedRoute allowedRoles={AGENCY_ROLES}>
+            <LeadRouterPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/agency-calendar"
+        element={
+          <ProtectedRoute allowedRoles={AGENCY_ROLES}>
+            <AgencyCalendarPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* Partner Portal (public, no auth) */}
+      <Route path="/partner/:token" element={<PartnerPortalPage />} />
     </Routes>
     </>
   );

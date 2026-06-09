@@ -139,7 +139,7 @@ export interface Appointment {
   id: string;
   installer_id: string;
   title: string;
-  type: 'beratung' | 'installation' | 'abnahme';
+  type: 'beratung' | 'installation' | 'abnahme' | 'partnermeeting';
   starts_at: string;
   ends_at: string;
   location: string | null;
@@ -151,7 +151,7 @@ export interface Appointment {
 }
 
 const PROJECT_SELECT = '*, customer:profiles!customer_id(id, full_name, phone, zip), lead:leads!lead_id(first_name, last_name, email, phone, zip)';
-const LEAD_SELECT = 'id, first_name, last_name, email, phone, zip, installer_id, building_type, ownership, roof_orientation, roof_tilt, roof_area, shading, construction_year, consumption, has_e_car, has_heat_pump, has_battery, electricity_price, kwp, investment, annual_savings, amortization, autarky, profit_20_years, score, planning_horizon, needs_financing, wants_zoom_call, status, offer_status, offer_sent_at, offer_viewed_at, payment_1_paid, payment_2_paid, payment_3_paid, discount_code, discount_percentage, discount_status, final_price, discount_note, discount_requested_at, discount_resolved_at, site_visit_date, site_visit_notes, site_visit_done, roof_area_measured, roof_angle, shading_issues, source, module_layout, signing_token, created_at, offer_signatures(signature_png, signed_at), offer_variants(*), lead_activities(id, type, description, user_name, created_at)';
+const LEAD_SELECT = 'id, first_name, last_name, email, phone, zip, installer_id, agency_id, building_type, ownership, roof_orientation, roof_tilt, roof_area, shading, construction_year, consumption, has_e_car, has_heat_pump, has_battery, electricity_price, kwp, investment, annual_savings, amortization, autarky, profit_20_years, score, planning_horizon, needs_financing, wants_zoom_call, status, offer_status, offer_sent_at, offer_viewed_at, payment_1_paid, payment_2_paid, payment_3_paid, discount_code, discount_percentage, discount_status, final_price, discount_note, discount_requested_at, discount_resolved_at, site_visit_date, site_visit_notes, site_visit_done, roof_area_measured, roof_angle, shading_issues, source, module_layout, signing_token, created_at, offer_signatures(signature_png, signed_at), offer_variants(*), lead_activities(id, type, description, user_name, created_at)';
 
 // ── Projekte ─────────────────────────────────────────────────────────
 

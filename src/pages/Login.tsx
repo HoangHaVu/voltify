@@ -13,6 +13,7 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loginMode, setLoginMode] = useState<'installateur' | 'agentur'>('installateur');
 
   // Navigation nach erfolgreichem Login
   useEffect(() => {
@@ -124,25 +125,72 @@ export default function Login() {
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
-            {/* Test Login Buttons */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Toggle: Installateur / Agentur */}
+            <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
               <button
                 type="button"
-                onClick={() => { setEmail('installateur@test.de'); setPassword('Test123456'); }}
-                className="flex flex-col items-center justify-center gap-1 border border-gray-200 rounded-xl py-2.5 text-xs text-gray-600 hover:bg-gray-50 hover:border-[#F5A623]/50 transition-colors"
+                onClick={() => setLoginMode('installateur')}
+                className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                  loginMode === 'installateur'
+                    ? 'bg-white text-[#1A3A5C] shadow-sm'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
               >
-                <span className="font-medium text-[#1A3A5C]">Installateur</span>
-                <span className="text-[10px] text-gray-400">installateur@test.de</span>
+                Installateur
               </button>
               <button
                 type="button"
-                onClick={() => { setEmail('inhaber@test.de'); setPassword('Test123456'); }}
-                className="flex flex-col items-center justify-center gap-1 border border-gray-200 rounded-xl py-2.5 text-xs text-gray-600 hover:bg-gray-50 hover:border-[#F5A623]/50 transition-colors"
+                onClick={() => setLoginMode('agentur')}
+                className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                  loginMode === 'agentur'
+                    ? 'bg-white text-[#1A3A5C] shadow-sm'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
               >
-                <span className="font-medium text-[#1A3A5C]">Inhaber</span>
-                <span className="text-[10px] text-gray-400">inhaber@test.de</span>
+                Agentur
               </button>
             </div>
+
+            {/* Test-Buttons je nach Modus */}
+            {loginMode === 'installateur' ? (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setEmail('installateur@test.de'); setPassword('Test123456'); }}
+                  className="flex flex-col items-center justify-center gap-1 border border-gray-200 rounded-xl py-2.5 text-xs text-gray-600 hover:bg-gray-50 hover:border-[#F5A623]/50 transition-colors"
+                >
+                  <span className="font-medium text-[#1A3A5C]">Installateur</span>
+                  <span className="text-[10px] text-gray-400">installateur@test.de</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEmail('inhaber@test.de'); setPassword('Test123456'); }}
+                  className="flex flex-col items-center justify-center gap-1 border border-gray-200 rounded-xl py-2.5 text-xs text-gray-600 hover:bg-gray-50 hover:border-[#F5A623]/50 transition-colors"
+                >
+                  <span className="font-medium text-[#1A3A5C]">Inhaber</span>
+                  <span className="text-[10px] text-gray-400">inhaber@test.de</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setEmail('agentur@test.de'); setPassword('Test123456'); }}
+                  className="flex flex-col items-center justify-center gap-1 border border-gray-200 rounded-xl py-2.5 text-xs text-gray-600 hover:bg-gray-50 hover:border-[#F5A623]/50 transition-colors"
+                >
+                  <span className="font-medium text-[#1A3A5C]">Agentur-Inhaber</span>
+                  <span className="text-[10px] text-gray-400">agentur@test.de</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEmail('vertriebler@test.de'); setPassword('Test123456'); }}
+                  className="flex flex-col items-center justify-center gap-1 border border-gray-200 rounded-xl py-2.5 text-xs text-gray-600 hover:bg-gray-50 hover:border-[#F5A623]/50 transition-colors"
+                >
+                  <span className="font-medium text-[#1A3A5C]">Vertriebler</span>
+                  <span className="text-[10px] text-gray-400">vertriebler@test.de</span>
+                </button>
+              </div>
+            )}
           </form>
         </div>
 

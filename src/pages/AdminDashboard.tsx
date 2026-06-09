@@ -30,6 +30,9 @@ import {
   type DiscountCode, type Lead,
 } from '../services/data';
 import { OfferPreviewCard } from '../components/settings/OfferPreviewCard';
+import { fetchAgencyLeads } from '../services/agency';
+import { resolveAgencyId } from '../services/auth';
+import { AgencyLeadDrawer } from '../components/agency/AgencyLeadDrawer';
 
 // ─── PDF Helpers ───
 const DEFAULT_COMPANY: CompanySettings = {
@@ -475,6 +478,39 @@ export default function AdminDashboard() {
         }
       });
   }, [user?.id, user?.role, user?.ownerId]);
+
+  // ── Agency-Leads laden (für sales_agency / agency_agent "Meine Leads" Tab) ──
+  const [agencyLeads, setAgencyLeads] = useState<Lead[]>([]);
+  const [agencyLeadsLoading, setAgencyLeadsLoading] = useState(false);
+  const [agencyAssignments, setAgencyAssignments] = useState<import('../services/agency').LeadAssignment[]>([]);
+  const [agencyTeamMembers, setAgencyTeamMembers] = useState<{ id: string; full_name: string }[]>([]);
+  const [agencyMemberFilter, setAgencyMemberFilter] = useState<string>('all');
+
+  useEffect(() => {
+    const isAgencyUser = user?.role === 'sales_agency' || user?.role === 'agency_agent';
+    if (activeTab !== 'leads' || !user || !isAgencyUser) return;
+    const agencyId = resolveAgencyId(user);
+    setAgencyLeadsLoading(true);
+    Promise.all([
+      fetchAgencyLeads(agencyId),
+      import('../services/agency').then(m => m.fetchLeadAssignments(agencyId)),
+      // Team-Mitglieder nur für den Inhaber laden
+      user.role === 'sales_agency'
+        ? import('../services/data').then(m => m.fetchTeamMembers(user.id))
+        : Promise.resolve([]),
+    ])
+      .then(([leads, assignments, team]) => {
+        setAgencyLeads(leads);
+        setAgencyAssignments(assignments);
+        setAgencyTeamMembers(
+          (team as { id: string; role: string; full_name: string }[])
+            .filter(m => m.role === 'agency_agent')
+            .map(m => ({ id: m.id, full_name: m.full_name }))
+        );
+      })
+      .catch(() => setAgencyLeads([]))
+      .finally(() => setAgencyLeadsLoading(false));
+  }, [activeTab, user?.id, user?.role]);
 
   // Rabattcodes laden wenn Drawer geöffnet wird
   useEffect(() => {
@@ -1484,6 +1520,119 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* ─── MEINE LEADS VIEW (sales_agency / agency_agent) ─── */}
+          {activeTab === 'leads' && (() => {
+            // Leads gefiltert nach ausgewähltem Team-Mitglied
+            const leadsForFilter = agencyMemberFilter === 'all'
+              ? agencyLeads
+              : agencyLeads.filter(lead =>
+                  agencyAssignments.some(
+                    a => a.lead_id === lead.id && a.assigned_by === agencyMemberFilter
+                  )
+                );
+            return (
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h1 className="text-2xl font-semibold text-white">Meine Leads</h1>
+                <div className="flex items-center gap-3">
+                  {/* Team-Filter — nur für Inhaber sichtbar */}
+                  {user?.role === 'sales_agency' && agencyTeamMembers.length > 0 && (
+                    <div className="relative">
+                      <select
+                        value={agencyMemberFilter}
+                        onChange={e => setAgencyMemberFilter(e.target.value)}
+                        className="appearance-none bg-[#1A1A1A] border border-white/10 rounded-xl pl-3 pr-8 py-2 text-sm text-white focus:outline-none focus:border-[#F5A623]/50 cursor-pointer"
+                      >
+                        <option value="all">Alle Vertriebler</option>
+                        {agencyTeamMembers.map(m => (
+                          <option key={m.id} value={m.id}>{m.full_name}</option>
+                        ))}
+                      </select>
+                      <Users className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+                    </div>
+                  )}
+                  <span className="text-sm text-gray-500">{leadsForFilter.length} Lead{leadsForFilter.length !== 1 ? 's' : ''}</span>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: 'Gesamt', value: leadsForFilter.length, color: 'text-white' },
+                  { label: 'Neu', value: leadsForFilter.filter(l => l.status === 'neu').length, color: 'text-[#F5A623]' },
+                  { label: 'In Bearbeitung', value: leadsForFilter.filter(l => !['neu','gewonnen','verloren','abgeschlossen'].includes(l.status)).length, color: 'text-blue-400' },
+                  { label: 'Gewonnen', value: leadsForFilter.filter(l => l.status === 'gewonnen').length, color: 'text-green-400' },
+                ].map(stat => (
+                  <div key={stat.label} className="bg-[#1A1A1A] rounded-2xl border border-white/5 p-5">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{stat.label}</p>
+                    <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Leads Tabelle */}
+              <div className="bg-[#1A1A1A] rounded-2xl border border-white/5 overflow-hidden">
+                {agencyLeadsLoading ? (
+                  <div className="flex items-center justify-center py-16 gap-3 text-gray-500">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-sm">Leads werden geladen…</span>
+                  </div>
+                ) : leadsForFilter.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-500">
+                    <Sun className="w-10 h-10 opacity-20" />
+                    <p className="text-sm">{agencyMemberFilter !== 'all' ? 'Dieser Vertriebler hat noch keine Leads zugewiesen.' : 'Noch keine Leads über deinen Funnel eingegangen.'}</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-white/5">
+                        {['Name', 'PLZ', 'kWp', 'Investition', 'Status', 'Eingegangen', ''].map(h => (
+                          <th key={h} className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-6 py-4">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leadsForFilter.map((lead, i) => {
+                        const statusColors: Record<string, string> = {
+                          neu: 'bg-[#F5A623]/10 text-[#F5A623]',
+                          kontaktiert: 'bg-blue-500/10 text-blue-400',
+                          vorort: 'bg-purple-500/10 text-purple-400',
+                          angebot: 'bg-cyan-500/10 text-cyan-400',
+                          abschluss: 'bg-orange-500/10 text-orange-400',
+                          gewonnen: 'bg-green-500/10 text-green-400',
+                          verloren: 'bg-red-500/10 text-red-400',
+                          planung: 'bg-indigo-500/10 text-indigo-400',
+                          installation: 'bg-teal-500/10 text-teal-400',
+                          abgeschlossen: 'bg-gray-500/10 text-gray-400',
+                        };
+                        return (
+                          <tr key={lead.id} onClick={() => openLeadDetail(lead)} className={`border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}>
+                            <td className="px-6 py-4 text-sm font-medium text-white">{lead.first_name} {lead.last_name}</td>
+                            <td className="px-6 py-4 text-sm text-gray-400">{lead.zip || '—'}</td>
+                            <td className="px-6 py-4 text-sm text-gray-400">{lead.kwp ? `${lead.kwp} kWp` : '—'}</td>
+                            <td className="px-6 py-4 text-sm text-gray-400">{lead.investment ? `${lead.investment.toLocaleString('de-DE')} €` : '—'}</td>
+                            <td className="px-6 py-4">
+                              <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg capitalize ${statusColors[lead.status] || 'bg-gray-500/10 text-gray-400'}`}>
+                                {lead.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">
+                              {new Date(lead.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-gray-400" />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+            );
+          })()}
+
           {/* ─── SETTINGS VIEW ─── */}
           {activeTab === 'settings' && (
             <div className="flex flex-col items-center justify-center gap-6 py-20">
@@ -1514,8 +1663,13 @@ export default function AdminDashboard() {
         onSuccess={() => window.location.reload()}
       />
 
-      {/* ─── LEAD DETAIL DRAWER ─── */}
-      {selectedLead && (
+      {/* ─── LEAD DETAIL DRAWER — Agentur ─── */}
+      {selectedLead && (user?.role === 'sales_agency' || user?.role === 'agency_agent') && (
+        <AgencyLeadDrawer lead={selectedLead} onClose={() => setSelectedLead(null)} />
+      )}
+
+      {/* ─── LEAD DETAIL DRAWER — Installateur/Owner ─── */}
+      {selectedLead && user?.role !== 'sales_agency' && user?.role !== 'agency_agent' && (
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Backdrop */}
           <div

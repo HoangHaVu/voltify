@@ -4,6 +4,7 @@ import {
   LayoutDashboard, BarChart3, FileText, Settings, HelpCircle,
   Zap, LogOut, Percent, LayoutGrid, Calendar, MessageSquare,
   Users, Receipt, FolderCheck, X, Mail, Phone, MessageCircle,
+  Handshake, Route, Landmark, SlidersHorizontal,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import type { UserRole } from '../../services/auth';
@@ -76,6 +77,24 @@ const INSTALLER_NAV: NavItem[] = [
   { id: 'calendar', label: 'Kalender', icon: Calendar, path: '/admin/calendar' },
 ];
 
+const SALES_AGENCY_NAV: NavItem[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin', tab: 'dashboard' },
+  { id: 'leads', label: 'Meine Leads', icon: BarChart3, path: '/admin', tab: 'leads' },
+  { id: 'partners', label: 'Partner', icon: Handshake, path: '/admin/partners' },
+  { id: 'router', label: 'Lead-Router', icon: Route, path: '/admin/router' },
+  { id: 'commissions', label: 'Provisionen', icon: Landmark, path: '/admin/commissions' },
+  { id: 'calendar', label: 'Kalender', icon: Calendar, path: '/admin/agency-calendar' },
+  { id: 'team', label: 'Team', icon: Users, path: '/admin/agency-team' },
+  { id: 'settings', label: 'Einstellungen', icon: SlidersHorizontal, path: '/admin/agency-settings' },
+];
+
+const AGENCY_AGENT_NAV: NavItem[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin', tab: 'dashboard' },
+  { id: 'leads', label: 'Meine Leads', icon: BarChart3, path: '/admin', tab: 'leads' },
+  { id: 'router', label: 'Lead-Router', icon: Route, path: '/admin/router' },
+  { id: 'calendar', label: 'Kalender', icon: Calendar, path: '/admin/agency-calendar' },
+];
+
 function getNavForRole(role: UserRole): NavItem[] {
   switch (role) {
     case 'owner': return OWNER_NAV;
@@ -85,6 +104,8 @@ function getNavForRole(role: UserRole): NavItem[] {
     case 'monteur': return MONTEUR_NAV;
     case 'backoffice': return BACKOFFICE_NAV;
     case 'installer': return INSTALLER_NAV;
+    case 'sales_agency': return SALES_AGENCY_NAV;
+    case 'agency_agent': return AGENCY_AGENT_NAV;
     case 'customer': return [];
     default: return INSTALLER_NAV;
   }
@@ -99,6 +120,8 @@ const ROLE_LABELS: Record<UserRole, string> = {
   backoffice: 'Backoffice',
   installer: 'Installateur',
   customer: 'Kunde',
+  sales_agency: 'Agentur-Inhaber',
+  agency_agent: 'Vertriebler',
 };
 
 // ── Component ─────────────────────────────────────────────────────────

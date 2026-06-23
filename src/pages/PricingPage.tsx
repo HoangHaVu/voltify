@@ -2,13 +2,14 @@ import { Link } from 'react-router-dom';
 import {
   Check, Zap, Crown, Building2, ArrowRight, Sun,
   Users, BarChart3, FileText, Shield, Headphones,
+  Rocket, Network,
 } from 'lucide-react';
 
 const TIERS = [
   {
     id: 'starter',
     name: 'Starter',
-    price: '149',
+    price: '179',
     period: '/ Monat',
     users: '1 Nutzer',
     description: 'Ideal für Einzelunternehmer, die ihre ersten Leads digital verwalten möchten.',
@@ -34,7 +35,7 @@ const TIERS = [
   {
     id: 'professional',
     name: 'Professional',
-    price: '299',
+    price: '379',
     period: '/ Monat',
     users: '5 Nutzer',
     description: 'Für wachsende Teams, die professionelle Prozesse und Teamarbeit brauchen.',
@@ -60,7 +61,7 @@ const TIERS = [
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price: '599',
+    price: '799',
     period: '/ Monat',
     users: 'Unbegrenzte Nutzer',
     description: 'Für etablierte Unternehmen mit komplexen Anforderungen und White-Labeling.',
@@ -99,6 +100,81 @@ const FAQS = [
   {
     q: 'Ist der Konfigurator im Starter-Tarif enthalten?',
     a: 'Ja, der Solar-Konfigurator ist in allen Tarifen enthalten. Die Lead-Erfassung und Weiterleitung funktioniert immer.',
+  },
+];
+
+const AGENCY_TIERS = [
+  {
+    id: 'start',
+    name: 'Start',
+    price: '199',
+    period: '/ Monat',
+    partners: '5 Partner',
+    description: 'Perfekt für junge Vertriebsagenturen, die erste Installateur-Partner anbinden möchten.',
+    icon: Zap,
+    color: '#F5A623',
+    features: [
+      'Bis zu 5 Partner-Installateure',
+      'Manuelles Lead-Routing',
+      'Partner-Portal',
+      'Basis-Provisionen',
+      'E-Mail-Benachrichtigungen',
+    ],
+    excluded: [
+      'PLZ-basiertes Auto-Routing',
+      'Erweiterte Agentur-Analytics',
+      'API & Webhooks',
+      'Dedizierter Support',
+    ],
+    cta: 'Kostenlos testen',
+    popular: false,
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    price: '399',
+    period: '/ Monat',
+    partners: '20 Partner',
+    description: 'Für wachsende Agenturen mit mehr Partnern und professionellem Routing.',
+    icon: Crown,
+    color: '#F5A623',
+    features: [
+      'Bis zu 20 Partner-Installateure',
+      'PLZ-basierte Partner-Vorschläge',
+      'Erweiterte Provisionen & Stufen',
+      'Agentur-Dashboard & KPIs',
+      'Prioritäts-Support',
+      'White-Label Partner-Portal',
+    ],
+    excluded: [
+      'Vollautomatisches PLZ-Routing',
+      'API & Webhooks',
+      'Dedizierter Account Manager',
+    ],
+    cta: '14 Tage kostenlos testen',
+    popular: true,
+  },
+  {
+    id: 'scale',
+    name: 'Scale',
+    price: '699',
+    period: '/ Monat',
+    partners: 'Unbegrenzte Partner',
+    description: 'Für etablierte Vertriebsagenturen, die Leads vollautomatisch skalieren wollen.',
+    icon: Network,
+    color: '#F5A623',
+    features: [
+      'Unbegrenzte Partner-Installateure',
+      'Vollautomatisches PLZ-Routing',
+      'Round-Robin & Load-Balancing',
+      'API & Webhooks',
+      'Erweiterte Agentur-Analytics',
+      'Dedizierter Account Manager',
+      'Custom Onboarding',
+    ],
+    excluded: [],
+    cta: 'Scale-Anfrage',
+    popular: false,
   },
 ];
 
@@ -275,6 +351,97 @@ export default function PricingPage() {
                 <span className="text-center text-gray-500">{row.enterprise}</span>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Agency Pricing ── */}
+      <section className="py-16 px-6 border-t border-white/5">
+        <div className="max-w-[1100px] mx-auto">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F5A623]/10 text-[#F5A623] text-xs font-bold mb-4">
+              <Rocket className="w-3.5 h-3.5" />
+              Für Vertriebsagenturen
+            </div>
+            <h2 className="text-2xl md:text-3xl font-black text-white mb-3">
+              Partner-Programm für <span className="text-[#F5A623]">Solar-Vertriebe</span>
+            </h2>
+            <p className="text-gray-400 max-w-xl mx-auto">
+              Verwalte Installateur-Partner, route Leads intelligent und skaliere dein Vertriebsnetzwerk.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-5">
+            {AGENCY_TIERS.map((tier) => {
+              const Icon = tier.icon;
+              return (
+                <div
+                  key={tier.id}
+                  className={`relative rounded-2xl border p-6 flex flex-col ${
+                    tier.popular
+                      ? 'border-[#F5A623]/30 bg-[#1A1A1A] shadow-xl shadow-[#F5A623]/5'
+                      : 'border-white/5 bg-[#1A1A1A]/50 hover:bg-[#1A1A1A] transition-colors'
+                  }`}
+                >
+                  {tier.popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="bg-[#F5A623] text-[#1A3A5C] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                        Beliebt
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3 mb-4">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ backgroundColor: `${tier.color}15` }}
+                    >
+                      <Icon className="w-5 h-5" style={{ color: tier.color }} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-white">{tier.name}</h3>
+                      <p className="text-xs text-gray-500">{tier.partners}</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm text-gray-400">€</span>
+                      <span className="text-4xl font-black text-white">{tier.price}</span>
+                      <span className="text-sm text-gray-400">{tier.period}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{tier.description}</p>
+                  </div>
+
+                  <div className="flex-1 space-y-2.5 mb-6">
+                    {tier.features.map((feature) => (
+                      <div key={feature} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#F5A623] shrink-0 mt-0.5" />
+                        <span className="text-sm text-gray-300">{feature}</span>
+                      </div>
+                    ))}
+                    {tier.excluded.map((feature) => (
+                      <div key={feature} className="flex items-start gap-2 opacity-40">
+                        <div className="w-4 h-4 rounded-full border border-gray-600 shrink-0 mt-0.5" />
+                        <span className="text-sm text-gray-500 line-through">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Link
+                    to="/beta"
+                    className={`w-full py-3 rounded-xl text-sm font-bold text-center flex items-center justify-center gap-2 transition-colors ${
+                      tier.popular
+                        ? 'bg-[#F5A623] text-[#1A3A5C] hover:bg-[#E09000]'
+                        : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {tier.cta}
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

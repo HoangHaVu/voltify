@@ -1,4 +1,5 @@
 import { Sun, CheckCircle } from 'lucide-react';
+import type { OfferTextTemplate } from '../../services/offers';
 
 interface OfferPreviewProps {
   firmenname: string;
@@ -11,16 +12,22 @@ interface OfferPreviewProps {
   panelHersteller: string;
   wechselrichterHersteller: string;
   marge: string;
+  // Kalkulations-Parameter für dynamische ROI-Berechnung
+  modulePricePerKwp?: string;
+  inverterPricePerKwp?: string;
+  mountingFixed?: string;
+  electricalFixed?: string;
+  strompreis?: string;
+  eigenverbrauch?: string;
+  // Text-Vorlage
+  offerTextTemplate?: OfferTextTemplate;
 }
 
-const MOCK = {
-  name: 'Max Mustermann',
-  zip: '80331 München',
-  kwp: 9.5,
-  investment: 17100,
-  savings: 1420,
-  amortization: 12,
-};
+const MOCK_KWP = 9.5;
+
+function interpolate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '');
+}
 
 export const OfferPreviewCard: React.FC<OfferPreviewProps> = ({
   firmenname,
@@ -32,12 +39,53 @@ export const OfferPreviewCard: React.FC<OfferPreviewProps> = ({
   zahlungsziel,
   panelHersteller,
   wechselrichterHersteller,
+  modulePricePerKwp,
+  inverterPricePerKwp,
+  mountingFixed,
+  electricalFixed,
+  strompreis,
+  eigenverbrauch,
+  offerTextTemplate,
 }) => {
-  const rate1 = Math.round(MOCK.investment * 0.30);
-  const rate2 = Math.round(MOCK.investment * 0.60);
-  const rate3 = MOCK.investment - rate1 - rate2;
+  // ── Dynamische ROI-Berechnung aus Kalkulations-Einstellungen ──
+  const modPrice  = Number(modulePricePerKwp)   || 1200;
+  const invPrice  = Number(inverterPricePerKwp)  || 250;
+  const mounting  = Number(mountingFixed)         || 2500;
+  const electrical = Number(electricalFixed)      || 1800;
+  const investment = Math.round((modPrice + invPrice) * MOCK_KWP + mounting + electrical);
+
+  const strompreisEuro    = (Number(strompreis)   || 32) / 100;
+  const eigenverbrauchRate = (Number(eigenverbrauch) || 65) / 100;
+  const annualProduction  = MOCK_KWP * 950; // kWh (DE-Durchschnitt)
+  const savings = Math.round(
+    annualProduction * eigenverbrauchRate * strompreisEuro +
+    annualProduction * (1 - eigenverbrauchRate) * 0.082
+  );
+  const amortization = savings > 0 ? Math.round(investment / savings) : 0;
+
+  const rate1 = Math.round(investment * 0.30);
+  const rate2 = Math.round(investment * 0.60);
+  const rate3 = investment - rate1 - rate2;
 
   const fmt = (n: number) => n.toLocaleString('de-DE');
+
+  // ── Template-Interpolation für Vorschau ──
+  const mockVars: Record<string, string> = {
+    vorname: 'Max',
+    nachname: 'Mustermann',
+    angebotsnummer: 'ANG-20260619-DEMO',
+    firmenname: firmenname || 'Voltify Solar',
+    datum: new Date().toLocaleDateString('de-DE'),
+    gueltig_bis: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('de-DE'),
+    zahlungsziel: zahlungsziel || '14',
+  };
+
+  const anschreibenText = offerTextTemplate?.anschreiben
+    ? interpolate(offerTextTemplate.anschreiben, mockVars)
+    : '';
+  const termsText = offerTextTemplate?.zahlungsbedingungen
+    ? interpolate(offerTextTemplate.zahlungsbedingungen, mockVars)
+    : '';
 
   return (
     <div className="w-full max-w-lg mx-auto rounded-2xl overflow-hidden shadow-lg border border-white/10 bg-[#1A1A1A] text-sm select-none">
@@ -60,22 +108,56 @@ export const OfferPreviewCard: React.FC<OfferPreviewProps> = ({
         </span>
       </div>
 
+      {/* Anschreiben-Vorschau */}
+      {anschreibenText && (
+        <div className="px-6 pt-4 pb-3 border-b border-white/5 bg-[#252525]/30">
+          <p className="text-xs text-gray-400 leading-relaxed whitespace-pre-line line-clamp-3">
+            {anschreibenText}
+          </p>
+        </div>
+      )}
+
       {/* Empfänger */}
       <div className="px-6 pt-5 pb-3 border-b border-white/5">
         <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-1">Angebot für</p>
-        <p className="font-bold text-white">{MOCK.name}</p>
-        <p className="text-gray-400 text-xs">{MOCK.zip}</p>
+        <p className="font-bold text-white">Max Mustermann</p>
+        <p className="text-gray-400 text-xs">80331 München</p>
       </div>
 
-      {/* System-Übersicht */}
+      {/* Angebotspositionen (Muster) */}
+      <div className="px-6 py-4 border-b border-white/5">
+        <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-3">Angebotspositionen</p>
+        <div className="space-y-1.5">
+          {[
+            { pos: 'Solarmodule', detail: `${MOCK_KWP} kWp · ${panelHersteller?.split(',')[0]?.trim() || 'Standard'}`, price: Math.round((Number(modulePricePerKwp) || 1200) * MOCK_KWP) },
+            { pos: 'Wechselrichter', detail: wechselrichterHersteller?.split(',')[0]?.trim() || 'Standard', price: Math.round((Number(inverterPricePerKwp) || 250) * MOCK_KWP) },
+            { pos: 'Montage & Unterkonstruktion', detail: 'Pauschal', price: Number(mountingFixed) || 2500 },
+            { pos: 'Elektroinstallation', detail: 'AC/DC-Verkabelung', price: Number(electricalFixed) || 1800 },
+          ].map(({ pos, detail, price }, i) => (
+            <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+              <div>
+                <p className="text-xs font-semibold text-gray-200">{pos}</p>
+                <p className="text-[10px] text-gray-500">{detail}</p>
+              </div>
+              <p className="text-xs font-black text-white shrink-0 ml-4">{fmt(price)} €</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 pt-2 border-t border-white/10 flex justify-between items-center">
+          <p className="text-xs font-semibold text-gray-400">Gesamtbetrag</p>
+          <p className="text-sm font-black" style={{ color: accentColor }}>{fmt(investment)} €</p>
+        </div>
+      </div>
+
+      {/* System-Übersicht — dynamisch */}
       <div className="px-6 py-4 border-b border-white/5">
         <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-3">Ihre Photovoltaikanlage</p>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { label: 'Systemgröße', value: `${MOCK.kwp} kWp` },
-            { label: 'Investition', value: `${fmt(MOCK.investment)} €` },
-            { label: 'Jahresersparnis', value: `${fmt(MOCK.savings)} €/Jahr` },
-            { label: 'Amortisation', value: `~${MOCK.amortization} Jahre` },
+            { label: 'Systemgröße',   value: `${MOCK_KWP} kWp` },
+            { label: 'Investition',   value: `${fmt(investment)} €` },
+            { label: 'Jahresersparnis', value: `${fmt(savings)} €/Jahr` },
+            { label: 'Amortisation',  value: `~${amortization} Jahre` },
           ].map(({ label, value }) => (
             <div key={label} className="bg-[#252525] rounded-lg px-3 py-2">
               <p className="text-[10px] text-gray-500 font-semibold uppercase">{label}</p>
@@ -100,14 +182,14 @@ export const OfferPreviewCard: React.FC<OfferPreviewProps> = ({
         )}
       </div>
 
-      {/* Zahlungsplan */}
+      {/* Zahlungsplan — dynamisch */}
       <div className="px-6 py-4 border-b border-white/5">
         <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-3">Zahlungsplan</p>
         <div className="space-y-2">
           {[
-            { label: 'Anzahlung (30 %)', amount: rate1, when: 'Bei Auftragserteilung' },
-            { label: 'Montagerechnung (60 %)', amount: rate2, when: 'Nach Montage' },
-            { label: 'Schlussrechnung (10 %)', amount: rate3, when: 'Nach Abnahme' },
+            { label: 'Anzahlung (30 %)',        amount: rate1, when: 'Bei Auftragserteilung' },
+            { label: 'Montagerechnung (60 %)',   amount: rate2, when: 'Nach Montage' },
+            { label: 'Schlussrechnung (10 %)',   amount: rate3, when: 'Nach Abnahme' },
           ].map(({ label, amount, when }) => (
             <div key={label} className="flex items-center justify-between">
               <div>
@@ -127,6 +209,14 @@ export const OfferPreviewCard: React.FC<OfferPreviewProps> = ({
             {iban && <span><span className="font-semibold text-gray-300">IBAN:</span> {iban}</span>}
             {zahlungsziel && <span><span className="font-semibold text-gray-300">Zahlungsziel:</span> {zahlungsziel} Tage</span>}
           </div>
+        </div>
+      )}
+
+      {/* AGB-Vorschau */}
+      {termsText && (
+        <div className="px-6 py-3 border-b border-white/5 bg-[#1E1E1E]">
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Zahlungsbedingungen</p>
+          <p className="text-[10px] text-gray-600 leading-relaxed line-clamp-2 whitespace-pre-line">{termsText}</p>
         </div>
       )}
 

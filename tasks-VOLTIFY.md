@@ -1,5 +1,170 @@
 # Voltify — Tasks & Roadmap
-<!-- Zuletzt aktualisiert: 2026-06-05 — Funnel-Tracking, Lead-Capture Gate, Scoutly-Integration -->
+<!-- Zuletzt aktualisiert: 2026-06-18 — Angebots-Konfigurator hinzugefügt, Agency-Phase B weiterhin offen -->
+
+---
+
+## 🤝 AGENCY-MODUL — Lukrativ-Machen [AKTIVER PLAN]
+
+> **Zielgruppe:** PV-Vertriebsagenturen (`sales_agency`) — generieren Leads, verteilen an Installateur-Partner, kassieren Provision. Siehe DNA Sektion 10.
+> **Geschäftsmodell entschieden (2026-06-08):** Reines **Subscription-Modell**, gestaffelt nach Value-Metric **„Anzahl aktiver Partner"**. KEINE Take-Rate (Grund: „converted" ist ein manueller Partner-Klick → manipulierbar; Take-Rate würde Inkasso/Finanzdienstleister-Nähe erzeugen, die DNA 9.6 ausschließt). Take-Rate frühestens, wenn Conversion fälschungssicher getrackt wird (digitale Unterschrift) → Backlog.
+
+### 📋 Executor-Briefing (Kimi/Sonnet — vor dem Start lesen)
+- **Stack:** React 19 + TS + Vite + Tailwind v3 + Supabase. Supabase-Ref: `ecsqbsgbfmvqaqnryvwf`.
+- **Invarianten:** `npm test` muss grün bleiben (aktuell 121/121), `npm run build` = 0 TS-Fehler. **Vor jedem Commit beides laufen lassen.**
+- **Schlüssel-Dateien:** `src/services/agency.ts` (Service-Layer), `src/pages/agency/*` (4 Pages), `supabase/migrations/039_partner_module.sql`, `supabase/functions/notify-partner|notify-agency`, `src/services/leads.ts` (`submitLead`), `src/lib/funnelTracking.ts` (sessionStorage-Muster).
+- **⚠️ RLS-Falle (unbedingt verstehen):** Das Partner-Portal (`/partner/:token`) läuft **anonym** (kein Login) mit dem Anon-Key. Migration 039 hat aber nur Policies `USING (agency_id = auth.uid())`. Für einen anonymen Besucher ist `auth.uid()` = NULL → **alle Portal-Queries scheitern**. Niemals den anonymen Partner direkt auf die Tabellen lassen → immer über `SECURITY DEFINER`-Funktionen mit Token-Validierung (siehe A1).
+- **Arbeitsweise:** Neue Migrationen immer fortlaufend nummerieren (aktuell 045–047 geschrieben, noch nicht deployed). Additive Migrationen bevorzugen, falls Schema schon manuell angepasst wurde. Vor Deploy `list_migrations` prüfen.
+- **Nach jeder erledigten Task:** `[ ]` → `[x]` in dieser Datei.
+
+---
+
+### PHASE A — 🔴 KRITISCHE BLOCKER (zuerst! ohne diese funktioniert die Zielgruppe gar nicht)
+
+#### A1 — Partner-Portal über `SECURITY DEFINER`-RPCs entsperren ✅ DONE (2026-06-08)
+- **Problem:** `PartnerPortalPage.tsx` ruft `fetchPartnerByToken` / `fetchPartnerAssignments` / `updateAssignmentStatus` anonym auf → RLS blockt alles. Portal zeigt nichts, Annehmen/Ablehnen/Konvertieren tot.
+- **Datei:** neue Migration `040_partner_portal_rpc.sql` + Refactor in `src/services/agency.ts`.
+- **Was:** 3 RPCs anlegen (alle `SECURITY DEFINER`, `SET search_path = public`, Token als Argument, intern Token→Partner auflösen):
+  - `get_partner_by_token(p_token uuid)` → gibt nur unkritische Partner-Felder zurück (id, company_name, commission_type, commission_value), **nicht** den access_token anderer.
+  - `get_partner_assignments(p_token uuid)` → Assignments des Partners inkl. Lead-Join (Lead-PII nur für die ihm zugewiesenen Leads).
+  - `partner_update_assignment(p_token uuid, p_assignment_id uuid, p_status text, p_notes text)` → validiert intern, dass das Assignment wirklich zu diesem Token-Partner gehört, und erlaubt **nur** Übergänge `pending→accepted|rejected` und `accepted→converted`. Setzt `responded_at`/`offer_accepted_at` serverseitig.
+  - Skizze:
+    ```sql
+    create or replace function get_partner_assignments(p_token uuid)
+    returns setof jsonb language plpgsql security definer set search_path = public as $$
+    declare v_partner_id uuid;
+    begin
+      select id into v_partner_id from partners where access_token = p_token and is_active;
+      if v_partner_id is null then raise exception 'invalid token'; end if;
+      return query select to_jsonb(la) || jsonb_build_object('lead', to_jsonb(l))
+        from lead_assignments la join leads l on l.id = la.lead_id
+        where la.partner_id = v_partner_id order by la.assigned_at desc;
+    end $$;
+    grant execute on function get_partner_assignments(uuid) to anon;
+    ```
+- **Service-Refactor:** Die drei Funktionen in `agency.ts` auf `supabase.rpc(...)` umstellen (nur die anonym aufgerufenen — die Agency-seitigen Funktionen bleiben wie sie sind, da dort `auth.uid()` existiert).
+- **Sicherheit:** access_token bleibt `gen_random_uuid()` (ok). Optional härten: Rate-Limit später (Backlog). Token NICHT loggen.
+- **✅ Akzeptanz:** Im Inkognito-Fenster `/partner/<token>` öffnen → Leads sichtbar, Annehmen/Ablehnen/„Auftrag erteilt" funktioniert und persistiert. Ungültiger Token → saubere Fehlermeldung.
+
+#### A2 — `agency_id` durch den Funnel verdrahten (Konfigurator → Lead → Router) ✅ DONE (2026-06-08)
+- **Problem:** `leads.agency_id` existiert im Schema, wird aber nirgends gesetzt. `LeadRouterPage` hat `setLeads([])` mit TODO → Agentur hat keine Leads zum Verteilen. Kern-Wertversprechen nicht angeschlossen.
+- **Mechanismus (Empfehlung):** Agentur identifiziert sich per **Slug** in der Konfigurator-URL: `…/konfigurator?a=<agency_slug>`. Spiegelt das bestehende `installer_id`-Muster in `submitLead`.
+- **Schritte:**
+  1. **Migration 040 (oder 041):** Spalte `profiles.agency_slug text UNIQUE` (nur für `sales_agency`-Accounts gesetzt). Optional Helfer-View/Funktion `resolve_agency_slug(slug)` → user_id.
+  2. **`src/lib/funnelTracking.ts`:** Param `a` (agency_slug) in `cacheFunnelSourceFromUrl()` mit aufnehmen und in sessionStorage cachen (gleiches Muster wie `sl_email`/utm — überlebt Navigation Landing→/konfigurator).
+  3. **`src/services/leads.ts` `submitLead`:** optionalen Parameter `agencyId?: string` ergänzen und analog zu `installerId` bedingt in den Insert (`...(agencyId ? { agency_id: agencyId } : {})`). Slug→agencyId-Auflösung vorher (RPC oder Query auf `agency_slug`).
+  4. **`src/pages/Configurator.tsx`:** beim Submit den gecachten agency_slug auflösen und an `submitLead` geben. Quelle ggf. `source: 'agency'` setzen.
+  5. **`src/pages/agency/LeadRouterPage.tsx`:** `setLeads([])`-TODO ersetzen durch `fetchAgencyLeads(user.id)`, gefiltert auf Leads ohne aktive Zuweisung (`pending`/`accepted`).
+  6. **`LEAD_SELECT` in `data.ts`:** `agency_id` ergänzen (Konsistenz).
+- **✅ Akzeptanz:** Konfigurator-Lead über `?a=<slug>` abschließen → Lead erscheint in `LeadRouterPage` der zugehörigen Agentur und kann einem Partner zugewiesen werden.
+
+#### A3 — Commission-Automatik bei `converted` ✅ DONE (2026-06-08, im partner_update_assignment RPC)
+- **Problem:** `updateAssignmentStatus('converted')` erzeugt **keine** Commission. `createCommission` wird nie aufgerufen → `CommissionsPage` bleibt für immer leer. Percentage-Provision wird bei Zuweisung als `0` gesetzt, nie nachberechnet.
+- **Datei:** `src/services/agency.ts` → `updateAssignmentStatus` (oder besser serverseitig im A1-RPC `partner_update_assignment`, damit es nicht umgehbar ist).
+- **Was:** Beim Übergang auf `converted`:
+  - Commission anlegen (idempotent — nicht doppelt, falls erneut geklickt: vorher prüfen ob für dieses `lead_assignment_id` schon eine existiert).
+  - Betrag: `commission_type === 'fixed'` → `commission_value`; `'percentage'` → `lead.investment * commission_value / 100`.
+  - `lead_assignments.commission_amount` mit dem finalen Betrag updaten.
+- **Empfehlung:** In den `partner_update_assignment`-RPC (A1) integrieren = serverseitig + transaktional + nicht manipulierbar. Dann ist A3 quasi „kostenlos" mit A1 erledigt.
+- **✅ Akzeptanz:** Partner klickt „Auftrag erteilt" → Eintrag erscheint in `CommissionsPage` mit korrektem Betrag (fixed UND percentage getestet), Summen-Kacheln stimmen.
+
+---
+
+### PHASE B — 🟠 MONETARISIERUNG (Agency-Subscription, minimal-invasiv)
+
+> Ziel: Agentur zahlt fixen Monatspreis, gestaffelt nach aktiver Partner-Anzahl. Volles Stripe-Schema (DNA Sektion 8) bleibt Phase 3 — hier nur das Nötigste fürs Gating.
+
+#### B1 — Minimal-Schema für Agency-Tier ✅ DONE (2026-06-18)
+- **Migration:** `profiles.agency_tier text CHECK (agency_tier IN ('start','pro','scale'))` + `profiles.agency_partner_limit int`. Default für neue `sales_agency`: `start` / Limit 5.
+- **✅ Akzeptanz:** Tier + Limit pro Agentur in DB hinterlegbar.
+
+#### B2 — Feature-Gating: Partner-Limit ✅ DONE (2026-06-18)
+- **Datei:** `src/services/agency.ts` `createPartner` + UI in `PartnersPage.tsx`.
+- **Was:** Vor Insert `COUNT(*) FROM partners WHERE agency_id = … AND is_active` gegen `agency_partner_limit` prüfen. Bei Erreichen: freundlicher Upgrade-Hinweis statt Insert.
+- **✅ Akzeptanz:** Agentur im `start`-Tier kann keinen 6. aktiven Partner anlegen, sieht Upgrade-CTA.
+
+#### B3 — PricingPage: Agency-Sektion ✅ DONE (2026-06-18)
+- **Datei:** `src/pages/PricingPage.tsx`.
+- **Was:** Eigener Block „Für Vertriebsagenturen" mit 3 Tiers (Richtwerte, final mit Hoang abstimmen):
+  | Tier | Richtpreis | Partner | Kern |
+  |------|-----------|---------|------|
+  | Agency Start | ~199 €/Mo | bis 5 | Routing manuell, Portale, Provisions-Tracking |
+  | Agency Pro | ~399 €/Mo | bis 25 | + Reporting/Scorecard |
+  | Agency Scale | ~799 €/Mo | unbegrenzt | + **PLZ-Auto-Routing** (C1) als Lockmittel |
+- **✅ Akzeptanz:** Agency-Tiers auf der Pricing-Seite sichtbar, Auto-Routing klar als Scale-Feature markiert.
+
+#### B4 — Stripe-Anbindung Agency [später, mit Phase 3]
+- **Hinweis:** Erst bauen, wenn erster zahlender Agentur-Pilot da ist. Hängt am noch nicht existierenden Subscription-Schema. **Nicht** Blocker für Pilot — Pilot kann manuell/Rechnung laufen.
+
+---
+
+### PHASE C — 🟢 SKALIERUNGS-FEATURES (machen die Zielgruppe lukrativ)
+
+> Reihenfolge = Impact × Aufwand. C1 zuerst (höchster Hebel + Scale-Tier-Lockmittel).
+
+#### C1 — PLZ-basiertes Auto-Routing  ⭐ höchster Hebel ✅ DONE (2026-06-18)
+- **Warum:** `partners.zip_regions` ist im Schema da, ungenutzt. Unterschied zwischen „5 Leads manuell" und „500 Leads/Monat automatisch". = Scale-Tier-Feature (B3).
+- **Was:** Bei neuem Agency-Lead passenden Partner per PLZ-Match vorschlagen (`zip_regions @> lead.zip-Präfix`), bei mehreren Round-Robin (fairste Verteilung). UI in `LeadRouterPage`: „Auto-Zuweisen"-Button + Vorschlag-Badge. Optional vollautomatisch bei Lead-Eingang (Edge Function / DB-Trigger).
+- **✅ Akzeptanz:** Lead mit PLZ X wird automatisch dem Partner mit passender Region vorgeschlagen/zugewiesen; bei mehreren rotiert die Zuweisung.
+
+#### C2 — Annahme-Frist + Auto-Reassignment
+- **Warum:** Status `expired` existiert, wird nie gesetzt → Leads bleiben liegen. Garantie „kein Lead verfällt" ist starkes Verkaufsargument.
+- **Was:** Cron (passt zu den geplanten `notify-*`-Crons): Assignments `pending` älter als z. B. 24 h → `expired` + automatisch an nächsten Partner (C1-Logik) reassignen + Agentur benachrichtigen.
+- **✅ Akzeptanz:** Unbeantworteter Lead nach Frist wird automatisch umverteilt, Agentur sieht das.
+
+#### C3 — Partner-Self-Onboarding (Einladungs-Link)
+- **Warum:** Aktuell nur manuelles CRUD. Für Agenturen mit 50+ Partnern unbrauchbar.
+- **Was:** Agentur generiert Einladungs-Link → Partner trägt Stammdaten + `zip_regions` selbst ein → landet als `is_active=false` zur Freigabe. (RPC `SECURITY DEFINER`, anon, analog A1.)
+- **✅ Akzeptanz:** Partner registriert sich selbst über Link, Agentur gibt frei.
+
+#### C4 — Lead-Exklusivität vs. Parallelverteilung (Geschäftsregel)
+- **Warum:** `UNIQUE(lead_id, partner_id)` erlaubt aktuell ungeplant denselben Lead an mehrere Partner. Exklusiv vs. „an N Partner parallel, first-come" ist ein monetarisierbares Feature (Exklusiv-Leads teurer).
+- **Was:** Einstellung pro Agentur/Lead: `exclusive` (1 Partner) oder `broadcast` (an N, erster der annimmt gewinnt, Rest auto-expired). Datenmodell + Router-Logik + Portal-Verhalten.
+- **✅ Akzeptanz:** Agentur kann Lead exklusiv oder als Broadcast verteilen; bei Broadcast gewinnt der erste Annehmer, Rest wird `expired`.
+
+#### C5 — Agentur-Reporting / Partner-Scorecard
+- **Warum:** `CommissionsPage` zeigt nur Summen. Agentur will Conversion-Rate **pro Partner**, Reaktionszeit, Pipeline-Wert. Rechtfertigt Pro-Tier-Preis, erhöht Stickiness.
+- **Was:** Neues Dashboard/Tab: pro Partner Annahmequote, Conversion-Rate, Ø Reaktionszeit, offene vs. konvertierte Provision. Aggregat-Query oder DB-View.
+- **✅ Akzeptanz:** Agentur sieht pro Partner aussagekräftige KPIs.
+
+---
+
+### PHASE D — DEPLOY & VERIFY (nach A, spätestens vor Pilot)
+
+- [x] **Migrationen deployen** — 039 ✅ + 040 ✅ (2026-06-08)
+- [x] **`sales_agency`-Rolle absichern** — CHECK-Constraint in Migration 040 korrigiert ✅
+- [x] **Edge Functions deployen** — `notify-partner` ✅ + `notify-agency` ✅ ACTIVE (2026-06-08)
+- [x] **`npm test` + `npm run build`** — 121/121 ✅, 0 TS-Fehler ✅
+- [x] **Migrationen 045–047 deployen** — `offer_drafts` (Angebots-Konfigurator), `agency_tier` + `agency_partner_limit`, Partner-Limit-Trigger. ✅ DONE (2026-06-19)
+- [ ] **E2E-Smoke-Test** — Agency-Account anlegen → `agency_slug` setzen → Partner anlegen → Konfigurator-Lead via `?a=slug` → Zuweisen → Portal annehmen → „Auftrag erteilt" → Commission erscheint.
+
+---
+
+### ✅ Erledigt (Session 2026-06-09 — Agentur-Rollensystem + Kalender + Einstellungen + Team-Filter)
+- [x] **`agency_agent`-Rolle (Vertriebler)** — `UserRole` erweitert, `EMPLOYEE_ROLES`, `isSalesAgency()`, `isAgencyAdmin()`, `isAgencyAgent()`, `resolveAgencyId()`
+- [x] **`AgencyCalendarPage`** — Separater Kalender für Agenturen: 2 Typen (Beratung mit Lead, Partner-Meeting), ohne Installateur-Typen
+- [x] **`AgencyTeamPage`** — Vertriebler einladen (Supabase Auth + Profil-Update), Zugangsdaten mit Blur-Passwort + Copy-Buttons
+- [x] **`AgencySettingsPage`** — Firmenprofil, Standard-Provision (Festbetrag/Prozentsatz), Benachrichtigungs-Toggle, Team-Shortcut
+- [x] **Team-Filter im Dashboard** — Agentur-Inhaber kann in "Meine Leads" nach Vertriebler filtern (`assigned_by`-Feld)
+- [x] **Team-Filter in CommissionsPage** — Provisionen nach Vertriebler filtern
+- [x] **Vertriebler-Test-Account** — `vertriebler@test.de` / `Test123456`, `agency_agent`-Rolle, `owner_id = agentur@test.de`
+- [x] **`partnermeeting`-Typ** — `Appointment['type']`, `TYPE_CONFIG` in CalendarPage, `TYPE_MAP` in CalendarGrid
+- [x] **`assigned_by`-Feld** — `lead_assignments.assigned_by` (uuid, nullable, FK → profiles) für Audit-Trail
+- [x] **Migrationen 042–044** — `agency_agent`-Role-Constraint, Vertriebler-Account, `assigned_by`-Spalte, Agency-Settings-Spalten
+- [x] **Sidebar + Routing** — `AGENCY_AGENT_NAV`, `getNavForRole('agency_agent')`, `AGENCY_ROLES`-Schutz in `App.tsx`
+
+### ✅ Erledigt (Session 2026-06-08 — vollständig deployed)
+- [x] **Test-Agentur-Account** — `agentur@test.de` / `Test123456`, Solar Vertrieb GmbH, slug `solar-vertrieb-gmbh`, 2 Partner, 1 Test-Lead in Supabase
+- [x] **Login-Toggle Installateur/Agentur** — Segment-Control + „Test Agentur"-Schnell-Login-Button mit Badge
+- [x] **Login-Tests repariert** — 113/113 grün nach Toggle-Einbau
+
+### ✅ Erledigt (Vorarbeit, 2026-06-08)
+- [x] Migration 039 deployed (`partners`, `lead_assignments`, `commissions` + RLS) ✅
+- [x] Service-Layer `src/services/agency.ts` (CRUD, Assignments, Commissions)
+- [x] 4 Agency-Pages (`PartnersPage`, `LeadRouterPage`, `CommissionsPage`, `PartnerPortalPage`)
+- [x] Rolle `sales_agency` in `auth.ts` + `AuthContext` + `App.tsx`-Routen + `AdminSidebar`
+- [x] Edge Functions `notify-partner` + `notify-agency` (geschrieben, nicht deployed)
+
+> **Abhängigkeits-Reihenfolge:** A1+A2+A3 (Blocker, parallelisierbar) → D (deploy/verify) → B (Monetarisierung) → C1 → C2/C3/C4/C5 (in beliebiger Reihenfolge nach Bedarf).
 
 ---
 
@@ -20,6 +185,8 @@
 - [x] **Migration 036** — `funnel_events` Tabelle (Tracking) mit anon-Insert-Policy
 - [x] **Migration 037** — `source_id`, `utm_source`, `utm_campaign` Spalten in `funnel_events`
 - [x] **Migration 038** — `funnel_events_public` View (anon lesbar, E-Mail ausgeblendet)
+- [x] **Migration 039** — `partners`, `lead_assignments`, `commissions` + `sales_agency` Rolle ✅ deployed
+- [x] **Edge Functions deployen** — `notify-partner` + `notify-agency` ✅ ACTIVE
 
 ### Core Features (bereits implementiert)
 - [x] Auth-System — Supabase Auth, 8 Rollen, AuthContext + ProtectedRoute
@@ -108,10 +275,20 @@ GROUP BY source_id;
 
 > Erst relevant, wenn echte Installateure das Tool nutzen und Feedback geben.
 
-### Angebots-Varianten (A/B/C)
+### Angebots-Varianten (A/B/C) + Angebots-Konfigurator
 - [x] **Schema + Auto-Generator** — Migration `032_offer_variants.sql`, `generateStorageVariants()`
 - [x] **UI: Toggle + Karten** — Lead-Drawer mit 3 Speicher-Optionen
 - [x] **PDF-Vergleichstabelle** — Seite 2 im Angebot
+- [x] **Partner-Modul MVP** — Rolle `sales_agency`, Partner-CRUD, Lead-Routing, Commission-Tracking, Partner-Portal (Magic-Link), E-Mail-Trigger
+- [x] **AdminDashboard für sales_agency** — Tabs Partner/Lead-Router/Provisionen via Sidebar ✅ (Phase A erledigt)
+- [x] **Leads mit agency_id verknüpfen** — Konfigurator → `?a=slug` → `agency_id` im Lead-Insert ✅ (Phase A2 erledigt)
+- [x] **Angebots-Konfigurator** — Migration `045_offer_drafts.sql`, `OfferBuilderPage.tsx`, freie Positionen/Preise, Rabatt, PDF & E-Mail aus Draft
+- [x] **Default-Preise aus Einstellungen** — AdminSettings speichert Standard-Angebotspreise + MwSt in `localStorage`, Draft übernimmt sie
+- [x] **Vorlagen-System** — Migration `048_offer_templates.sql`, Anschreiben/AGB/E-Mail-Vorlage in DB, Interpolation mit `{{Platzhalter}}`, AdminSettings Vorlagen-Tab ✅ (2026-06-19)
+- [x] **ROI-Impact im Angebots-Konfigurator** — Live Amortisation/Ersparnis/Gewinn 20J. aus aktuellem Draft-Total, Ampel-Farben ✅ (2026-06-19)
+- [x] **DIN A4 Vorschau in Einstellungen** — `PDFViewer` mit echtem `OfferPdfDocument`, Mock-Positionen aus Kalkulations-Einstellungen, inkl. Vorlagen-Texte ✅ (2026-06-23)
+- [x] **White-Label WL1** — Migration `049_installer_branding.sql`, `installer_slug` + `branding` JSONB in profiles, `useTenantBranding` Hook, `?i=<slug>` URL-Param, Konfigurator zeigt Installer-Branding ✅ (2026-06-23)
+- [x] **Preisanpassung** — Vollpreise angehoben: Starter 179€, Pro 379€, Enterprise 799€, Agency 199/399/699€ ✅ (2026-06-23)
 - [ ] **Angebots-E-Mail mit Varianten** — Kunde wählt im E-Mail-Link → Tracking
 
 ### Digitale Unterschrift
@@ -125,6 +302,52 @@ GROUP BY source_id;
 - [ ] ~~**Token-Generator + Public Routes**~~ → Phase 2
 - [ ] ~~**Status-Seite + Angebots-Download**~~ → Phase 2
 - [ ] ~~**Rechnungen einsehen**~~ → Phase 2
+
+---
+
+## 🔵 White-Label — Hochpreissegment (Installateure + Stadtwerke)
+
+> **Warum:** White-Label ist der stärkste Grund für Installateure NICHT zu kündigen — das Tool trägt ihren Namen, nicht "Voltify". Für Stadtwerke ist es Kaufbedingung.
+> **Geschäftsmodell:** White-Label = eigenes Tier (+X €/Mo auf Basis-Abo). Setup-Fee für Custom-Domain.
+> **Priorität:** WL1 zuerst (Branding-Cleanup) — das ist fast kostenlos und entfernt sofort die Hürde. WL2–WL4 sind schrittweise.
+
+#### WL1 — Branding-Cleanup (kein "Voltify" für Endkunden sichtbar)
+- **Was:** Alle public-facing Seiten (`/konfigurator`, `/angebot/:token`, `/partner/:token`) zeigen ausschließlich das Branding des Installateuers/der Agentur. "Voltify" verschwindet für Endkunden komplett.
+- **Konkret:**
+  - Konfigurator-Header: Installateur-Logo + Firmenname aus `profiles` statt "Voltify Solar"
+  - `<title>` + Favicon per Tenant dynamisch setzen
+  - PDF + E-Mails: bereits fertig (nutzen `company.firmenname`)
+  - Footer-Zeile „Powered by Voltify" optional ein/ausblendbar (Toggle in Einstellungen)
+- **Aufwand:** Klein — hauptsächlich Props durchreichen
+- **✅ Akzeptanz:** Endkunde sieht nirgendwo "Voltify" — nur den Firmennamen des Installateuers.
+
+#### WL2 — Multi-Tenant Settings in DB (statt localStorage)
+- **Was:** `localStorage` funktioniert nur auf einem Browser. Team-Mitglieder und Mobile haben andere Daten. Settings → in `profiles` (bereits für `offer_text_template` / `email_template` begonnen).
+- **Konkret:**
+  - `profiles`-Spalten für alle Settings: `company_settings jsonb` (logo, Farben, IBAN, Preise, etc.)
+  - `loadCompanySettings()` in OfferBuilderPage + PDF: statt localStorage → DB-Query
+  - Migration: `050_company_settings_db.sql`
+- **Aufwand:** Mittel
+- **✅ Akzeptanz:** Vertriebler auf mobilem Gerät sieht dieselben Firmenfarben wie Inhaber am Desktop.
+
+#### WL3 — Custom Domain / Subdomain für Konfigurator
+- **Was:** Installateur bekommt `solar.firma.de` statt `voltify-app.vercel.app/konfigurator`.
+- **Konkret:**
+  - Vercel: Custom Domains pro Deployment möglich (über Vercel MCP/API)
+  - Tenant-Auflösung: `Host`-Header → `agency_slug` → Profile laden
+  - DNS-Anleitung für Kunden + Setup-Flow in Einstellungen
+- **Aufwand:** Groß (Infra)
+- **Hinweis:** Für Stadtwerke Kaufbedingung. Für Installateure Nice-to-Have.
+- **✅ Akzeptanz:** `solar.muster-gmbh.de` öffnet Konfigurator mit Muster GmbH-Branding.
+
+#### WL4 — Branded E-Mail-Domain
+- **Was:** E-Mails kommen von `angebot@firma.de` statt `noreply@vu-studio.de`.
+- **Konkret:**
+  - Resend: Custom-Domain pro Installateur (DNS-Verify durch Kunden)
+  - `profiles.resend_domain` + `profiles.resend_api_key` (verschlüsselt speichern)
+  - `send-offer` Edge Function: dynamisch von Tenant-Domain senden
+- **Aufwand:** Mittel
+- **✅ Akzeptanz:** Kunde erhält E-Mail von `angebot@muster-solar.de`, Absender = Firma.
 
 ---
 
@@ -172,6 +395,6 @@ GROUP BY source_id;
 
 - **Datenbank:** `ecsqbsgbfmvqaqnryvwf` (Supabase)
 - **Build:** 0 TypeScript-Fehler
-- **Tests:** 113/113 passing
+- **Tests:** 121/121 passing
 - **Testnutzer:** `installateur@test.de` = super_employee / `inhaber@test.de` = owner
 - **Kunde hat kein Login** — Alles per E-Mail (Angebot, Rechnungen)

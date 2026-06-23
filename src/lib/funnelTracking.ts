@@ -4,9 +4,11 @@ import { supabase } from './supabase';
 type FunnelEvent = 'started' | 'step_reached' | 'email_captured' | 'skipped_gate' | 'completed';
 
 interface SourceParams {
-  sourceId: string | null;    // sl_lead (numerische ID) oder sl_email (E-Mail-Adresse)
+  sourceId: string | null;      // sl_lead (numerische ID) oder sl_email (E-Mail-Adresse)
   utmSource: string | null;
   utmCampaign: string | null;
+  agencySlug: string | null;    // ?a=<slug> für Agentur-Attribution
+  installerSlug: string | null; // ?i=<slug> für White-Label-Branding
 }
 
 const SESSION_KEY     = 'voltify_funnel_session';
@@ -29,9 +31,11 @@ function getSourceParams(): SourceParams {
   const p = new URLSearchParams(window.location.search);
   const params: SourceParams = {
     // sl_email (von Smartlead) hat Vorrang, sl_lead als Fallback für direkten Konfigurator-Link
-    sourceId:    p.get('sl_email') ?? p.get('sl_lead'),
-    utmSource:   p.get('utm_source'),
-    utmCampaign: p.get('utm_campaign'),
+    sourceId:      p.get('sl_email') ?? p.get('sl_lead'),
+    utmSource:     p.get('utm_source'),
+    utmCampaign:   p.get('utm_campaign'),
+    agencySlug:    p.get('a'),
+    installerSlug: p.get('i'),
   };
   sessionStorage.setItem(SOURCE_KEY, JSON.stringify(params));
   return params;

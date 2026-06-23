@@ -1,9 +1,9 @@
 # Voltify — Resume Point
-<!-- Zuletzt aktualisiert: 2026-06-05 — Funnel-Tracking, Lead-Gate, Scoutly-Integration, Build-Fix -->
+<!-- Zuletzt aktualisiert: 2026-06-08 — Agency-Blocker A1/A2/A3 implementiert + deployed, 039+040 live -->
 
 ## Status: MVP-INFRASTRUKTUR KOMPLETT ✅
 
-Letzter Stand (Code): 113/113 Tests, 0 TypeScript-Fehler
+Letzter Stand (Code): 121/121 Tests, 0 TypeScript-Fehler
 Session 2026-05-31: Batteriekosten-Fix, Step-7-Verbesserungen, 8-Schritt-Konfigurator, PLZ in Step 1
 Session 2026-06-01:
   - Step 3 gesplittet → 9-Schritt-Konfigurator (Step 3=Stromverbrauch, Step 4=Ausstattung & Pläne)
@@ -25,6 +25,25 @@ Session 2026-06-05 (Teil 2):
   - **Smartlead P.S.-Link** ✅ — `?sl_email={{email}}&utm_source=scoutly&utm_campaign=...`
   - **Vercel Build-Fix** ✅ — Promise.resolve() wrapper + CalculationPdfDocument.tsx committed
   - Letzter Commit: `543decf` · 113/113 Tests grün · 0 TypeScript-Fehler
+
+Session 2026-06-09 (Agency-Rollensystem + Kalender + Einstellungen):
+  - **`agency_agent`-Rolle (Vertriebler)** ✅ — `resolveAgencyId`, `isAgencyAdmin/Agent`, Sidebar-Nav, App-Routing
+  - **`AgencyCalendarPage`** ✅ — 2 Typen (Beratung mit Lead, Partner-Meeting), eigener Kalender für Agenturen
+  - **`AgencyTeamPage`** ✅ — Vertriebler einladen, Blur-Passwort, Copy-Buttons
+  - **`AgencySettingsPage`** ✅ — Firmenprofil, Standard-Provision, Benachrichtigungs-Toggle, Team-Shortcut
+  - **Team-Filter** ✅ — Dashboard (Meine Leads) + CommissionsPage nach Vertriebler filterbar
+  - **`vertriebler@test.de`** ✅ — Migration 042 + Login-Seite 2-Button-Grid
+  - **Migrationen 042–044** ✅ deployed — agency_agent CHECK-Constraint, assigned_by, Agency-Settings-Spalten
+  - 2 Commits gepusht + Vercel deployed: https://voltify-app.vercel.app
+
+Session 2026-06-08 (Teil 2 — Agency-Blocker):
+  - **Migration 039** ✅ DEPLOYED — `partners`, `lead_assignments`, `commissions` + RLS live
+  - **Migration 040** ✅ DEPLOYED — 3 SECURITY DEFINER RPCs (`get_partner_by_token`, `get_partner_assignments`, `partner_update_assignment`), `sales_agency` im Role-CHECK-Constraint, `profiles.agency_slug`, Leads-RLS für Agenturen, `resolve_agency_slug`
+  - **A1 — Portal-RLS-Fix** ✅ — Portal läuft jetzt über RPCs (anon-safe), Commission-Automatik bei `converted` ist transaktional im RPC
+  - **A2 — Funnel-Verdrahtung** ✅ — `?a=<slug>` → sessionStorage → `resolve_agency_slug` → `agency_id` im Lead-Insert; `LeadRouterPage` lädt echte Agency-Leads
+  - **A3 — Commission-Automatik** ✅ — im `partner_update_assignment` RPC integriert (idempotent, fixed + percentage)
+  - **Edge Functions** ✅ DEPLOYED — `notify-partner` + `notify-agency` ACTIVE
+  - 113/113 Tests grün · 0 TypeScript-Fehler
 
 ---
 
@@ -84,22 +103,90 @@ Session 2026-06-05 (Teil 2):
 
 ---
 
-## Nächster Schritt — Sales-Ready Sprint 1 (Tag 0–30)
+## Was ist neu? (2026-06-18) — Angebots-Konfigurator
 
-### Code-Prioritäten — MVP Feature-Complete ✅
-1. **Google Maps API Key — DONE ✅** (2026-06-01)
-2. ~~**Migrationen**~~ — ✅ DONE (2026-06-01)
-3. ~~**Edge Functions + Resend**~~ — ✅ DONE (2026-06-01)
-4. ~~**Digitale Unterschrift**~~ — ✅ DONE (2026-06-05)
-   - Canvas-Pad ✅
-   - Magic-Link-Route (`/sign/:token`) ✅
-   - PDF-Embed ✅
-   - **NEW:** signing_token in E-Mail-Link ✅
+### Angebots-Erstellung komplett überarbeitet
+- **Neue Seite** `/lead/:id/offer` (`OfferBuilderPage.tsx`) — Installateur/Inhaber kann Angebotspositionen frei definieren, Preise ändern und Dienstleistungen hinzufügen.
+- **Neue Tabellen** `offer_drafts` + `offer_line_items` (Migration `045_offer_drafts.sql`) — echte Persistenz, trennt Kunden-Konfigurator-Ergebnis vom finalen Angebot.
+- **Vorausfüllung aus Lead-Daten** — Module, Wechselrichter, Speicher, Montage, Elektro werden automatisch aus `lead.kwp` / `lead.has_battery` generiert.
+- **Flexible Preisgestaltung** — Menge, Einheit, Einzelpreis pro Position editierbar; Rabatt-Code oder manueller Rabatt; Live-Zwischensumme/Gesamtsumme.
+- **LeadDetailsPage umgebaut** — Boxen „Angebots-Management" und „Rabatt & Preis" ersetzt durch einfachen CTA „Angebot erstellen / bearbeiten".
+- **PDF & E-Mail** — `OfferPdfDocument` rendert jetzt detaillierte Angebotspositionen aus dem Draft; E-Mail-Versand komplett aus dem Builder heraus.
+- **Status-Workflow** — Entwurf → Gesendet → Angenommen/Abgelehnt, synchronisiert mit `leads.offer_status`.
+- **Default-Preise aus Einstellungen** — `AdminSettings` → Tab „Kalkulation" → Standard-Angebotspreise (Module, Wechselrichter, Speicher, Montage, Elektro, Gerüst, Anfahrt, MwSt) werden in `localStorage` gespeichert und beim Erstellen eines Drafts übernommen.
 
-5. ~~**Funnel-Tracking + Lead-Gate + Scoutly-Integration**~~ ✅ DONE (2026-06-05)
+### Qualität
+- `npm run build`: 0 TypeScript-Fehler ✅
+- `npm test`: 121/121 Tests grün (113 bestehende + 8 neue `tests/lib/offers.test.ts`) ✅
 
-6. **Next:** 3 Beta-Tester onboarden (Pricing-Conversation Woche 2) ← NÄCHSTER SCHRITT
-7. **Optional:** Conversion-Webhook aktivieren — Make.com einrichten + `VITE_SCOUTLY_WEBHOOK_URL` in Vercel
+## Was ist neu? (2026-06-18, Teil 2) — Agency Phase B + C1
+
+### B1 — Agency-Tier-Schema
+- **Migration `046_agency_tiers.sql`** — `profiles.agency_tier` (`start`/`pro`/`scale`) + `profiles.agency_partner_limit` int, Default `start`/5 für `sales_agency`.
+- **TypeScript-Typen** — `Profile` in `src/services/auth.ts` und `AuthUser` in `src/contexts/AuthContext.tsx` um `agencyTier` und `agencyPartnerLimit` erweitert.
+
+### B2 — Partner-Limit-Gating
+- **`src/services/agency.ts`** — `countActivePartners()` + Limit-Check in `createPartner()`; eigener Fehler-Code `PARTNER_LIMIT_REACHED`.
+- **`src/pages/agency/PartnersPage.tsx`** — Limit-Banner, deaktivierter „Partner hinzufügen"-Button, Upgrade-CTA zu `/pricing`.
+- **Migration `047_partner_limit_check.sql`** — Datenbank-Trigger `partner_limit_trigger` + `check_partner_limit()` als harte Absicherung.
+
+### B3 — Agency-Tiers auf PricingPage
+- **`src/pages/PricingPage.tsx`** — Neuer Block „Für Vertriebsagenturen" mit Start (5 Partner), Pro (20 Partner), Scale (unbegrenzt + Auto-Routing).
+
+### C1 — PLZ-basiertes Auto-Routing
+- **`src/pages/agency/LeadRouterPage.tsx`** — „Auto-Routing"-Button nur für `scale`-Tier; weist alle offenen Leads automatisch an passende Partner zu (PLZ-Match + fairste Verteilung nach letzter Zuweisung).
+
+### Bugfix: AdminDashboard-Drawer
+- **`src/pages/AdminDashboard.tsx`** — Der Lead-Drawer zeigte noch das alte „Angebots-Management" + „Rabatt & Preis". Beide Boxen wurden durch eine einzige „Angebot"-Karte ersetzt: lädt den Entwurf, zeigt Status + Summe und leitet mit „Angebot konfigurieren / bearbeiten / ansehen" zu `/lead/:id/offer` weiter (statt direkt PDF zu generieren).
+
+### Qualität
+- `npm run build`: 0 TypeScript-Fehler ✅
+- `npm test`: 121/121 Tests grün ✅
+
+## Aktueller Blocker (Stand 2026-06-18)
+
+### 🟡 Migrationen 045–047 müssen deployed werden
+- **Fehler auf `/lead/:id/offer`:** `Could not find the table 'public.offer_drafts' in the schema cache`
+- **Ursache:** Migration 045 (`offer_drafts` + `offer_line_items`) ist lokal vorhanden, aber noch nicht auf Supabase ausgeführt.
+- **Fix:** `npx supabase link --project-ref ecsqbsgbfmvqaqnryvwf` → DB-Passwort eingeben → `npx supabase db push`
+- **Mit einem Push werden gleich 045, 046 und 047 deployed.**
+
+## Nächster Schritt (Stand 2026-06-18)
+
+### ← NÄCHSTE CODE-SCHRITTE (nach Wahl)
+- **Migrationen 045–047 auf Supabase deployen** (aktuell blockierend für Angebots-Konfigurator).
+- **E2E-Smoke-Test Agency** — Test-Agentur anlegen → Partner-Limit testen → Lead via `?a=slug` → Auto-Routing/ Manuelles Zuweisen → Portal annehmen → converted → Commission.
+- **C2 — Annahme-Frist + Auto-Reassignment** — 24h-Timeout für `pending` Assignments.
+- **C3 — Partner-Self-Onboarding** — Einladungs-Link für Partner-Registrierung.
+- **C5 — Partner-Scorecard** — Conversion-Rate & Reaktionszeit pro Partner.
+
+### ← NÄCHSTER VERTRIEBS-SCHRITT
+- 3 Beta-Tester onboarden + Pricing-Conversation Woche 2
+- Scoutly-Kampagne 1: 200 Solo-Solarteure DE, A/B-Hypothese
+
+### Alles Erledigte (Code, 2026-06-09)
+1. ~~Google Maps API Key~~ ✅
+2. ~~Migrationen 030–041~~ ✅
+3. ~~Edge Functions + Resend~~ ✅
+4. ~~Digitale Unterschrift~~ ✅
+5. ~~Funnel-Tracking + Lead-Gate + Scoutly-Integration~~ ✅
+6. ~~Partner-Modul MVP (Rolle, CRUD, Portal, E-Mail)~~ ✅
+7. ~~Agency-Modul Blocker A1/A2/A3~~ ✅ — RLS-RPCs, Funnel-Verdrahtung, Commission-Automatik
+8. ~~Migrationen 039+040 deployed~~ ✅ — Role-Constraint, agency_slug, RPCs, Leads-RLS
+9. ~~notify-partner + notify-agency ACTIVE~~ ✅
+10. ~~Test-Account `agentur@test.de`~~ ✅ — Solar Vertrieb GmbH, slug `solar-vertrieb-gmbh`, 2 Partner, 1 Lead
+11. ~~Login-Toggle Installateur/Agentur + Test-Agentur-Button~~ ✅
+12. ~~`agency_agent`-Rolle + `resolveAgencyId`~~ ✅ — Vertriebler-Hierarchie analog zu Installateur/Inhaber
+13. ~~`AgencyCalendarPage`~~ ✅ — Beratung mit Lead + Partner-Meeting, ohne Installateur-Typen
+14. ~~`AgencyTeamPage`~~ ✅ — Vertriebler einladen, Zugangsdaten anzeigen
+15. ~~`AgencySettingsPage`~~ ✅ — Firmenprofil, Standard-Provision, Benachrichtigungs-Toggle
+16. ~~Team-Filter in Dashboard + CommissionsPage~~ ✅ — `assigned_by`-Feld + Dropdown für Agentur-Inhaber
+17. ~~Vertriebler-Test-Account `vertriebler@test.de`~~ ✅ — Migration 042
+18. ~~Migrationen 042–044 deployed~~ ✅ — agency_agent-Constraint, assigned_by, Agency-Settings-Spalten
+
+### Optional offen
+- E2E-Smoke-Test manuell: Login → Router → zuweisen → Portal (Inkognito) → annehmen → converted → Commission
+- Conversion-Webhook: `VITE_SCOUTLY_WEBHOOK_URL` in Vercel (Make.com)
 
 ### Vertriebs-Prioritäten (kritisch!)
 3. **3 Beta-Tester onboarden** mit **Pricing-Conversation in Woche 2** (Conversion-Risiko früh adressieren)
@@ -112,9 +199,10 @@ Session 2026-06-05 (Teil 2):
 
 - Dev-Server: `npm run dev` (Port 5173)
 - Build: `npm run build` (0 TypeScript-Fehler)
-- Tests: `npm test` (113/113 passing)
-- Strategie: `Voltify-DNA.md` → Sektion 9
+- Tests: `npm test` (121/121 passing)
+- Strategie: `Voltify-DNA.md` → Sektion 9 + 10
 - Feature-Roadmap: `tasks-VOLTIFY.md` → "🎯 Wettbewerbsanalyse Reonic"
+- Partner-Modul: `src/pages/agency/`, `src/services/agency.ts`, `supabase/migrations/039_partner_module.sql`
 - Auth: `src/contexts/AuthContext.tsx`
 - Services: `src/services/`
 - PDF: `src/components/pdf/`
@@ -124,13 +212,25 @@ Session 2026-06-05 (Teil 2):
 
 ## Datenbank
 - **Supabase Projekt-Ref:** `ecsqbsgbfmvqaqnryvwf`
-- **Migrationen 018–029:** ✅ Alle ausgeführt
+- **Migrationen 018–044:** ✅ Ausgeführt
+  - 039: `partners`, `lead_assignments`, `commissions` + RLS
+  - 040: SECURITY DEFINER RPCs, `agency_slug`, Sales-Agency Role-Constraint
+  - 041: (vorherige Session)
+  - 042: `agency_agent` Role-Constraint + Vertriebler-Test-Account
+  - 043: `lead_assignments.assigned_by` (uuid, nullable, FK → profiles)
+  - 044: `profiles.agency_default_commission_type/value`, `agency_notify_on_response`, `agency_website`
+- **Migrationen 045–047:** 🟡 Geschrieben, **noch nicht deployed**
+  - 045: `offer_drafts` + `offer_line_items` — Angebots-Konfigurator
+  - 046: `profiles.agency_tier` + `profiles.agency_partner_limit` — Agency-Tiers
+  - 047: `partner_limit_trigger` — harte Partner-Limit-Absicherung
 
 ## Test-Accounts
-| E-Mail | Rolle | Passwort |
-|--------|-------|----------|
-| installateur@test.de | super_employee | Test123456 |
-| inhaber@test.de | owner | Test123456 |
+| E-Mail | Rolle | Passwort | Hinweis |
+|--------|-------|----------|---------|
+| installateur@test.de | super_employee | Test123456 | |
+| inhaber@test.de | owner | Test123456 | |
+| agentur@test.de | sales_agency | Test123456 | Solar Vertrieb GmbH, slug `solar-vertrieb-gmbh` |
+| vertriebler@test.de | agency_agent | Test123456 | owner_id = agentur@test.de |
 
 ---
 

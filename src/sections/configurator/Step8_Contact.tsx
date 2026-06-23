@@ -7,9 +7,10 @@ interface Props {
   onSubmit: () => void;
   isSubmitting?: boolean;
   submitError?: string;
+  companyName?: string;
 }
 
-export default function Step8_Contact({ data, updateData, onSubmit, isSubmitting, submitError }: Props) {
+export default function Step8_Contact({ data, updateData, onSubmit, isSubmitting, submitError, companyName = 'Voltify' }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (data.firstName && data.lastName && data.email && data.privacyConsent && !isSubmitting) {
@@ -116,7 +117,7 @@ export default function Step8_Contact({ data, updateData, onSubmit, isSubmitting
             className="w-4 h-4 mt-0.5 rounded border-gray-300 text-[#1A3A5C] focus:ring-[#1A3A5C]"
           />
           <span className="text-xs text-gray-500 leading-relaxed">
-            Ich stimme der <a href="#" className="text-[#1A3A5C] font-medium hover:underline">Datenschutzerklärung</a> zu und erlaube Voltify, meine Daten zur Erstellung eines Angebots zu verwenden.
+            Ich stimme der <a href="#" className="text-[#1A3A5C] font-medium hover:underline">Datenschutzerklärung</a> zu und erlaube {companyName}, meine Daten zur Erstellung eines Angebots zu verwenden.
           </span>
         </label>
 

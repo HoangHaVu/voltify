@@ -266,24 +266,33 @@ text-gray-500 hover:text-white hover:bg-white/5
 
 | Phase | Zeitraum | Preis | Ziel |
 |-------|----------|-------|------|
-| **Validierung** | Monat 1–3 | 0–49 €/Monat | 3–5 Pilotbetriebe onboarden, Testimonials, Feedback |
-| **Markteintritt** | Monat 4–9 | 119–239 €/Monat | 20–30 zahlende Betriebe, Gründerrabatt (-20%), Setup-Fee |
-| **Skalierung** | Ab Monat 10 | 149–599 €/Monat | Vollpreise, Upsell-Features (API, Analytics), Jahresabo |
+| **Validierung** | Monat 1–3 | 0 € (kostenlos) | 3–5 Pilotbetriebe onboarden, Testimonials, Feedback |
+| **Gründerphase** | Monat 4–12 | 99–499 €/Monat | 20–30 zahlende Betriebe, ohne Setup-Fee, Bestandsschutz |
+| **Vollpreis** | Ab Monat 13 | 179–799 €/Monat | Vollpreise + Setup-Fee, Jahresabo, Upsell White-Label |
 
-### SaaS-Tiers (endgültig)
+### SaaS-Tiers Installer (aktualisiert 2026-06-19)
 
-| Tier | Preis/Mo | Nutzer | Setup-Fee | Kern-Unterschiede |
-|------|----------|--------|-----------|-------------------|
-| **Starter** | 149 € | **1 Nutzer** | 299 € | Max 30 Leads/Monat, kein Kalender-Sync, kein CRM-Webhook |
-| **Professional** | 299 € | **5 Nutzer** | 599 € | Unbegrenzte Leads, Kalender, CRM-Webhook, Lead-Scoring, eigene Domain |
-| **Enterprise** | 599 € | **Unbegrenzt** | 1.200–2.500 € | Multi-Standort, API, White-Label, dedizierter Kundenmanager |
+| Tier | Vollpreis/Mo | Gründerpreis/Mo | Setup-Fee | Kern-Unterschiede |
+|------|-------------|-----------------|-----------|-------------------|
+| **Starter** | 179 € | 99 € | 299 € | 1 Nutzer, 30 Leads/Mo, kein CRM-Webhook |
+| **Professional** | 379 € | 179 € | 499 € | 5 Nutzer, unbegrenzte Leads, Kalender, Webhooks |
+| **Enterprise** | 799 € | 399 € | 1.200–2.000 € | Unbegrenzt, API, White-Label, dedizierter Manager |
+
+### Agency-Tiers (aktualisiert 2026-06-19)
+
+| Tier | Vollpreis/Mo | Gründerpreis/Mo | Partner | Kern |
+|------|-------------|-----------------|---------|------|
+| **Agency Start** | 199 € | 99 € | bis 5 | Routing manuell, Portale, Provisions-Tracking |
+| **Agency Pro** | 399 € | 199 € | bis 20 | + PLZ-Vorschläge, Scorecard |
+| **Agency Scale** | 699 € | 349 € | unbegrenzt | + Vollautomatisches PLZ-Routing (Auto-Routing) |
 
 ### Monetarisierungsdetails
 
-- **Setup-Fee** = „Onboarding-Paket" (nicht Verwaltungsgebühr) — Datenmigration, Schulung, Einrichtung
+- **Setup-Fee** = „Onboarding-Paket" — erst ab Vollpreis-Phase, nicht in Gründerphase
 - **Jahresabo** = 15% Rabatt bei jährlicher Zahlung — verbessert Cash-Flow, senkt Churn
-- **Gründerrabatt** = -20% für alle Kunden vor Phase 3, mit Bestandsschutz (Preis bleibt auf Rabatt-Niveau)
-- **ROI-Argument** = 1 zusätzlicher Abschluss/Monat = 50× Monatspreis (für Solarteure)
+- **Gründerrabatt** = Bestandsschutz: wer in Gründerphase kauft, bleibt dauerhaft auf Gründerpreis
+- **White-Label Addon** = +79 €/Mo für Professional-Kunden (kein Enterprise-Zwang)
+- **ROI-Argument** = 1 zusätzlicher Abschluss/Monat = ~100× Monatsbeitrag (für Solarteure mit ∅ 15.000 € Auftragswert)
 
 ### Feature-Matrix pro Tier
 
@@ -502,5 +511,47 @@ Pivot-Optionen:
 | Voltify wird solides €300k–800k ARR-Business | ~35–45 % | Fokus + Scoutly-Conversion + Beta-zu-Paid ≥ 20 % |
 | Voltify wird €80k–200k Solo-Side-Business | ~30–40 % | Realistischer Default-Pfad |
 | 0 zahlende Kunden in 18 Monaten | ~8–12 % | Nur wenn Vertrieb stagniert |
+
+---
+
+## 10. Partner-Modul (Sales-Agency-Erweiterung)
+
+> Stand: 2026-06-08 — PV-Vertriebsagenturen können Leads an Installateur-Partner weitergeben.
+
+### 10.1 Architektur
+- **Eine App, eine Codebase** — Neue Rolle `sales_agency`, kein separates System
+- **Top-Level-Rolle** (wie `owner`) — Agentur hat eigenen Account, kein Owner nötig
+- **Shared:** Konfigurator, Auth, PDF-Engine, E-Mail-Versand
+- **Neu:** Partner-Management, Lead-Routing, Commission-Tracking, Partner-Portal
+
+### 10.2 Neue Tabellen
+| Tabelle | Zweck |
+|---------|-------|
+| `partners` | Installateur-Partner mit PLZ-Gebiet, Provisionssatz |
+| `lead_assignments` | Zuweisung Lead → Partner mit Status-Tracking |
+| `commissions` | Provisionen: pending → invoiced → paid |
+
+### 10.3 Neue Routen
+| Route | Auth | Zweck |
+|-------|------|-------|
+| `/admin/partners` | sales_agency | Partner-CRUD |
+| `/admin/router` | sales_agency | Lead-Zuweisung |
+| `/admin/commissions` | sales_agency | Provisionen-Tracking |
+| `/partner/:token` | public | Partner-Portal (Magic-Link) |
+
+### 10.4 Provisionssystem
+- **Global pro Partner** (nicht pro Lead) — einfacher, weniger Verwaltung
+- **Typen:** `fixed` (€) oder `percentage` (%)
+- **Trigger:** Partner markiert Lead als `converted` → Commission wird erstellt
+
+### 10.5 Partner-Portal (Magic-Link)
+- Kein Login nötig — Zugriff über `access_token`
+- Partner sieht nur seine zugewiesenen Leads
+- Aktionen: Annehmen, Ablehnen, Auftrag-erteilt
+
+### 10.6 Offene Phase-2-Features
+- Automatische Lead-Verteilung (PLZ, Round-Robin)
+- Multi-Angebots-Vergleich
+- White-Label Konfigurator
 
 ---

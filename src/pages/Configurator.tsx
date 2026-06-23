@@ -6,6 +6,8 @@ import DemoBanner from '../components/layout/DemoBanner';
 import { submitLead } from '../services/leads';
 import { calculateROI } from '../lib/calculations';
 import { trackFunnelEvent, getFunnelSource } from '../lib/funnelTracking';
+import { supabase } from '../lib/supabase';
+import { useTenantBranding } from '../hooks/useTenantBranding';
 import Step0_EmailGate from '../sections/configurator/Step0_EmailGate';
 import Step1_Building from '../sections/configurator/Step1_Building';
 import Step2_Roof from '../sections/configurator/Step2_Roof';
@@ -86,6 +88,7 @@ const steps = [
 export default function Configurator() {
   const [searchParams] = useSearchParams();
   const isDemo = searchParams.get('demo') === '1';
+  const branding = useTenantBranding();
 
   const [gateCleared, setGateCleared] = useState(isDemo);
   const [currentStep, setCurrentStep] = useState(1);
@@ -134,6 +137,15 @@ export default function Configurator() {
         ...calc,
         investment: calc.effectiveInvestment || calc.investment,
       };
+
+      // Agency-Slug aus Funnel-Cache auflösen → agency_id für Lead-Attribution
+      let agencyId: string | undefined;
+      const { agencySlug } = getFunnelSource();
+      if (agencySlug && !isDemo) {
+        const { data: resolvedId } = await supabase.rpc('resolve_agency_slug', { p_slug: agencySlug });
+        agencyId = resolvedId ?? undefined;
+      }
+
       await submitLead(
         {
           firstName: data.firstName,
@@ -163,6 +175,8 @@ export default function Configurator() {
           heatPump: data.heatPump,
         },
         dbCalc,
+        undefined,  // installerId
+        agencyId,
       );
       trackFunnelEvent(9, 'completed', { demoMode: isDemo });
 
@@ -208,7 +222,7 @@ export default function Configurator() {
       case 5: return <Step4_Storage {...props} />;
       case 6: return <Step6_Subsidies {...props} />;
       case 7: return <Step7_Analysis key={analysisKey} {...props} onNext={goNext} />;
-      case 8: return <Step8_Contact {...props} onSubmit={handleSubmit} isSubmitting={isSubmitting} submitError={submitError} />;
+      case 8: return <Step8_Contact {...props} onSubmit={handleSubmit} isSubmitting={isSubmitting} submitError={submitError} companyName={branding.firmenname} />;
       case 9: return <Step9_ThankYou demoMode={isDemo} />;
       default: return null;
     }
@@ -226,7 +240,7 @@ export default function Configurator() {
   };
 
   if (!gateCleared) {
-    return <Step0_EmailGate onSubmit={handleGateSubmit} onSkip={handleGateSkip} />;
+    return <Step0_EmailGate onSubmit={handleGateSubmit} onSkip={handleGateSkip} branding={branding} />;
   }
 
   return (
@@ -242,17 +256,32 @@ export default function Configurator() {
       {isDemo && <DemoBanner label="Demo-Modus — so konfigurieren deine Kunden ihre Solaranlage" />}
       <div className="flex flex-1 min-h-0">
       {/* LEFT - Sidebar */}
-      <div className="hidden lg:flex lg:w-[320px] xl:w-[360px] flex-col bg-[#1A3A5C] text-white relative overflow-hidden">
+      <div
+        className="hidden lg:flex lg:w-[320px] xl:w-[360px] flex-col text-white relative overflow-hidden"
+        style={{ backgroundColor: branding.primaryColor }}
+      >
         {/* Decorative bg */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1A3A5C] via-[#0F2440] to-black opacity-90" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/40" />
 
         <div className="relative z-10 p-8 flex flex-col h-full">
-          {/* Logo */}
+          {/* Logo / Firmenname */}
           <button onClick={() => navigate('/')} className="flex items-center gap-2 mb-10">
-            <div className="w-8 h-8 rounded-full bg-[#F5A623] flex items-center justify-center">
-              <Zap className="w-4 h-4 text-[#1A3A5C]" fill="currentColor" />
-            </div>
-            <span className="text-lg font-medium">Voltify</span>
+            {branding.isTenant && branding.logoDataUrl ? (
+              <img src={branding.logoDataUrl} alt={branding.firmenname} className="h-8 object-contain" />
+            ) : (
+              <>
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: branding.accentColor }}
+                >
+                  <Zap className="w-4 h-4" style={{ color: branding.primaryColor }} fill="currentColor" />
+                </div>
+                <span className="text-lg font-medium">{branding.firmenname}</span>
+              </>
+            )}
+            {branding.isTenant && !branding.logoDataUrl && (
+              <span className="text-lg font-medium">{branding.firmenname}</span>
+            )}
           </button>
 
           {/* Steps Timeline */}
@@ -310,10 +339,13 @@ export default function Configurator() {
             </div>
             <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#F5A623] rounded-full transition-all duration-500"
-                style={{ width: `${(currentStep / 9) * 100}%` }}
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${(currentStep / 9) * 100}%`, backgroundColor: branding.accentColor }}
               />
             </div>
+            {branding.isTenant && branding.poweredByVoltify && (
+              <p className="text-[10px] text-white/20 mt-4 text-center">Powered by Voltify</p>
+            )}
           </div>
         </div>
       </div>
@@ -335,10 +367,19 @@ export default function Configurator() {
           {/* Mobile Step Header */}
           <div className="lg:hidden flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-sm border-b border-gray-100">
             <button onClick={() => navigate('/')} className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-[#F5A623] flex items-center justify-center">
-                <Zap className="w-3.5 h-3.5 text-[#1A3A5C]" fill="currentColor" />
-              </div>
-              <span className="text-sm font-medium text-[#1A3A5C]">Voltify</span>
+              {branding.isTenant && branding.logoDataUrl ? (
+                <img src={branding.logoDataUrl} alt={branding.firmenname} className="h-6 object-contain" />
+              ) : (
+                <>
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: branding.accentColor }}>
+                    <Zap className="w-3.5 h-3.5" style={{ color: branding.primaryColor }} fill="currentColor" />
+                  </div>
+                  <span className="text-sm font-medium" style={{ color: branding.primaryColor }}>{branding.firmenname}</span>
+                </>
+              )}
+              {branding.isTenant && !branding.logoDataUrl && (
+                <span className="text-sm font-medium" style={{ color: branding.primaryColor }}>{branding.firmenname}</span>
+              )}
             </button>
             <span className="text-xs text-gray-500">
               Schritt {currentStep} / 9

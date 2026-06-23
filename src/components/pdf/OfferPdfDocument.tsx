@@ -2,6 +2,11 @@ import {
   Document, Page, View, Text, StyleSheet, Image,
 } from '@react-pdf/renderer';
 import type { Lead } from '../../services/data';
+import type { OfferDraft, OfferTextTemplate } from '../../services/offers';
+
+function interpolate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '');
+}
 
 // ── Types ──
 interface CompanySettings {
@@ -24,9 +29,11 @@ interface CompanySettings {
 interface Props {
   lead: Lead;
   company: CompanySettings;
-  offerNumber: string;
+  offerNumber?: string;
   signaturePng?: string;
   planningPng?: string;
+  offerDraft?: OfferDraft;
+  textTemplate?: OfferTextTemplate;
 }
 
 // ── Base colors (neutral) ──
@@ -137,7 +144,7 @@ function fmtNum(n: number | null | undefined, suffix = ''): string {
 }
 
 // ── Document ──
-export default function OfferPdfDocument({ lead, company, offerNumber, signaturePng, planningPng }: Props) {
+export default function OfferPdfDocument({ lead, company, offerNumber: offerNumberProp, signaturePng, planningPng, offerDraft, textTemplate }: Props) {
   const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
   const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
 
@@ -145,12 +152,43 @@ export default function OfferPdfDocument({ lead, company, offerNumber, signature
   const accent = company.accentColor || '#F5A623';
   const s = getStyles(primary, accent);
 
-  const bruttoPrice = lead.investment ?? 0;
-  const discountPct = lead.discount_percentage ?? 0;
-  const discountAmount = discountPct > 0 ? Math.round(bruttoPrice * (discountPct / 100)) : 0;
-  const netPrice = lead.final_price ?? (bruttoPrice - discountAmount);
-  const mwst = 0;
-  const bruttoTotal = netPrice;
+  const offerNumber = offerNumberProp ?? offerDraft?.offer_number ?? `ANG-${lead.id.slice(0, 8).toUpperCase()}`;
+
+  const tplVars: Record<string, string> = {
+    vorname: lead.first_name,
+    nachname: lead.last_name,
+    angebotsnummer: offerNumber,
+    firmenname: company.firmenname,
+    datum: today,
+    gueltig_bis: validUntil,
+    zahlungsziel: company.zahlungsziel || '14',
+  };
+
+  const anschreibenText  = textTemplate?.anschreiben       ? interpolate(textTemplate.anschreiben, tplVars)       : '';
+  const termsText        = textTemplate?.zahlungsbedingungen ? interpolate(textTemplate.zahlungsbedingungen, tplVars) : `Zahlungsziel: ${company.zahlungsziel || '14'} Tage nach Rechnungsstellung ohne Abzug.\nDie Liefer- und Leistungsfrist beginnt mit Zahlungseingang der Anzahlung.\nDieses Angebot ist unverbindlich und freibleibend.`;
+  const folgekostenText  = textTemplate?.folgekostenHinweis  ? interpolate(textTemplate.folgekostenHinweis, tplVars)  : 'Diese Analyse rechnet ehrlich — die meisten Anbieter verschweigen Folgekosten.\n\n• Wechselrichter-Austausch nach ca. 12 Jahren: ~2.000 €\n• Jährliche Wartung & Inspektion: ~200 €/Jahr';
+  const schlusstextText  = textTemplate?.schlusstext          ? interpolate(textTemplate.schlusstext, tplVars)          : '';
+  const showFolgekosten  = textTemplate?.showFolgekosten ?? true;
+
+  // Preis-Berechnung: entweder aus OfferDraft oder Fallback auf Lead-Daten
+  const hasDraft = offerDraft != null;
+  const bruttoPrice = hasDraft ? (offerDraft.subtotal ?? 0) : (lead.investment ?? 0);
+  const discountPct = hasDraft ? (offerDraft.discount_percentage ?? 0) : (lead.discount_percentage ?? 0);
+  const discountAmount = hasDraft ? (offerDraft.discount_amount ?? 0) : (discountPct > 0 ? Math.round(bruttoPrice * (discountPct / 100)) : 0);
+  const netPrice = hasDraft ? (offerDraft.total ?? bruttoPrice - discountAmount) : (lead.final_price ?? (bruttoPrice - discountAmount));
+  const mwst = hasDraft ? (offerDraft.vat_amount ?? 0) : 0;
+  const bruttoTotal = netPrice + mwst;
+
+  // ROI: Jahresersparnis bleibt aus Lead (kWp-basiert), Amortisation + Profit vom echten Angebots-Total
+  const actualInvestment = hasDraft ? netPrice : (lead.investment ?? netPrice);
+  const annualSavings = lead.annual_savings ?? null;
+  const roiAmortization = annualSavings && annualSavings > 0
+    ? Math.round(actualInvestment / annualSavings * 10) / 10
+    : (lead.amortization ?? null);
+  const roiProfit20 = annualSavings != null
+    ? Math.round(annualSavings * 20 - actualInvestment)
+    : (lead.profit_20_years ?? null);
+  const showRoi = annualSavings != null || roiAmortization != null || lead.autarky != null;
 
   return (
     <Document title={`Angebot ${offerNumber} — ${company.firmenname}`} author={company.firmenname}>
@@ -184,6 +222,13 @@ export default function OfferPdfDocument({ lead, company, offerNumber, signature
         </View>
         <View style={s.accentBar} />
 
+        {/* Anschreiben */}
+        {anschreibenText ? (
+          <View style={{ ...s.terms, marginBottom: 16 }}>
+            <Text style={{ ...s.termsText, fontSize: 8.5, lineHeight: 1.6 }}>{anschreibenText}</Text>
+          </View>
+        ) : null}
+
         {/* Customer & Project Info */}
         <View style={s.section}>
           <View style={s.row}>
@@ -214,60 +259,78 @@ export default function OfferPdfDocument({ lead, company, offerNumber, signature
           </View>
         </View>
 
-        {/* Configuration Table */}
+        {/* Configuration / Offer Items Table */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>Anlagenkonfiguration</Text>
+          <Text style={s.sectionTitle}>{hasDraft ? 'Angebotspositionen' : 'Anlagenkonfiguration'}</Text>
           <View style={s.table}>
             <View style={s.tableHeader}>
               <Text style={s.tableHeaderCell}>Position</Text>
               <Text style={s.tableHeaderCellRight}>Preis</Text>
             </View>
 
-            {/* PV-Anlage */}
-            <View style={s.tableRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.tableCell}>Photovoltaikanlage</Text>
-                <Text style={s.tableCellNote}>
-                  {lead.kwp ? `${lead.kwp} kWp` : 'Leistung auf Anfrage'}
-                  {lead.roof_area ? ` · ${lead.roof_area} m² Dachfläche` : ''}
-                  {company.panelHersteller ? ` · Module: ${company.panelHersteller.split(',')[0].trim()}` : ''}
-                  {company.wechselrichterHersteller ? ` · Wechselrichter: ${company.wechselrichterHersteller.split(',')[0].trim()}` : ''}
-                </Text>
-              </View>
-              <Text style={s.tableCellRight}>{fmtEUR(bruttoPrice)}</Text>
-            </View>
-
-            {/* Speicher */}
-            {lead.has_battery && (
-              <View style={s.tableRowAlt}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.tableCell}>Batteriespeicher</Text>
-                  <Text style={s.tableCellNote}>Inkl. Energiemanagement-System</Text>
+            {hasDraft && offerDraft.line_items && offerDraft.line_items.length > 0 ? (
+              <>
+                {offerDraft.line_items.map((item, index) => (
+                  <View key={item.id} style={index % 2 === 0 ? s.tableRow : s.tableRowAlt}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.tableCell}>{item.description}</Text>
+                      <Text style={s.tableCellNote}>
+                        {item.quantity} {item.unit} · {fmtEUR(item.unit_price)} / {item.unit}
+                      </Text>
+                    </View>
+                    <Text style={s.tableCellRight}>{fmtEUR(item.total_price)}</Text>
+                  </View>
+                ))}
+              </>
+            ) : (
+              <>
+                {/* PV-Anlage */}
+                <View style={s.tableRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.tableCell}>Photovoltaikanlage</Text>
+                    <Text style={s.tableCellNote}>
+                      {lead.kwp ? `${lead.kwp} kWp` : 'Leistung auf Anfrage'}
+                      {lead.roof_area ? ` · ${lead.roof_area} m² Dachfläche` : ''}
+                      {company.panelHersteller ? ` · Module: ${company.panelHersteller.split(',')[0].trim()}` : ''}
+                      {company.wechselrichterHersteller ? ` · Wechselrichter: ${company.wechselrichterHersteller.split(',')[0].trim()}` : ''}
+                    </Text>
+                  </View>
+                  <Text style={s.tableCellRight}>{fmtEUR(bruttoPrice)}</Text>
                 </View>
-                <Text style={s.tableCellRight}>im Preis enthalten</Text>
-              </View>
-            )}
 
-            {/* Wallbox / E-Auto */}
-            {lead.has_e_car && (
-              <View style={s.tableRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.tableCell}>Wallbox-Vorbereitung</Text>
-                  <Text style={s.tableCellNote}>Für E-Auto-Ladung</Text>
-                </View>
-                <Text style={s.tableCellRight}>im Preis enthalten</Text>
-              </View>
-            )}
+                {/* Speicher */}
+                {lead.has_battery && (
+                  <View style={s.tableRowAlt}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.tableCell}>Batteriespeicher</Text>
+                      <Text style={s.tableCellNote}>Inkl. Energiemanagement-System</Text>
+                    </View>
+                    <Text style={s.tableCellRight}>im Preis enthalten</Text>
+                  </View>
+                )}
 
-            {/* Wärmepumpe */}
-            {lead.has_heat_pump && (
-              <View style={s.tableRowAlt}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.tableCell}>Wärmepumpen-Integration</Text>
-                  <Text style={s.tableCellNote}>PV-Überschusssteuerung</Text>
-                </View>
-                <Text style={s.tableCellRight}>im Preis enthalten</Text>
-              </View>
+                {/* Wallbox / E-Auto */}
+                {lead.has_e_car && (
+                  <View style={s.tableRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.tableCell}>Wallbox-Vorbereitung</Text>
+                      <Text style={s.tableCellNote}>Für E-Auto-Ladung</Text>
+                    </View>
+                    <Text style={s.tableCellRight}>im Preis enthalten</Text>
+                  </View>
+                )}
+
+                {/* Wärmepumpe */}
+                {lead.has_heat_pump && (
+                  <View style={s.tableRowAlt}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.tableCell}>Wärmepumpen-Integration</Text>
+                      <Text style={s.tableCellNote}>PV-Überschusssteuerung</Text>
+                    </View>
+                    <Text style={s.tableCellRight}>im Preis enthalten</Text>
+                  </View>
+                )}
+              </>
             )}
 
             {/* Rabatt */}
@@ -275,8 +338,8 @@ export default function OfferPdfDocument({ lead, company, offerNumber, signature
               <View style={s.tableRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={[s.tableCell, { color: BASE.green }]}>Rabatt ({discountPct}%)</Text>
-                  {lead.discount_code && (
-                    <Text style={s.tableCellNote}>Code: {lead.discount_code}</Text>
+                  {(hasDraft ? offerDraft.discount_code : lead.discount_code) && (
+                    <Text style={s.tableCellNote}>Code: {hasDraft ? offerDraft.discount_code : lead.discount_code}</Text>
                   )}
                 </View>
                 <Text style={[s.tableCellRight, { color: BASE.green }]}>− {fmtEUR(discountAmount)}</Text>
@@ -289,7 +352,7 @@ export default function OfferPdfDocument({ lead, company, offerNumber, signature
               <Text style={s.totalValue}>{fmtEUR(netPrice)}</Text>
             </View>
             <View style={s.totalRow}>
-              <Text style={s.totalLabel}>MwSt. (0% — § 12 Abs. 3 UStG, PV-Anlage)</Text>
+              <Text style={s.totalLabel}>MwSt. ({hasDraft ? offerDraft.vat_rate : 0}% — § 12 Abs. 3 UStG, PV-Anlage)</Text>
               <Text style={s.totalValue}>{fmtEUR(mwst)}</Text>
             </View>
             <View style={[s.totalRow, { backgroundColor: primary, borderRadius: 4, marginTop: 4 }]}>
@@ -299,21 +362,21 @@ export default function OfferPdfDocument({ lead, company, offerNumber, signature
           </View>
         </View>
 
-        {/* ROI Highlights */}
-        {(lead.annual_savings || lead.amortization || lead.autarky || lead.profit_20_years) && (
+        {/* ROI Highlights — Amortisation + Profit vom echten Angebots-Total */}
+        {showRoi && (
           <View style={s.section}>
             <Text style={s.sectionTitle}>Ihre Vorteile auf einen Blick</Text>
             <View style={s.metricGrid}>
-              {lead.annual_savings != null && (
+              {annualSavings != null && (
                 <View style={s.metricBox}>
                   <Text style={s.metricLabel}>Jährliche Ersparnis</Text>
-                  <Text style={s.metricValue}>{fmtEUR(lead.annual_savings)}</Text>
+                  <Text style={s.metricValue}>{fmtEUR(annualSavings)}</Text>
                 </View>
               )}
-              {lead.amortization != null && (
+              {roiAmortization != null && (
                 <View style={s.metricBox}>
                   <Text style={s.metricLabel}>Amortisation</Text>
-                  <Text style={s.metricValue}>~ {lead.amortization} Jahre</Text>
+                  <Text style={s.metricValue}>~ {roiAmortization} Jahre</Text>
                 </View>
               )}
               {lead.autarky != null && (
@@ -322,10 +385,10 @@ export default function OfferPdfDocument({ lead, company, offerNumber, signature
                   <Text style={s.metricValue}>{lead.autarky}%</Text>
                 </View>
               )}
-              {lead.profit_20_years != null && (
+              {roiProfit20 != null && (
                 <View style={s.metricBox}>
                   <Text style={s.metricLabel}>Gewinn 20 J.</Text>
-                  <Text style={s.metricValue}>{fmtEUR(lead.profit_20_years)}</Text>
+                  <Text style={s.metricValue}>{fmtEUR(roiProfit20)}</Text>
                 </View>
               )}
             </View>
@@ -333,29 +396,27 @@ export default function OfferPdfDocument({ lead, company, offerNumber, signature
         )}
 
         {/* Terms */}
-        <View style={s.terms}>
-          <Text style={s.termsTitle}>Zahlungsbedingungen & Hinweise</Text>
-          <Text style={s.termsText}>
-            Zahlungsziel: {company.zahlungsziel || '14'} Tage nach Rechnungsstellung ohne Abzug.{'\n'}
-            Die Liefer- und Leistungsfrist beginnt mit Zahlungseingang der Anzahlung.{'\n'}
-            {company.geschaeftsfuehrer && `Geschäftsführer: ${company.geschaeftsfuehrer}\n`}
-            Dieses Angebot ist unverbindlich und freibleibend. Die angegebenen Werte sind Prognosen auf Basis von Einstrahlungsdaten und Standardannahmen.{'\n'}
-            Es gelten unsere Allgemeinen Geschäftsbedingungen (AGB), einsehbar unter {company.firmenname.toLowerCase().replace(/\s/g, '')}.de/agb
-          </Text>
-        </View>
+        {termsText ? (
+          <View style={s.terms}>
+            <Text style={s.termsTitle}>Zahlungsbedingungen & Hinweise</Text>
+            <Text style={s.termsText}>{termsText}</Text>
+          </View>
+        ) : null}
 
-        {/* Lifecycle Costs Disclaimer */}
-        <View style={s.lifecycleBox}>
-          <Text style={s.lifecycleTitle}>Hinweis zu Folgekosten & Transparenz</Text>
-          <Text style={s.lifecycleText}>
-            Diese Analyse rechnet ehrlich — die meisten Anbieter verschweigen Folgekosten.{'\n\n'}
-            Berücksichtigte Lebenszykluskosten:{'\n'}
-            • Wechselrichter-Austausch nach ca. 12 Jahren: ~2.000 €{'\n'}
-            {lead.has_battery ? '• Batterie-Austausch nach ca. 12 Jahren: ~6.000 €\n' : ''}
-            • Jährliche Wartung & Inspektion: ~200 €/Jahr{'\n\n'}
-            Die angegebenen Amortisations- und Gewinnwerte sind Planungswerte auf Basis von Einstrahlungsdaten und Standardannahmen. Tatsächliche Erträge können je nach Wetter, Strompreisentwicklung und technischer Ausfallquote davon abweichen.
-          </Text>
-        </View>
+        {/* Folgekosten-Hinweis */}
+        {showFolgekosten && folgekostenText ? (
+          <View style={s.lifecycleBox}>
+            <Text style={s.lifecycleTitle}>Hinweis zu Folgekosten & Transparenz</Text>
+            <Text style={s.lifecycleText}>{folgekostenText}</Text>
+          </View>
+        ) : null}
+
+        {/* Schlusstext */}
+        {schlusstextText ? (
+          <View style={{ marginTop: 12, padding: '8 0' }}>
+            <Text style={{ ...s.termsText, fontSize: 8.5, lineHeight: 1.6 }}>{schlusstextText}</Text>
+          </View>
+        ) : null}
 
         {/* Signature */}
         <View style={s.signatureRow}>

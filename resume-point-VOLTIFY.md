@@ -1,5 +1,5 @@
 # Voltify — Resume Point
-<!-- Zuletzt aktualisiert: 2026-06-08 — Agency-Blocker A1/A2/A3 implementiert + deployed, 039+040 live -->
+<!-- Zuletzt aktualisiert: 2026-06-23 — Angebots-Konfigurator, Vorlagen, White-Label WL1, DIN A4 Vorschau — deployed -->
 
 ## Status: MVP-INFRASTRUKTUR KOMPLETT ✅
 
@@ -44,6 +44,16 @@ Session 2026-06-08 (Teil 2 — Agency-Blocker):
   - **A3 — Commission-Automatik** ✅ — im `partner_update_assignment` RPC integriert (idempotent, fixed + percentage)
   - **Edge Functions** ✅ DEPLOYED — `notify-partner` + `notify-agency` ACTIVE
   - 113/113 Tests grün · 0 TypeScript-Fehler
+
+Session 2026-06-23 (Angebots-Konfigurator + Vorlagen + White-Label + PDF-Vorschau):
+  - **Angebots-Konfigurator** ✅ — `OfferBuilderPage.tsx`, `offers.ts`, Drag-Drop Positionen, Rabatt, PDF & E-Mail aus Draft
+  - **Default-Preise aus Einstellungen** ✅ — Kalkulations-Settings (Modul/WR/Montage/Elektro) → Draft-Übernahme
+  - **ROI-Impact-Panel** ✅ — Live Amortisation / Jahresersparnis / Gewinn 20J. / Autarkie aus aktuellem Draft-Total (Ampel-Farben)
+  - **Vorlagen-System** ✅ — Migration `048_offer_templates.sql`, Anschreiben/Zahlungsbedingungen/Folgekosten/Schlusstext + E-Mail-Vorlage, `{{Platzhalter}}`-Interpolation, AdminSettings Vorlagen-Tab
+  - **DIN A4 PDF-Vorschau** ✅ — `PDFViewer` mit echtem `OfferPdfDocument` in Einstellungen, Mock-Positionen aus Kalkulations-Settings, Template-Texte sichtbar, automatische Seitenumbrüche
+  - **White-Label WL1** ✅ — Migration `049_installer_branding.sql`, `installer_slug` + `branding` JSONB in profiles, `useTenantBranding` Hook, `?i=<slug>` URL-Param, Konfigurator in Installer-Farben + Logo + "Powered by Voltify"
+  - **Preise angehoben** ✅ — Installer 179/379/799€, Agency 199/399/699€, White-Label Addon +79€/Mo (Vollpreise)
+  - Migrationen 045–049 deployed · 0 TypeScript-Fehler · Commit `dfaf713` · Vercel-Deploy ausgelöst
 
 ---
 
@@ -151,22 +161,23 @@ Session 2026-06-08 (Teil 2 — Agency-Blocker):
 - **Fix:** `npx supabase link --project-ref ecsqbsgbfmvqaqnryvwf` → DB-Passwort eingeben → `npx supabase db push`
 - **Mit einem Push werden gleich 045, 046 und 047 deployed.**
 
-## Nächster Schritt (Stand 2026-06-18)
+## Nächster Schritt (Stand 2026-06-23)
 
 ### ← NÄCHSTE CODE-SCHRITTE (nach Wahl)
-- **Migrationen 045–047 auf Supabase deployen** (aktuell blockierend für Angebots-Konfigurator).
-- **E2E-Smoke-Test Agency** — Test-Agentur anlegen → Partner-Limit testen → Lead via `?a=slug` → Auto-Routing/ Manuelles Zuweisen → Portal annehmen → converted → Commission.
-- **C2 — Annahme-Frist + Auto-Reassignment** — 24h-Timeout für `pending` Assignments.
+- **E2E-Smoke-Test Agency** — Lead via `?a=solar-vertrieb-gmbh` → Zuweisen → Portal (Inkognito) → annehmen → converted → Commission prüfen.
+- **C2 — Annahme-Frist + Auto-Reassignment** — 24h-Timeout für `pending` Assignments (Cron-Job oder Edge Function).
 - **C3 — Partner-Self-Onboarding** — Einladungs-Link für Partner-Registrierung.
 - **C5 — Partner-Scorecard** — Conversion-Rate & Reaktionszeit pro Partner.
+- **Cron Jobs** — `notify-offer-expiry` + `notify-payment-due` täglich 08:00.
+- **WL2** — Installer Company-Settings von localStorage nach `profiles.company_settings` in DB migrieren.
 
 ### ← NÄCHSTER VERTRIEBS-SCHRITT
-- 3 Beta-Tester onboarden + Pricing-Conversation Woche 2
-- Scoutly-Kampagne 1: 200 Solo-Solarteure DE, A/B-Hypothese
+- 3 Beta-Tester onboarden → White-Label-Slug vergeben + eigenes Branding testen
+- Scoutly-Kampagne 1: 200 Solo-Solarteure DE, A/B-Hypothese mit `?i=<slug>` Tracking
 
-### Alles Erledigte (Code, 2026-06-09)
+### Alles Erledigte (Code, 2026-06-23)
 1. ~~Google Maps API Key~~ ✅
-2. ~~Migrationen 030–041~~ ✅
+2. ~~Migrationen 030–049~~ ✅
 3. ~~Edge Functions + Resend~~ ✅
 4. ~~Digitale Unterschrift~~ ✅
 5. ~~Funnel-Tracking + Lead-Gate + Scoutly-Integration~~ ✅
@@ -181,6 +192,12 @@ Session 2026-06-08 (Teil 2 — Agency-Blocker):
 14. ~~`AgencyTeamPage`~~ ✅ — Vertriebler einladen, Zugangsdaten anzeigen
 15. ~~`AgencySettingsPage`~~ ✅ — Firmenprofil, Standard-Provision, Benachrichtigungs-Toggle
 16. ~~Team-Filter in Dashboard + CommissionsPage~~ ✅ — `assigned_by`-Feld + Dropdown für Agentur-Inhaber
+17. ~~Angebots-Konfigurator~~ ✅ — `OfferBuilderPage`, `offers.ts`, Drag-Drop, Rabatt, PDF & E-Mail aus Draft
+18. ~~Vorlagen-System~~ ✅ — Anschreiben/AGB/E-Mail-Vorlage mit `{{Platzhalter}}`-Interpolation
+19. ~~ROI-Impact-Panel im Konfigurator~~ ✅ — Live-Amortisation aus Draft-Total
+20. ~~DIN A4 PDF-Vorschau in Einstellungen~~ ✅ — `PDFViewer` mit echtem Dokument + Template-Texten
+21. ~~White-Label WL1~~ ✅ — `?i=<slug>`, branding JSONB, `useTenantBranding`, Konfigurator branded
+22. ~~Preisanhebung~~ ✅ — Installer 179/379/799€, Agency 199/399/699€
 17. ~~Vertriebler-Test-Account `vertriebler@test.de`~~ ✅ — Migration 042
 18. ~~Migrationen 042–044 deployed~~ ✅ — agency_agent-Constraint, assigned_by, Agency-Settings-Spalten
 

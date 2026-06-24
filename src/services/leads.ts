@@ -46,6 +46,7 @@ export async function submitLead(
   data: WizardData,
   calc: ROICalculations,
   installerId?: string,
+  agencyId?: string,
 ): Promise<void> {
   const { error } = await supabase.from('leads').insert({
     first_name: contact.firstName,
@@ -81,6 +82,7 @@ export async function submitLead(
     score: calc.score,
     source: 'landingpage',
     ...(installerId ? { installer_id: installerId } : {}),
+    ...(agencyId   ? { agency_id:    agencyId    } : {}),
   });
 
   if (error) throw new Error(error.message);

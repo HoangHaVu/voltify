@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Handshake, Plus, Pencil, Trash2, X, MapPin, Mail, Phone, Percent, Euro, Globe } from 'lucide-react';
+import {
+  Handshake, Plus, Pencil, Trash2, X, MapPin, Mail, Phone, Percent, Euro, Globe,
+  Crown, AlertCircle,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import {
@@ -26,6 +30,10 @@ export default function PartnersPage() {
     website: '',
     notes: '',
   });
+
+  const partnerLimit = user?.agencyPartnerLimit ?? 5;
+  const activeCount = partners.filter(p => p.is_active).length;
+  const limitReached = activeCount >= partnerLimit;
 
   useEffect(() => {
     if (!user) return;
@@ -99,7 +107,7 @@ export default function PartnersPage() {
       if (editing) {
         await updatePartner(editing.id, payload);
       } else {
-        await createPartner(user.id, payload);
+        await createPartner(user.id, payload, { limit: partnerLimit });
       }
       setShowModal(false);
       loadPartners();
@@ -127,14 +135,44 @@ export default function PartnersPage() {
             <h1 className="text-2xl font-semibold text-white">Partner-Installateure</h1>
             <p className="text-sm text-gray-500 mt-1">Verwalten Sie Ihre Installateur-Partner</p>
           </div>
-          <button
-            onClick={() => openModal()}
-            className="flex items-center gap-2 bg-[#F5A623] text-[#1A3A5C] font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-[#E09000] transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Partner hinzufügen
-          </button>
+          {limitReached ? (
+            <Link
+              to="/pricing"
+              className="flex items-center gap-2 bg-white/10 border border-[#F5A623]/30 text-[#F5A623] font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-white/15 transition-colors"
+            >
+              <Crown className="w-4 h-4" />
+              Upgrade erforderlich
+            </Link>
+          ) : (
+            <button
+              onClick={() => openModal()}
+              className="flex items-center gap-2 bg-[#F5A623] text-[#1A3A5C] font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-[#E09000] transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Partner hinzufügen
+            </button>
+          )}
         </div>
+
+        {limitReached && (
+          <div className="mb-5 bg-[#1A3A5C]/40 border border-[#F5A623]/20 rounded-xl p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-[#F5A623] flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white">
+                Partner-Limit erreicht ({activeCount}/{partnerLimit})
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Du hast das Limit deines aktuellen Agency-Tarifs erreicht. Upgrade auf Pro oder Scale, um unbegrenzt Partner zu verwalten.
+              </p>
+            </div>
+            <Link
+              to="/pricing"
+              className="text-xs font-bold text-[#1A3A5C] bg-[#F5A623] px-3 py-2 rounded-lg hover:bg-[#E09000] transition-colors flex-shrink-0"
+            >
+              Tarife ansehen
+            </Link>
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-20 text-gray-500">Laden...</div>

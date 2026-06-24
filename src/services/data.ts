@@ -135,6 +135,42 @@ export interface OfferVariant {
   created_at: string;
 }
 
+export interface OfferDraft {
+  id: string;
+  lead_id: string;
+  created_by: string;
+  status: 'draft' | 'sent' | 'accepted' | 'rejected';
+  subtotal: number;
+  discount_amount: number;
+  discount_percentage: number;
+  discount_code: string | null;
+  discount_note: string | null;
+  vat_rate: number;
+  vat_amount: number;
+  total: number;
+  notes: string | null;
+  offer_number: string | null;
+  sent_at: string | null;
+  accepted_at: string | null;
+  rejected_at: string | null;
+  created_at: string;
+  updated_at: string;
+  line_items?: OfferLineItem[];
+}
+
+export interface OfferLineItem {
+  id: string;
+  offer_draft_id: string;
+  category: 'module' | 'inverter' | 'storage' | 'mounting' | 'electrical' | 'scaffolding' | 'travel' | 'other';
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_price: number;
+  is_optional: boolean;
+  sort_order: number;
+}
+
 export interface Appointment {
   id: string;
   installer_id: string;

@@ -10,6 +10,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminSettings from './pages/AdminSettings';
 
 import LeadDetailsPage from './pages/LeadDetailsPage';
+import OfferBuilderPage from './pages/OfferBuilderPage';
 import ProjectDetailsPage from './pages/ProjectDetailsPage';
 import CompletedOrdersPage from './pages/CompletedOrdersPage';
 import MessagesPage from './pages/MessagesPage';
@@ -79,6 +80,15 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={LEAD_ROLES}>
             <LeadDetailsPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* Offer Builder */}
+      <Route
+        path="/lead/:id/offer"
+        element={
+          <ProtectedRoute allowedRoles={LEAD_ROLES}>
+            <OfferBuilderPage />
           </ProtectedRoute>
         }
       />

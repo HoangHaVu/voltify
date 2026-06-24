@@ -84,10 +84,28 @@ export async function fetchPartners(agencyId: string): Promise<Partner[]> {
   return (data as Partner[]) || [];
 }
 
+export async function countActivePartners(agencyId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('partners')
+    .select('*', { count: 'exact', head: true })
+    .eq('agency_id', agencyId)
+    .eq('is_active', true);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function createPartner(
   agencyId: string,
-  partner: Omit<Partner, 'id' | 'agency_id' | 'access_token' | 'created_at'>
+  partner: Omit<Partner, 'id' | 'agency_id' | 'access_token' | 'created_at'>,
+  options?: { limit?: number }
 ): Promise<Partner> {
+  const limit = options?.limit ?? 5;
+  const activeCount = await countActivePartners(agencyId);
+  if (activeCount >= limit) {
+    const err = new Error('Partner-Limit erreicht. Upgrade auf Pro oder Scale, um weitere Partner anzulegen.');
+    (err as any).code = 'PARTNER_LIMIT_REACHED';
+    throw err;
+  }
   const { data, error } = await supabase
     .from('partners')
     .insert({ ...partner, agency_id: agencyId })

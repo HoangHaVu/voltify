@@ -5,7 +5,7 @@ import {
   Search, Zap, Pencil, X, Filter, Download,
   Plus, TrendingUp, DollarSign, CheckCircle2, Clock,
   Mail, Phone, Tag, Percent, ToggleLeft, ToggleRight, Trash2,
-  AlertTriangle, Loader2, Send, Eye, FileText as FileTextIcon, Receipt,
+  AlertTriangle, Loader2, Send, Eye, FileText as FileTextIcon, Receipt, FilePlus,
   ChevronRight, ChevronDown, MapPin, BatteryCharging, Car, Thermometer, Sun, Users, BarChart3,
   Trophy, FilterX, Calendar, FolderOpen, TrendingDown, Activity, Target, Home,
   Crown, Compass, FileDown,
@@ -33,6 +33,7 @@ import { OfferPreviewCard } from '../components/settings/OfferPreviewCard';
 import { fetchAgencyLeads } from '../services/agency';
 import { resolveAgencyId } from '../services/auth';
 import { AgencyLeadDrawer } from '../components/agency/AgencyLeadDrawer';
+import { getOfferDraftForLead, type OfferDraft } from '../services/offers';
 
 // ─── PDF Helpers ───
 const DEFAULT_COMPANY: CompanySettings = {
@@ -451,6 +452,8 @@ export default function AdminDashboard() {
   const openLeadDetail = (lead: Lead) => setSelectedLead(lead);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [offerDraft, setOfferDraft] = useState<OfferDraft | null>(null);
+  const [loadingOfferDraft, setLoadingOfferDraft] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   // ── Rabatt UI State ──
@@ -532,6 +535,22 @@ export default function AdminDashboard() {
       setAvailableDiscountCodes([]);
     }
   }, [selectedLead?.id, user?.id]);
+
+  // Angebots-Entwurf laden wenn Drawer geöffnet wird
+  useEffect(() => {
+    if (selectedLead) {
+      setLoadingOfferDraft(true);
+      getOfferDraftForLead(selectedLead.id)
+        .then((draft) => setOfferDraft(draft))
+        .catch((e) => {
+          console.error('Fehler beim Laden des Angebots-Entwurfs:', e);
+          setOfferDraft(null);
+        })
+        .finally(() => setLoadingOfferDraft(false));
+    } else {
+      setOfferDraft(null);
+    }
+  }, [selectedLead?.id]);
 
   // ── Settings State ──
   const STORAGE_KEY = 'voltify_settings_v1';
@@ -2163,368 +2182,102 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* Angebots-Management */}
+              {/* Angebot */}
               <div className="bg-[#1A1A1A] rounded-xl border border-white/5 p-4 space-y-4">
-                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Angebots-Management</h3>
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Angebot</h3>
 
-                {/* Status Badge */}
-                {(() => {
-                  const cfg = OFFER_CONFIG[selectedLead.offer_status];
-                  const OfferIcon = cfg.icon;
-                  return (
-                    <div className={`inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full border ${cfg.bg} ${cfg.color} ${cfg.border}`}>
-                      <OfferIcon className="w-3.5 h-3.5" />
-                      {cfg.label}
-                      {selectedLead.offer_sent_at && (
-                        <span className="font-normal opacity-70">· {new Date(selectedLead.offer_sent_at).toLocaleDateString('de-DE')}</span>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* Rabatt-Hinweis im Angebot */}
-                {selectedLead.discount_status !== 'none' && selectedLead.discount_percentage != null && (
-                  <div className="bg-[#252525] rounded-lg p-3 border border-white/5 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-[#F5A623] flex items-center gap-1.5">
-                        <Tag className="w-3.5 h-3.5" />
-                        {selectedLead.discount_status === 'code_applied' && 'Rabatt aktiv'}
-                        {selectedLead.discount_status === 'requested' && 'Rabatt angefragt'}
-                        {selectedLead.discount_status === 'approved' && 'Rabatt genehmigt'}
-                      </span>
-                      <span className="text-xs font-bold text-[#F5A623]">{selectedLead.discount_percentage}%</span>
-                    </div>
-                    {selectedLead.discount_code && (
-                      <p className="text-[10px] text-gray-500">Code: {selectedLead.discount_code}</p>
-                    )}
-                    {selectedLead.final_price != null && selectedLead.investment != null && (
-                      <div className="flex items-center gap-2 pt-1">
-                        <span className="text-xs text-gray-500 line-through">{selectedLead.investment.toLocaleString('de-DE')} €</span>
-                        <span className="text-sm font-bold text-[#F5A623]">{selectedLead.final_price.toLocaleString('de-DE')} €</span>
-                        <span className="text-[10px] text-gray-500">Endpreis</span>
-                      </div>
-                    )}
-                    <p className="text-[10px] text-gray-500 italic">
-                      Wird im PDF automatisch berücksichtigt
-                    </p>
+                {loadingOfferDraft ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="w-6 h-6 text-[#F5A623] animate-spin" />
                   </div>
-                )}
-
-                {/* Aktionen */}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => handleGenerateOfferPdf(selectedLead)}
-                    disabled={isGeneratingPdf}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {isGeneratingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
-                    {isGeneratingPdf ? 'PDF wird erstellt…' : 'Angebot als PDF'}
-                  </button>
-
-                  {selectedLead.offer_status === 'created' && (
-                    <button
-                      onClick={() => handleOfferStatusChange(selectedLead.id, 'sent', { offer_sent_at: new Date().toISOString() })}
-                      className="flex items-center gap-2 bg-[#252525] border border-white/10 hover:bg-[#333] text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-colors"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      Als versendet markieren
-                    </button>
-                  )}
-
-                  {selectedLead.offer_status === 'sent' && (
-                    <>
-                      <button
-                        onClick={() => handleOfferStatusChange(selectedLead.id, 'viewed', { offer_viewed_at: new Date().toISOString() })}
-                        className="flex items-center gap-2 border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-bold text-xs px-4 py-2.5 rounded-lg transition-colors"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        Als angesehen markieren
-                      </button>
-                      <button
-                        onClick={async () => {
-                          await handleOfferStatusChange(selectedLead.id, 'accepted');
-                          if (selectedLead.status !== 'gewonnen') await handleLeadStatusChange(selectedLead.id, 'gewonnen');
-                        }}
-                        className="flex items-center gap-2 border border-green-500/30 bg-green-500/10 hover:bg-green-500/20 text-green-400 font-bold text-xs px-4 py-2.5 rounded-lg transition-colors"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Angenommen
-                      </button>
-                      <button
-                        onClick={() => handleOfferStatusChange(selectedLead.id, 'rejected')}
-                        className="flex items-center gap-2 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-lg transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        Abgelehnt
-                      </button>
-                    </>
-                  )}
-
-                  {selectedLead.offer_status === 'viewed' && (
-                    <>
-                      <button
-                        onClick={async () => {
-                          await handleOfferStatusChange(selectedLead.id, 'accepted');
-                          if (selectedLead.status !== 'gewonnen') await handleLeadStatusChange(selectedLead.id, 'gewonnen');
-                        }}
-                        className="flex items-center gap-2 border border-green-500/30 bg-green-500/10 hover:bg-green-500/20 text-green-400 font-bold text-xs px-4 py-2.5 rounded-lg transition-colors"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Angenommen
-                      </button>
-                      <button
-                        onClick={() => handleOfferStatusChange(selectedLead.id, 'rejected')}
-                        className="flex items-center gap-2 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-lg transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        Abgelehnt
-                      </button>
-                    </>
-                  )}
-
-                  {selectedLead.offer_status === 'rejected' && (
-                    <button
-                      onClick={() => handleOfferStatusChange(selectedLead.id, 'created')}
-                      className="flex items-center gap-2 border border-white/10 bg-[#252525] hover:bg-white/5 text-gray-300 font-bold text-xs px-4 py-2.5 rounded-lg transition-colors"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      Neues Angebot erstellen
-                    </button>
-                  )}
-                </div>
-
-                {/* Zahlungsstatus (nur bei accepted) */}
-                {selectedLead.offer_status === 'accepted' && selectedLead.investment != null && (
-                  <div className="mt-4 pt-4 border-t border-white/5">
-                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                      <Receipt className="w-3.5 h-3.5" />
-                      Zahlungsstatus
-                    </h4>
-                    <div className="space-y-2">
-                      {[
-                        { num: 1 as const, label: 'Anzahlung', pct: 30 },
-                        { num: 2 as const, label: 'Zwischenzahlung', pct: 60 },
-                        { num: 3 as const, label: 'Schlusszahlung', pct: 10 },
-                      ].map((p) => {
-                        const paid = selectedLead[`payment_${p.num}_paid` as const];
-                        const amount = Math.round((selectedLead.investment ?? 0) * (p.pct / 100));
-                        return (
-                          <button
-                            key={p.num}
-                            onClick={() => handlePaymentToggle(selectedLead.id, p.num, paid)}
-                            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${
-                              paid
-                                ? 'border-green-500/30 bg-green-500/10'
-                                : 'border-white/5 bg-[#252525] hover:border-white/10'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                                paid ? 'bg-green-500 text-white' : 'bg-white/10 text-gray-500'
-                              }`}>
-                                {paid ? <CheckCircle2 className="w-3.5 h-3.5" /> : p.num}
-                              </div>
-                              <div className="text-left">
-                                <p className={`text-sm font-medium ${paid ? 'text-green-400' : 'text-gray-300'}`}>{p.label} ({p.pct}%)</p>
-                                <p className="text-xs text-gray-500">{amount.toLocaleString('de-DE')} €</p>
-                              </div>
-                            </div>
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                              paid ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-500'
-                            }`}>
-                              {paid ? 'Bezahlt' : 'Offen'}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Rabatt-Management */}
-              <div className="bg-[#1A1A1A] rounded-xl border border-white/5 p-4 space-y-4">
-                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Rabatt & Preis</h3>
-
-                {/* Aktueller Preis */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">Projektsumme</span>
-                  <span className="text-sm font-bold text-white">
-                    {selectedLead.final_price != null
-                      ? <><span className="text-gray-500 line-through mr-2">{selectedLead.investment?.toLocaleString('de-DE')} €</span>{selectedLead.final_price.toLocaleString('de-DE')} €</>
-                      : <>{selectedLead.investment?.toLocaleString('de-DE')} €</>
-                    }
-                  </span>
-                </div>
-
-                {/* Aktiver Rabatt */}
-                {selectedLead.discount_status !== 'none' && (
-                  <div className={`rounded-lg p-3 border ${
-                    selectedLead.discount_status === 'requested' ? 'bg-amber-500/5 border-amber-500/20' :
-                    selectedLead.discount_status === 'approved' ? 'bg-green-500/5 border-green-500/20' :
-                    'bg-[#F5A623]/5 border-[#F5A623]/20'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Tag className="w-4 h-4 text-[#F5A623]" />
-                        <span className="text-sm text-white">
-                          {selectedLead.discount_code && (
-                            <span className="font-mono text-[#F5A623] mr-1">{selectedLead.discount_code}</span>
-                          )}
-                          {selectedLead.discount_percentage}% Rabatt
-                        </span>
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        selectedLead.discount_status === 'requested' ? 'bg-amber-500/10 text-amber-400' :
-                        selectedLead.discount_status === 'approved' ? 'bg-green-500/10 text-green-400' :
-                        'bg-[#F5A623]/10 text-[#F5A623]'
-                      }`}>
-                        {selectedLead.discount_status === 'code_applied' ? 'Aktiv' :
-                         selectedLead.discount_status === 'requested' ? 'Angefragt' :
-                         selectedLead.discount_status === 'approved' ? 'Genehmigt' :
-                         selectedLead.discount_status}
-                      </span>
-                    </div>
-                    {selectedLead.discount_note && (
-                      <p className="text-xs text-gray-500 mt-1 italic">„{selectedLead.discount_note}"</p>
-                    )}
-                    {/* Rabatt entfernen */}
-                    {selectedLead.discount_status !== 'requested' && (
-                      <button
-                        onClick={() => handleClearDiscount(selectedLead.id)}
-                        className="mt-2 text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        Rabatt entfernen
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Rabatt-Code anwenden */}
-                {selectedLead.discount_status === 'none' && (
-                  <div className="space-y-2">
-                    {isLoadingCodes ? (
-                      <div className="flex items-center gap-2 text-xs text-gray-500 py-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Rabattcodes werden geladen…
-                      </div>
-                    ) : availableDiscountCodes.length > 0 ? (
-                      <div className="space-y-2">
-                        <label className="text-xs text-gray-500">Verfügbare Rabattcodes ({availableDiscountCodes.length})</label>
-                        <div className="relative">
-                          <select
-                            value={discountCodeInput}
-                            onChange={(e) => setDiscountCodeInput(e.target.value)}
-                            className="w-full appearance-none bg-[#252525] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5A623]/50"
-                          >
-                            <option value="">Rabatt-Code wählen…</option>
-                            {availableDiscountCodes.map((code) => {
-                              const hints: string[] = [];
-                              if (code.min_investment != null) hints.push(`ab ${code.min_investment.toLocaleString('de-DE')} €`);
-                              if (code.max_uses != null) hints.push(`noch ${Math.max(0, code.max_uses - code.uses_count)}×`);
-                              if (code.valid_until) hints.push(`bis ${new Date(code.valid_until).toLocaleDateString('de-DE')}`);
-                              const suffix = hints.length ? ` (${hints.join(', ')})` : '';
-                              const lbl = code.label ? ` — ${code.label}` : '';
-                              return (
-                                <option key={code.id} value={code.code}>
-                                  {code.code}{lbl} · {code.percentage}%{suffix}
-                                </option>
-                              );
-                            })}
-                          </select>
-                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                ) : offerDraft ? (
+                  <div className="space-y-4">
+                    {(() => {
+                      const statusConfig: Record<OfferDraft['status'], { label: string; color: string }> = {
+                        draft:    { label: 'Entwurf vorhanden', color: 'bg-gray-500/10 text-gray-400 border-gray-500/20' },
+                        sent:     { label: 'Angebot versendet', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+                        accepted: { label: 'Angebot angenommen', color: 'bg-green-500/10 text-green-400 border-green-500/20' },
+                        rejected: { label: 'Angebot abgelehnt', color: 'bg-red-500/10 text-red-400 border-red-500/20' },
+                      };
+                      const cfg = statusConfig[offerDraft.status];
+                      return (
+                        <div className={`inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full border ${cfg.color}`}>
+                          <FileTextIcon className="w-3.5 h-3.5" />
+                          {cfg.label}
                         </div>
-                        <button
-                          onClick={() => { if (discountCodeInput.trim()) handleApplyDiscount(selectedLead.id, discountCodeInput.trim()); }}
-                          disabled={!discountCodeInput.trim() || detailLoading}
-                          className="w-full bg-[#F5A623] text-[#1A3A5C] font-bold text-xs px-4 py-2 rounded-lg hover:bg-[#E09000] transition-colors disabled:opacity-50"
-                        >
-                          Anwenden
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-xs text-gray-500">
-                          Keine Rabattcodes verfügbar. Gebe einen Code manuell ein oder erstelle Codes in den Einstellungen.
-                        </p>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={discountCodeInput}
-                            onChange={(e) => setDiscountCodeInput(e.target.value)}
-                            placeholder="Rabatt-Code eingeben"
-                            className="flex-1 bg-[#252525] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50"
-                          />
-                          <button
-                            onClick={() => { if (discountCodeInput.trim()) handleApplyDiscount(selectedLead.id, discountCodeInput.trim()); }}
-                            disabled={!discountCodeInput.trim() || detailLoading}
-                            className="bg-[#F5A623] text-[#1A3A5C] font-bold text-xs px-4 py-2 rounded-lg hover:bg-[#E09000] transition-colors disabled:opacity-50"
-                          >
-                            Anwenden
-                          </button>
+                      );
+                    })()}
+
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Gesamtsumme</span>
+                      <span className="text-2xl font-black text-[#F5A623]">{offerDraft.total.toLocaleString('de-DE')} €</span>
+                    </div>
+
+                    <button
+                      onClick={() => navigate(`/lead/${selectedLead.id}/offer`)}
+                      className="w-full flex items-center justify-center gap-2 bg-[#F5A623] hover:bg-[#E09000] text-[#1A3A5C] font-bold text-sm px-5 py-3 rounded-xl transition-colors shadow-sm"
+                    >
+                      <FilePlus className="w-4 h-4" />
+                      {offerDraft.status === 'draft' ? 'Angebot bearbeiten' : 'Angebot ansehen'}
+                    </button>
+
+                    {selectedLead.offer_status === 'accepted' && selectedLead.investment != null && (
+                      <div className="pt-4 border-t border-white/5">
+                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                          <Receipt className="w-3.5 h-3.5" />
+                          Zahlungsstatus
+                        </h4>
+                        <div className="space-y-2">
+                          {[
+                            { num: 1 as const, label: 'Anzahlung', pct: 30 },
+                            { num: 2 as const, label: 'Zwischenzahlung', pct: 60 },
+                            { num: 3 as const, label: 'Schlusszahlung', pct: 10 },
+                          ].map((p) => {
+                            const paid = selectedLead[`payment_${p.num}_paid` as const];
+                            const amount = Math.round((selectedLead.investment ?? 0) * (p.pct / 100));
+                            return (
+                              <button
+                                key={p.num}
+                                onClick={() => handlePaymentToggle(selectedLead.id, p.num, paid)}
+                                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all ${
+                                  paid
+                                    ? 'border-green-500/30 bg-green-500/10'
+                                    : 'border-white/5 bg-[#252525] hover:border-white/10'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                    paid ? 'bg-green-500 text-white' : 'bg-white/10 text-gray-500'
+                                  }`}>
+                                    {paid ? <CheckCircle2 className="w-3.5 h-3.5" /> : p.num}
+                                  </div>
+                                  <div className="text-left">
+                                    <p className={`text-sm font-medium ${paid ? 'text-green-400' : 'text-gray-300'}`}>{p.label} ({p.pct}%)</p>
+                                    <p className="text-xs text-gray-500">{amount.toLocaleString('de-DE')} €</p>
+                                  </div>
+                                </div>
+                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                  paid ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-500'
+                                }`}>
+                                  {paid ? 'Bezahlt' : 'Offen'}
+                                </span>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
-                    <button
-                      onClick={() => setShowDiscountRequest(!showDiscountRequest)}
-                      className="text-xs text-gray-500 hover:text-white transition-colors flex items-center gap-1"
-                    >
-                      <Percent className="w-3 h-3" />
-                      {showDiscountRequest ? 'Abbrechen' : 'Individuellen Rabatt anfragen'}
-                    </button>
                   </div>
-                )}
-
-                {/* Individuellen Rabatt anfragen */}
-                {showDiscountRequest && selectedLead.discount_status === 'none' && (
-                  <div className="space-y-3 bg-[#252525] rounded-lg p-3 border border-white/5">
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Rabatt-Satz: {requestPercentage}%</label>
-                      <input
-                        type="range"
-                        min="1"
-                        max="30"
-                        value={requestPercentage}
-                        onChange={(e) => setRequestPercentage(Number(e.target.value))}
-                        className="w-full accent-[#F5A623]"
-                      />
-                      <div className="flex justify-between text-[10px] text-gray-600">
-                        <span>1%</span>
-                        <span>15%</span>
-                        <span>30%</span>
-                      </div>
-                    </div>
-                    <textarea
-                      value={requestNote}
-                      onChange={(e) => setRequestNote(e.target.value)}
-                      placeholder="Begründung für Rabatt..."
-                      rows={2}
-                      className="w-full bg-[#0F0F0F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50 resize-none"
-                    />
+                ) : (
+                  <div className="text-center py-4">
+                    <FileTextIcon className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-400 text-sm mb-4">Noch kein Angebot erstellt</p>
                     <button
-                      onClick={() => { handleRequestDiscount(selectedLead.id, requestPercentage, requestNote); setShowDiscountRequest(false); setRequestNote(''); }}
-                      disabled={detailLoading}
-                      className="w-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold text-xs px-4 py-2 rounded-lg hover:bg-amber-500/20 transition-colors"
+                      onClick={() => navigate(`/lead/${selectedLead.id}/offer`)}
+                      className="w-full flex items-center justify-center gap-2 bg-[#F5A623] hover:bg-[#E09000] text-[#1A3A5C] font-bold text-sm px-5 py-3 rounded-xl transition-colors shadow-sm"
                     >
-                      Rabatt-Anfrage senden
-                    </button>
-                  </div>
-                )}
-
-                {/* Neues Angebot nötig Warnung */}
-                {selectedLead.discount_status !== 'none' && selectedLead.offer_status !== 'created' && (
-                  <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
-                    <p className="text-xs text-red-400 mb-2">
-                      <AlertTriangle className="w-3 h-3 inline mr-1" />
-                      Rabatt geändert — altes Angebot ist ungültig
-                    </p>
-                    <button
-                      onClick={() => handleResetOffer(selectedLead.id)}
-                      className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-lg transition-colors border border-red-500/20"
-                    >
-                      <FileTextIcon className="w-3.5 h-3.5" />
-                      Neues Angebot generieren
+                      <FilePlus className="w-4 h-4" />
+                      Angebot konfigurieren
                     </button>
                   </div>
                 )}

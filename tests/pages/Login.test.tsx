@@ -93,14 +93,16 @@ describe('Login', () => {
   it('hat Schnell-Login Buttons für Test-Accounts', () => {
     render(<Login />);
 
-    expect(screen.getByText('Installateur')).toBeInTheDocument();
-    expect(screen.getByText('Inhaber')).toBeInTheDocument();
+    // Eindeutig über die E-Mail-Adresse identifizieren (Label-Text kommt mehrfach vor)
+    expect(screen.getByText('installateur@test.de')).toBeInTheDocument();
+    expect(screen.getByText('inhaber@test.de')).toBeInTheDocument();
   });
 
   it('füllt Test-Account-Daten beim Klick auf Schnell-Login', () => {
     render(<Login />);
 
-    fireEvent.click(screen.getByText('Installateur'));
+    // Klick auf den Button der die Installateur-E-Mail-Adresse zeigt
+    fireEvent.click(screen.getByText('installateur@test.de').closest('button')!);
 
     const emailInput = screen.getByPlaceholderText('info@voltify.com') as HTMLInputElement;
     expect(emailInput.value).toBe('installateur@test.de');

@@ -1,27 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { PDFDownloadLink, pdf } from '@react-pdf/renderer';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 import {
   ArrowLeft, Sun, Mail, Phone, MapPin, Zap, Euro, Calendar,
   Flame, Snowflake, ChevronDown, Clock, CreditCard, Home,
   Compass, BatteryCharging, Car, Thermometer, TrendingUp,
   Video, BarChart2, FileText, Send, CheckCircle, Eye, XCircle,
   Tag, Percent, Loader2, ArrowRight, AlertCircle, Receipt,
-  Download, Check, AlertTriangle,
+  Download, Check, AlertTriangle, FilePlus,
 } from 'lucide-react';
 import { AdminSidebar } from '../components/layout/AdminSidebar';
 import SolarPlanningSection from '../components/solar-planner/SolarPlanningSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useInstallerLead } from '../hooks/useInstallerLead';
-import { useDiscountCodes } from '../hooks/useDiscountCodes';
-import { supabase } from '../lib/supabase';
-import { updateLeadFields } from '../services/data';
 import { getScoreResult, computeLeadScoreDetailed } from '../utils/leadScore';
 import { calculateROI, generateStorageVariants } from '../lib/calculations';
-import OfferPdfDocument, { type CompanySettings } from '../components/pdf/OfferPdfDocument';
 import InvoicePdfDocument from '../components/pdf/InvoicePdfDocument';
 import CalculationPdfDocument from '../components/pdf/CalculationPdfDocument';
+import type { CompanySettings } from '../components/pdf/OfferPdfDocument';
 import ActivityLog from '../components/lead/ActivityLog';
+import { getOfferDraftForLead, type OfferDraft } from '../services/offers';
 import type { Lead, Project } from '../services/data';
 
 const TIER_ICON = { heiss: Flame, warm: Zap, kalt: Snowflake };
@@ -140,253 +138,137 @@ function generateOfferNumber(lead: Lead): string {
   return `${prefix}-${date}-${leadId}`;
 }
 
-// ─── Angebots-Management Sub-Component ───
-function AngebotsManagementSection({
+// ─── Angebots-CTA Sub-Component ───────────────────────────────────────
+function OfferActionSection({
   lead,
-  changeOfferStatus,
-  changeStatus,
-  setSendEmail,
-  setShowSendModal,
-  formatDate,
-  planningPng,
+  draft,
+  loadingDraft,
+  onStatusChange,
 }: {
   lead: Lead;
-  changeOfferStatus: (status: Lead['offer_status'], extra?: { offer_sent_at?: string; offer_viewed_at?: string }) => Promise<void>;
-  changeStatus: (status: Lead['status']) => Promise<void>;
-  setSendEmail: (email: string) => void;
-  setShowSendModal: (show: boolean) => void;
-  formatDate: (iso: string) => string;
-  planningPng?: string;
+  draft: OfferDraft | null;
+  loadingDraft: boolean;
+  onStatusChange: (status: Lead['offer_status']) => Promise<void>;
 }) {
-  const cfg = OFFER_CONFIG[lead.offer_status];
-  const OfferIcon = cfg.icon;
+  const navigate = useNavigate();
   const company = loadCompanySettings();
-  const offerNumber = generateOfferNumber(lead);
-  const signaturePng = lead.offer_signatures?.[0]?.signature_png;
-  const [showVariants, setShowVariants] = useState(lead.offer_variants && lead.offer_variants.length > 0);
-  const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
-  const [localVariants, setLocalVariants] = useState(lead.offer_variants || []);
+
+  const statusLabel: Record<OfferDraft['status'], string> = {
+    draft: 'Entwurf vorhanden',
+    sent: 'Angebot versendet',
+    accepted: 'Angebot angenommen',
+    rejected: 'Angebot abgelehnt',
+  };
+
+  const statusColor: Record<OfferDraft['status'], string> = {
+    draft: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+    sent: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    accepted: 'bg-green-500/10 text-green-400 border-green-500/20',
+    rejected: 'bg-red-500/10 text-red-400 border-red-500/20',
+  };
 
   return (
     <section className="bg-[#1A1A1A] rounded-xl border border-white/5 p-6">
-      <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Angebots-Management</h2>
-      <div className={`inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full border mb-5 ${cfg.bg} ${cfg.color} ${cfg.border}`}>
-        <OfferIcon className="w-3.5 h-3.5" />
-        {cfg.label}
-        {lead.offer_sent_at && (
-          <span className="font-normal opacity-70">· {formatDate(lead.offer_sent_at)}</span>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <PDFDownloadLink
-          document={<OfferPdfDocument lead={lead} company={company} offerNumber={offerNumber} signaturePng={signaturePng} planningPng={planningPng} />}
-          fileName={`Angebot-${offerNumber}.pdf`}
-          className="flex items-center gap-2 bg-[#252525] border border-white/10 text-white font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-[#333] transition-colors cursor-pointer"
-        >
-          {({ loading }) => (
-            <>
-              <FileText className="w-4 h-4" />
-              {loading ? 'PDF wird erstellt…' : 'Angebot als PDF'}
-            </>
-          )}
-        </PDFDownloadLink>
-        <PDFDownloadLink
-          document={<CalculationPdfDocument lead={lead} company={company} />}
-          fileName={`Berechnungsnachweis-${lead.first_name}-${lead.last_name}.pdf`}
-          className="flex items-center gap-2 bg-[#252525] border border-white/10 text-white font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-[#333] transition-colors cursor-pointer"
-        >
-          {({ loading }) => (
-            <>
-              <BarChart2 className="w-4 h-4" />
-              {loading ? 'PDF wird erstellt…' : 'Berechnungsnachweis'}
-            </>
-          )}
-        </PDFDownloadLink>
-        {lead.offer_status === 'created' && (
-          <button
-            onClick={() => { setSendEmail(lead.email); setShowSendModal(true); }}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-4 py-2.5 rounded-xl transition-colors shadow-sm"
-          >
-            <Send className="w-4 h-4" />
-            Angebot senden
-          </button>
-        )}
-        {lead.offer_status === 'sent' && (
-          <button
-            onClick={() => changeOfferStatus('viewed', { offer_viewed_at: new Date().toISOString() })}
-            className="flex items-center gap-2 border border-purple-500/20 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-bold text-sm px-4 py-2.5 rounded-xl transition-colors"
-          >
-            <Eye className="w-4 h-4" />
-            Als angesehen markieren
-          </button>
-        )}
-        {(lead.offer_status === 'sent' || lead.offer_status === 'viewed') && (
-          <button
-            onClick={async () => {
-              await changeOfferStatus('accepted');
-              if (lead.status !== 'gewonnen') await changeStatus('gewonnen');
-            }}
-            className="flex items-center gap-2 border border-green-500/20 bg-green-500/10 hover:bg-green-500/20 text-green-400 font-bold text-sm px-4 py-2.5 rounded-xl transition-colors"
-          >
-            <CheckCircle className="w-4 h-4" />
-            Angenommen
-          </button>
-        )}
-        {lead.offer_status === 'rejected' && (
-          <button
-            onClick={() => changeOfferStatus('created')}
-            className="flex items-center gap-2 border border-white/10 bg-[#252525] hover:bg-[#333] text-gray-400 font-bold text-sm px-4 py-2.5 rounded-xl transition-colors"
-          >
-            <Send className="w-4 h-4" />
-            Neues Angebot erstellen
-          </button>
-        )}
-      </div>
+      <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Angebot</h2>
 
-      {/* Varianten-Toggle */}
-      <div className="mt-4 flex items-center gap-3">
-        <button
-          onClick={async () => {
-            if (!showVariants) {
-              // Varianten generieren & speichern
-              setIsGeneratingVariants(true);
-              const variants = generateStorageVariants(lead);
-              // Alte Varianten löschen, neue einfügen
-              await supabase.from('offer_variants').delete().eq('lead_id', lead.id);
-              await supabase.from('offer_variants').insert(variants.map(v => ({ ...v, lead_id: lead.id })));
-              setIsGeneratingVariants(false);
-            } else {
-              // Varianten löschen
-              await supabase.from('offer_variants').delete().eq('lead_id', lead.id);
-            }
-            setShowVariants(!showVariants);
-            // Seite neu laden um Varianten anzuzeigen
-            window.location.reload();
-          }}
-          disabled={isGeneratingVariants}
-          className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${
-            showVariants
-              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-              : 'bg-[#252525] border-white/10 text-gray-400 hover:text-white'
-          }`}
-        >
-          {isGeneratingVariants ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-          {showVariants ? 'Varianten aktiv' : 'Varianten anbieten'}
-        </button>
-        {showVariants && (
-          <span className="text-[10px] text-gray-500">3 Speicher-Optionen werden angezeigt</span>
-        )}
-      </div>
-
-      {/* Varianten-Karten */}
-      {showVariants && lead.offer_variants && lead.offer_variants.length > 0 && (
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {lead.offer_variants.map((variant) => (
-            <div
-              key={variant.variant_key}
-              className={`relative rounded-xl border p-4 ${
-                variant.is_recommended
-                  ? 'bg-amber-500/5 border-amber-500/30'
-                  : 'bg-[#1A1A1A] border-white/5'
-              }`}
-            >
-              {variant.is_recommended && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-amber-500 text-[#1A1A1A] px-2 py-0.5 rounded-full">
-                  Empfohlen
-                </span>
-              )}
-              <h4 className={`text-sm font-bold ${variant.is_recommended ? 'text-amber-400' : 'text-white'}`}>
-                {variant.label}
-              </h4>
-              <p className="text-[10px] text-gray-500 mt-0.5 mb-2">{variant.description}</p>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Speicher</span>
-                  <span className="text-white">{variant.storage_kwh > 0 ? `${variant.storage_kwh} kWh` : 'Keiner'}</span>
-                </div>
-                {variant.has_wallbox && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Wallbox</span>
-                    <span className="text-white">✓</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Preis</span>
-                  <span className="text-white font-bold">{variant.price_eur?.toLocaleString('de-DE')} €</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Amortisation</span>
-                  <span className="text-white">{variant.amortization} J.</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Autarkie</span>
-                  <span className="text-white">{variant.autarky} %</span>
-                </div>
-              </div>
-            </div>
-          ))}
+      {loadingDraft ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 text-[#F5A623] animate-spin" />
         </div>
-      )}
+      ) : draft ? (
+        <div className="space-y-4">
+          <div className={`inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full border ${statusColor[draft.status]}`}>
+            <FileText className="w-3.5 h-3.5" />
+            {statusLabel[draft.status]}
+          </div>
 
-      {lead.offer_status === 'accepted' && (
-        <div className="mt-5 pt-5 border-t border-white/5">
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-            <Receipt className="w-3.5 h-3.5" />
-            Abschlagsrechnungen
-          </p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Gesamtsumme</span>
+            <span className="text-2xl font-black text-[#F5A623]">{draft.total.toLocaleString('de-DE')} €</span>
+          </div>
+
           <div className="flex flex-wrap gap-2">
-            {([1, 2, 3] as const).map((type) => {
-              const isPaid = type === 1 ? lead.payment_1_paid : type === 2 ? lead.payment_2_paid : lead.payment_3_paid;
-              const invNum = `${generateOfferNumber(lead)}-${String(type).padStart(2, '0')}`;
-              return (
-                <PDFDownloadLink
-                  key={type}
-                  document={<InvoicePdfDocument lead={lead} company={company} invoiceNumber={invNum} type={type} />}
-                  fileName={`Rechnung-${invNum}.pdf`}
-                  className="flex items-center gap-1.5 bg-[#252525] border border-white/10 text-white font-bold text-xs px-3 py-2 rounded-lg hover:bg-[#333] transition-colors cursor-pointer"
+            <button
+              onClick={() => navigate(`/lead/${lead.id}/offer`)}
+              className="flex items-center gap-2 bg-[#F5A623] hover:bg-[#E09000] text-[#1A3A5C] font-bold text-sm px-5 py-2.5 rounded-xl transition-colors shadow-sm"
+            >
+              <FilePlus className="w-4 h-4" />
+              {draft.status === 'draft' ? 'Angebot bearbeiten' : 'Angebot ansehen'}
+            </button>
+
+            {draft.status === 'sent' && (
+              <>
+                <button
+                  onClick={() => onStatusChange('viewed')}
+                  className="flex items-center gap-2 border border-purple-500/20 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-bold text-sm px-4 py-2.5 rounded-xl transition-colors"
                 >
-                  {({ loading }) => (
-                    <>
-                      <Receipt className="w-3.5 h-3.5" />
-                      {loading ? 'PDF…' : (
+                  <Eye className="w-4 h-4" />
+                  Als angesehen
+                </button>
+                <button
+                  onClick={() => onStatusChange('accepted')}
+                  className="flex items-center gap-2 border border-green-500/20 bg-green-500/10 hover:bg-green-500/20 text-green-400 font-bold text-sm px-4 py-2.5 rounded-xl transition-colors"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Angenommen
+                </button>
+                <button
+                  onClick={() => onStatusChange('rejected')}
+                  className="flex items-center gap-2 border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-sm px-4 py-2.5 rounded-xl transition-colors"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Abgelehnt
+                </button>
+              </>
+            )}
+          </div>
+
+          {draft.status === 'accepted' && (
+            <div className="pt-4 border-t border-white/5 space-y-3">
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
+                <Receipt className="w-3.5 h-3.5" />
+                Abschlagsrechnungen
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {([1, 2, 3] as const).map((type) => {
+                  const isPaid = type === 1 ? lead.payment_1_paid : type === 2 ? lead.payment_2_paid : lead.payment_3_paid;
+                  const invNum = `${draft.offer_number || lead.id.slice(0, 8).toUpperCase()}-${String(type).padStart(2, '0')}`;
+                  return (
+                    <PDFDownloadLink
+                      key={type}
+                      document={<InvoicePdfDocument lead={lead} company={company} invoiceNumber={invNum} type={type} />}
+                      fileName={`Rechnung-${invNum}.pdf`}
+                      className="flex items-center gap-1.5 bg-[#252525] border border-white/10 text-white font-bold text-xs px-3 py-2 rounded-lg hover:bg-[#333] transition-colors cursor-pointer"
+                    >
+                      {({ loading }) => (
                         <>
-                          {type === 3 ? 'Schlussrechnung (10%)' : `Rechnung ${type}/${type === 1 ? '30' : '60'}%`}
-                          {isPaid && <span className="ml-1 text-[9px] text-green-400">✓</span>}
+                          <Receipt className="w-3.5 h-3.5" />
+                          {loading ? 'PDF…' : (
+                            <>
+                              {type === 3 ? 'Schlussrechnung (10%)' : `Rechnung ${type}/${type === 1 ? '30' : '60'}%`}
+                              {isPaid && <span className="ml-1 text-[9px] text-green-400">✓</span>}
+                            </>
+                          )}
                         </>
                       )}
-                    </>
-                  )}
-                </PDFDownloadLink>
-              );
-            })}
-          </div>
-          {/* Payment status toggles */}
-          <div className="flex flex-wrap gap-2 mt-2">
-            {([1, 2, 3] as const).map((type) => {
-              const isPaid = type === 1 ? lead.payment_1_paid : type === 2 ? lead.payment_2_paid : lead.payment_3_paid;
-              const label = type === 1 ? 'Anzahlung' : type === 2 ? 'Zwischenzahlung' : 'Schlussrechnung';
-              return (
-                <button
-                  key={`pay-${type}`}
-                  onClick={async () => {
-                    const field = type === 1 ? 'payment_1_paid' : type === 2 ? 'payment_2_paid' : 'payment_3_paid';
-                    const { error } = await supabase.from('leads').update({ [field]: !isPaid }).eq('id', lead.id);
-                    if (!error) {
-                      // Force reload via parent
-                      window.location.reload();
-                    }
-                  }}
-                  className={`text-[10px] font-bold px-2 py-1 rounded border transition-colors ${
-                    isPaid
-                      ? 'bg-green-500/10 border-green-500/20 text-green-400'
-                      : 'bg-[#252525] border-white/5 text-gray-500 hover:text-white'
-                  }`}
-                >
-                  {isPaid ? `✓ ${label} bezahlt` : `${label} als bezahlt markieren`}
-                </button>
-              );
-            })}
-          </div>
+                    </PDFDownloadLink>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="text-center py-6">
+          <FileText className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-400 text-sm mb-4">Noch kein Angebot erstellt</p>
+          <button
+            onClick={() => navigate(`/lead/${lead.id}/offer`)}
+            className="flex items-center justify-center gap-2 w-full bg-[#F5A623] hover:bg-[#E09000] text-[#1A3A5C] font-bold text-sm px-5 py-3 rounded-xl transition-colors shadow-sm"
+          >
+            <FilePlus className="w-4 h-4" />
+            Angebot erstellen
+          </button>
         </div>
       )}
     </section>
@@ -397,28 +279,22 @@ export default function LeadDetailsPage() {
   const { id = '' } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { lead, isLoading, changeStatus, changeOfferStatus, applyCode, requestCustomDiscount, clearLeadDiscount } = useInstallerLead(id);
-  const { codes: discountCodes } = useDiscountCodes(undefined);
+  const { lead, isLoading, changeStatus, changeOfferStatus } = useInstallerLead(id);
 
-  const [showSendModal, setShowSendModal] = useState(false);
-  const [sendEmail, setSendEmail] = useState('');
-  const [sendSubject, setSendSubject] = useState('');
-  const [sendMessage, setSendMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
-  const [sendSuccess, setSendSuccess] = useState(false);
-
-  // Rabatt-State
-  const [selectedCode, setSelectedCode] = useState('');
-  const [showRequestForm, setShowRequestForm] = useState(false);
-  const [requestPercentage, setRequestPercentage] = useState('');
-  const [requestNote, setRequestNote] = useState('');
-  const [isApplyingCode, setIsApplyingCode] = useState(false);
-  const [isRequesting, setIsRequesting] = useState(false);
-  const [codeError, setCodeError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<OfferDraft | null>(null);
+  const [loadingDraft, setLoadingDraft] = useState(true);
   const [planningPng, setPlanningPng] = useState<string | undefined>(
     lead?.module_layout?.previewPng ?? undefined
   );
+
+  useEffect(() => {
+    if (!id) return;
+    setLoadingDraft(true);
+    getOfferDraftForLead(id)
+      .then(setDraft)
+      .catch((e) => console.error('Fehler beim Laden des Angebots-Entwurfs:', e))
+      .finally(() => setLoadingDraft(false));
+  }, [id]);
 
   const scoreResult = lead?.score != null ? getScoreResult(lead.score) : null;
   const detailedScore = lead ? computeLeadScoreDetailed({
@@ -463,32 +339,6 @@ export default function LeadDetailsPage() {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  async function handleApplyCode() {
-    const found = discountCodes.find((c) => c.id === selectedCode);
-    if (!found || !lead) return;
-    setIsApplyingCode(true);
-    setCodeError(null);
-    try {
-      await applyCode(found.code, found.percentage, found.created_by);
-      setSelectedCode('');
-    } catch (err) {
-      setCodeError(err instanceof Error ? err.message : 'Code konnte nicht angewendet werden');
-    } finally {
-      setIsApplyingCode(false);
-    }
-  }
-
-  async function handleRequestDiscount() {
-    const pct = parseFloat(requestPercentage);
-    if (!pct || pct <= 0) return;
-    setIsRequesting(true);
-    await requestCustomDiscount(pct, requestNote);
-    setIsRequesting(false);
-    setShowRequestForm(false);
-    setRequestPercentage('');
-    setRequestNote('');
-  }
-
   const leadAsProject = lead ? ({
     id: lead.id,
     status: 'angebot' as const,
@@ -508,79 +358,6 @@ export default function LeadDetailsPage() {
     lead: null,
   } as unknown as Project) : null;
 
-  async function handleSendOffer() {
-    if (!lead || !sendEmail.trim()) return;
-    setIsSending(true);
-    setSendError(null);
-    setSendSuccess(false);
-
-    try {
-      // 1. PDF generieren
-      const company = loadCompanySettings();
-      const offerNumber = generateOfferNumber(lead);
-      const signaturePng = lead.offer_signatures?.[0]?.signature_png;
-      const blob = await pdf(<OfferPdfDocument lead={lead} company={company} offerNumber={offerNumber} signaturePng={signaturePng} planningPng={planningPng} />).toBlob();
-
-      // 2. Blob zu Base64
-      const arrayBuffer = await blob.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-
-      // 3. E-Mail via Edge Function senden
-      const subject = sendSubject.trim() || `Ihr persönliches Solar-Angebot — ${company.firmenname}`;
-      const signatureLink = lead.signing_token ? `${window.location.origin}/sign/${lead.signing_token}` : null;
-      const html = sendMessage.trim().replace(/\n/g, '<br>') || `
-        <p>Guten Tag ${lead.first_name} ${lead.last_name},</p>
-        <p>vielen Dank für Ihr Interesse an einer Photovoltaikanlage. Anbei finden Sie Ihr persönliches Angebot.</p>
-        ${signatureLink ? `
-          <p>
-            <a href="${signatureLink}" style="display: inline-block; padding: 12px 24px; background-color: #F5A623; color: #1A3A5C; text-decoration: none; font-weight: bold; border-radius: 6px;">
-              Angebot digital unterschreiben
-            </a>
-          </p>
-          <p style="font-size: 12px; color: #666; margin-top: 8px;">
-            Sie können das Angebot auch bequem digital unterzeichnen. Der obige Link bleibt 30 Tage gültig.
-          </p>
-        ` : ''}
-        <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
-        <p>Mit freundlichen Grüßen<br>${company.firmenname}</p>
-      `;
-
-      const { data: fnData, error: fnError } = await supabase.functions.invoke('send-offer', {
-        body: {
-          to: sendEmail.trim(),
-          subject,
-          html,
-          pdfBase64: base64,
-          filename: `Angebot-${offerNumber}.pdf`,
-          from_name: company.firmenname,
-        },
-      });
-
-      if (fnError || !fnData?.success) {
-        throw new Error(fnError?.message || fnData?.error || 'E-Mail-Versand fehlgeschlagen');
-      }
-
-      // 4. Status aktualisieren
-      await changeOfferStatus('sent', { offer_sent_at: new Date().toISOString() });
-      if (lead.status === 'kontaktiert' || lead.status === 'neu') {
-        await changeStatus('angebot');
-      }
-
-      setSendSuccess(true);
-      setTimeout(() => {
-        setShowSendModal(false);
-        setSendEmail('');
-        setSendSubject('');
-        setSendMessage('');
-        setSendSuccess(false);
-      }, 2000);
-    } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Fehler beim Versand');
-    } finally {
-      setIsSending(false);
-    }
-  }
-
   return (
     <div className="min-h-screen flex bg-[#0F0F0F] text-white">
       <AdminSidebar />
@@ -596,96 +373,6 @@ export default function LeadDetailsPage() {
           {!isLoading && !lead && (
             <div className="bg-[#1A1A1A] rounded-xl border border-white/5 p-12 text-center text-gray-500">
               <p className="font-semibold">Lead nicht gefunden.</p>
-            </div>
-          )}
-
-          {/* Angebot-Senden-Modal */}
-          {showSendModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="bg-[#1A1A1A] rounded-2xl shadow-2xl w-full max-w-lg p-6 border border-white/10 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                    <Send className="w-4 h-4 text-blue-400" />
-                  </div>
-                  <h2 className="text-base font-bold text-white">Angebot versenden</h2>
-                </div>
-                <p className="text-sm text-gray-400 mb-4">
-                  Das Angebot wird als PDF generiert und per E-Mail an den Kunden gesendet.
-                </p>
-
-                {sendSuccess ? (
-                  <div className="flex items-center gap-3 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 mb-4">
-                    <Check className="w-5 h-5 shrink-0" />
-                    <div>
-                      <p className="font-bold text-sm">Angebot erfolgreich versendet!</p>
-                      <p className="text-xs text-emerald-300/70">E-Mail wurde an {sendEmail} gesendet.</p>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">
-                      E-Mail-Adresse
-                    </label>
-                    <input
-                      type="email"
-                      value={sendEmail}
-                      onChange={(e) => setSendEmail(e.target.value)}
-                      className="w-full bg-[#0F0F0F] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 mb-3 placeholder:text-gray-600"
-                      placeholder="kunde@beispiel.de"
-                    />
-
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">
-                      Betreff
-                    </label>
-                    <input
-                      type="text"
-                      value={sendSubject}
-                      onChange={(e) => setSendSubject(e.target.value)}
-                      className="w-full bg-[#0F0F0F] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 mb-3 placeholder:text-gray-600"
-                      placeholder="Ihr persönliches Solar-Angebot"
-                    />
-
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">
-                      Nachricht
-                    </label>
-                    <textarea
-                      value={sendMessage}
-                      onChange={(e) => setSendMessage(e.target.value)}
-                      rows={4}
-                      className="w-full bg-[#0F0F0F] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 mb-3 placeholder:text-gray-600 resize-none"
-                      placeholder={`Guten Tag,\n\nvielen Dank für Ihr Interesse. Anbei finden Sie Ihr persönliches Angebot.\n\nMit freundlichen Grüßen`}
-                    />
-
-                    {sendError && (
-                      <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-3">
-                        <AlertTriangle className="w-4 h-4 shrink-0" />
-                        {sendError}
-                      </div>
-                    )}
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => { setShowSendModal(false); setSendEmail(''); setSendSubject(''); setSendMessage(''); setSendError(null); }}
-                        className="flex-1 border border-white/10 text-gray-400 font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-white/5 transition-colors"
-                      >
-                        Abbrechen
-                      </button>
-                      <button
-                        onClick={handleSendOffer}
-                        disabled={!sendEmail.trim() || isSending}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm px-4 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
-                      >
-                        {isSending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Send className="w-4 h-4" />
-                        )}
-                        {isSending ? 'Wird gesendet…' : 'Jetzt senden'}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
             </div>
           )}
 
@@ -1014,205 +701,25 @@ export default function LeadDetailsPage() {
                     </section>
                   )}
 
-                  {/* Preis & Rabatt */}
-                  {lead.investment != null && (
-                    <section className="bg-[#1A1A1A] rounded-xl border border-white/5 p-6">
-                      <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-5">Preis & Rabatt</h2>
-                      <div className="flex items-center gap-4 mb-5">
-                        {lead.discount_status !== 'none' && lead.final_price != null && lead.discount_percentage != null ? (
-                          <>
-                            <div>
-                              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Originalpreis</p>
-                              <p className="text-lg font-black text-gray-500 line-through">{lead.investment.toLocaleString('de-DE')} €</p>
-                            </div>
-                            <ArrowRight className="w-4 h-4 text-gray-600 shrink-0" />
-                            <div>
-                              <p className="text-[10px] font-bold text-green-400 uppercase tracking-widest">Endpreis (−{lead.discount_percentage}%)</p>
-                              <p className="text-2xl font-black text-green-400">{lead.final_price.toLocaleString('de-DE')} €</p>
-                            </div>
-                          </>
-                        ) : (
-                          <div>
-                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Standardpreis</p>
-                            <p className="text-2xl font-black text-white">{lead.investment.toLocaleString('de-DE')} €</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Status-Badges */}
-                      {lead.discount_status === 'code_applied' && (
-                        <div className="flex items-center gap-2 mb-4 bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-2.5">
-                          <Tag className="w-4 h-4 text-green-400 shrink-0" />
-                          <span className="text-sm font-bold text-green-400 flex-1">Code „{lead.discount_code}" angewendet</span>
-                          <button onClick={clearLeadDiscount} className="text-xs text-gray-500 hover:text-red-400 transition-colors font-medium">Entfernen</button>
-                        </div>
-                      )}
-                      {lead.discount_status === 'requested' && (
-                        <div className="flex items-center gap-2 mb-4 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2.5">
-                          <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                          <span className="text-sm font-bold text-amber-400 flex-1">Anfrage läuft — wartet auf Inhaber-Freigabe</span>
-                          <button onClick={clearLeadDiscount} className="text-xs text-gray-500 hover:text-red-400 transition-colors font-medium">Zurückziehen</button>
-                        </div>
-                      )}
-                      {lead.discount_status === 'approved' && (
-                        <div className="flex items-center gap-2 mb-4 bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-2.5">
-                          <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                          <span className="text-sm font-bold text-green-400">Rabatt genehmigt ✓</span>
-                        </div>
-                      )}
-                      {lead.discount_status === 'rejected' && (
-                        <div className="flex items-center gap-2 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5">
-                          <XCircle className="w-4 h-4 text-red-400 shrink-0" />
-                          <span className="text-sm font-bold text-red-400 flex-1">Anfrage abgelehnt</span>
-                          <button onClick={clearLeadDiscount} className="text-xs text-gray-500 hover:text-white transition-colors font-medium">Neu anfragen</button>
-                        </div>
-                      )}
-
-                      {/* Neues Angebot nötig nach Rabattänderung */}
-                      {lead.discount_status !== 'none' && lead.offer_status !== 'created' && (
-                        <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3 mb-4">
-                          <p className="text-xs text-red-400 mb-2">
-                            <AlertTriangle className="w-3 h-3 inline mr-1" />
-                            Rabatt geändert — altes Angebot ist ungültig
-                          </p>
-                          <button
-                            onClick={async () => {
-                              await changeOfferStatus('created');
-                            }}
-                            className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-lg transition-colors border border-red-500/20"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                            Neues Angebot generieren
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Aktionen */}
-                      {(lead.discount_status === 'none' || lead.discount_status === 'rejected') && (
-                        <div className="space-y-3">
-                          {discountCodes.length > 0 && (() => {
-                            const previewCode = discountCodes.find(c => c.id === selectedCode) ?? null;
-                            const previewFinal = previewCode && lead.investment != null
-                              ? Math.round(lead.investment * (1 - previewCode.percentage / 100))
-                              : null;
-                            const previewSaving = previewFinal != null && lead.investment != null
-                              ? lead.investment - previewFinal
-                              : null;
-                            return (
-                              <div className="space-y-2">
-                                <div className="flex gap-2">
-                                  <div className="relative flex-1">
-                                    <select
-                                      value={selectedCode}
-                                      onChange={(e) => { setSelectedCode(e.target.value); setCodeError(null); }}
-                                      className="w-full appearance-none bg-[#0F0F0F] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#F5A623]/30"
-                                    >
-                                      <option value="">Rabatt-Code wählen…</option>
-                                      {discountCodes.map((c) => {
-                                        const hints: string[] = [];
-                                        if (c.min_investment != null) hints.push(`ab ${c.min_investment.toLocaleString('de-DE')} €`);
-                                        if (c.max_uses != null) hints.push(`noch ${Math.max(0, c.max_uses - c.uses_count)}×`);
-                                        if (c.valid_until) hints.push(`bis ${new Date(c.valid_until).toLocaleDateString('de-DE')}`);
-                                        const suffix = hints.length ? ` (${hints.join(', ')})` : '';
-                                        const lbl = c.label ? ` — ${c.label}` : '';
-                                        return <option key={c.id} value={c.id}>{c.code}{lbl} · {c.percentage}%{suffix}</option>;
-                                      })}
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                                  </div>
-                                  <button
-                                    onClick={handleApplyCode}
-                                    disabled={!selectedCode || isApplyingCode}
-                                    className="flex items-center gap-2 bg-[#F5A623] hover:bg-[#E09000] text-[#1A3A5C] font-bold text-sm px-4 py-2.5 rounded-xl disabled:opacity-50 transition-colors shadow-sm whitespace-nowrap"
-                                  >
-                                    {isApplyingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : <Tag className="w-4 h-4" />}
-                                    Anwenden
-                                  </button>
-                                </div>
-                                {previewFinal != null && previewSaving != null && lead.investment != null && (
-                                  <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3">
-                                    <div>
-                                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ohne Rabatt</p>
-                                      <p className="text-base font-bold text-gray-500 line-through">{lead.investment.toLocaleString('de-DE')} €</p>
-                                    </div>
-                                    <ArrowRight className="w-4 h-4 text-gray-600 shrink-0" />
-                                    <div>
-                                      <p className="text-[10px] font-bold text-green-400 uppercase tracking-widest">Mit Code (−{previewCode!.percentage}%)</p>
-                                      <p className="text-xl font-black text-green-400">{previewFinal.toLocaleString('de-DE')} €</p>
-                                    </div>
-                                    <div className="ml-auto text-right shrink-0">
-                                      <p className="text-[10px] font-bold text-green-400 uppercase tracking-widest">Ersparnis</p>
-                                      <p className="text-sm font-bold text-green-400">−{previewSaving.toLocaleString('de-DE')} €</p>
-                                    </div>
-                                  </div>
-                                )}
-                                {codeError && (
-                                  <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">
-                                    <AlertCircle className="w-4 h-4 shrink-0" />
-                                    {codeError}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-
-                          {!showRequestForm ? (
-                            <button
-                              onClick={() => setShowRequestForm(true)}
-                              className="flex items-center gap-2 border border-dashed border-white/10 text-gray-500 hover:border-[#F5A623]/50 hover:text-[#F5A623] font-bold text-sm px-4 py-2.5 rounded-xl transition-colors w-full justify-center"
-                            >
-                              <Percent className="w-4 h-4" />
-                              Höheren Rabatt beim Inhaber anfragen
-                            </button>
-                          ) : (
-                            <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-3">
-                              <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Rabatt-Anfrage</p>
-                              <div className="flex gap-3">
-                                <div className="relative w-28 shrink-0">
-                                  <input
-                                    type="number"
-                                    value={requestPercentage}
-                                    onChange={(e) => setRequestPercentage(e.target.value)}
-                                    className="w-full bg-[#0F0F0F] border border-white/10 rounded-lg px-4 py-2.5 pr-8 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 placeholder:text-gray-600"
-                                    placeholder="0"
-                                    min="1"
-                                    max="50"
-                                  />
-                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-bold">%</span>
-                                </div>
-                                <input
-                                  type="text"
-                                  value={requestNote}
-                                  onChange={(e) => setRequestNote(e.target.value)}
-                                  className="flex-1 bg-[#0F0F0F] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
-                                  placeholder="Begründung (optional)"
-                                />
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={handleRequestDiscount}
-                                  disabled={!requestPercentage || isRequesting}
-                                  className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-[#1A3A5C] font-bold text-sm px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
-                                >
-                                  {isRequesting && <Loader2 className="w-4 h-4 animate-spin" />}
-                                  {isRequesting ? 'Wird gesendet…' : 'Anfrage senden'}
-                                </button>
-                                <button
-                                  onClick={() => { setShowRequestForm(false); setRequestPercentage(''); setRequestNote(''); }}
-                                  className="border border-white/10 text-gray-500 font-bold text-sm px-4 py-2 rounded-lg hover:bg-white/5 transition-colors"
-                                >
-                                  Abbrechen
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </section>
-                  )}
-
-                  {/* Angebots-Management */}
-                  {leadAsProject && <AngebotsManagementSection lead={lead} changeOfferStatus={changeOfferStatus} changeStatus={changeStatus} setSendEmail={setSendEmail} setShowSendModal={setShowSendModal} formatDate={formatDate} planningPng={planningPng} />}
+                  {/* Angebot */}
+                  <OfferActionSection
+                    lead={lead}
+                    draft={draft}
+                    loadingDraft={loadingDraft}
+                    onStatusChange={async (status) => {
+                      const now = new Date().toISOString();
+                      if (status === 'viewed') {
+                        await changeOfferStatus('viewed', { offer_viewed_at: now });
+                      } else if (status === 'accepted') {
+                        await changeOfferStatus('accepted');
+                        if (lead.status !== 'gewonnen') await changeStatus('gewonnen');
+                      } else if (status === 'rejected') {
+                        await changeOfferStatus('rejected');
+                      } else {
+                        await changeOfferStatus(status);
+                      }
+                    }}
+                  />
 
                   {/* Aktivitäts-Log */}
                   <ActivityLog lead={lead} userName={user?.fullName || 'System'} />

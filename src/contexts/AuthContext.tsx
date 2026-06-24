@@ -11,6 +11,8 @@ interface AuthUser {
   fullName: string;
   isVerified: boolean;
   ownerId: string | null;
+  agencyTier?: 'start' | 'pro' | 'scale' | null;
+  agencyPartnerLimit?: number | null;
 }
 
 interface AuthContextType {
@@ -20,6 +22,7 @@ interface AuthContextType {
   isOwner: boolean;
   isEmployee: boolean;
   isSuperEmployee: boolean;
+  isSalesAgency: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -37,6 +40,8 @@ async function buildUser(session: Session): Promise<AuthUser | null> {
         fullName: profile.full_name,
         isVerified: profile.is_verified,
         ownerId: profile.owner_id,
+        agencyTier: profile.agency_tier ?? null,
+        agencyPartnerLimit: profile.agency_partner_limit ?? null,
       };
     } catch {
       if (attempt === 0) await new Promise(r => setTimeout(r, 500));
@@ -51,6 +56,8 @@ async function buildUser(session: Session): Promise<AuthUser | null> {
       fullName: meta.full_name ?? session.user.email!,
       isVerified: false,
       ownerId: null,
+      agencyTier: null,
+      agencyPartnerLimit: null,
     };
   }
   return null;
@@ -104,8 +111,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: user !== null,
       isLoading,
       isOwner: user?.role === 'owner',
-      isEmployee: user ? ['installer', 'vertrieb', 'projektleiter', 'monteur', 'backoffice', 'super_employee'].includes(user.role) : false,
+      isEmployee: user ? ['installer', 'vertrieb', 'projektleiter', 'monteur', 'backoffice', 'super_employee', 'sales_agency'].includes(user.role) : false,
       isSuperEmployee: user?.role === 'super_employee',
+      isSalesAgency: user?.role === 'sales_agency',
       login,
       logout,
     }}>

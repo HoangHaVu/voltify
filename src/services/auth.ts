@@ -21,6 +21,8 @@ export interface Profile {
   zip: string | null;
   is_verified: boolean;
   owner_id: string | null;
+  agency_tier?: 'start' | 'pro' | 'scale' | null;
+  agency_partner_limit?: number | null;
 }
 
 export const EMPLOYEE_ROLES: UserRole[] = [
@@ -63,7 +65,7 @@ export function resolveAgencyId(user: { id: string; role: UserRole; owner_id?: s
 export async function fetchProfile(userId: string): Promise<Profile> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, role, full_name, phone, zip, is_verified, owner_id')
+    .select('id, role, full_name, phone, zip, is_verified, owner_id, agency_tier, agency_partner_limit')
     .eq('id', userId)
     .single();
 

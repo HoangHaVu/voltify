@@ -1,5 +1,5 @@
 # Voltify — Tasks & Roadmap
-<!-- Zuletzt aktualisiert: 2026-06-18 — Angebots-Konfigurator hinzugefügt, Agency-Phase B weiterhin offen -->
+<!-- Zuletzt aktualisiert: 2026-06-25 — Installer-Lead-Attribution + White-Label-Embed + einstellbare ROI-Annahmen deployed; erster Test-Kunde onboardet -->
 
 ---
 
@@ -289,6 +289,11 @@ GROUP BY source_id;
 - [x] **DIN A4 Vorschau in Einstellungen** — `PDFViewer` mit echtem `OfferPdfDocument`, Mock-Positionen aus Kalkulations-Einstellungen, inkl. Vorlagen-Texte ✅ (2026-06-23)
 - [x] **White-Label WL1** — Migration `049_installer_branding.sql`, `installer_slug` + `branding` JSONB in profiles, `useTenantBranding` Hook, `?i=<slug>` URL-Param, Konfigurator zeigt Installer-Branding ✅ (2026-06-23)
 - [x] **Preisanpassung** — Vollpreise angehoben: Starter 179€, Pro 379€, Enterprise 799€, Agency 199/399/699€ ✅ (2026-06-23)
+- [x] **Installer-Lead-Attribution (WL1b)** — RPC `resolve_installer_slug` (Migration `050`), Configurator übergibt echte `installerId` statt `undefined`; `?i=<slug>`-Leads landen automatisch im CRM des Installateurs. E2E gegen DB getestet ✅ (2026-06-25)
+- [x] **White-Label-Embed (iframe + Auto-Resize)** — `useEmbedAutoResize` (postMessage), `min-h-screen` nur im Vollbild, Copy-&-Paste-Snippet `docs/embed/voltify-embed.md` ✅ (2026-06-25)
+- [x] **Konfigurator-ROI-Annahmen pro Installateur (Stufe 1+2)** — Spalte `profiles.calc_assumptions` + RPC `get_installer_calc_assumptions` (Migration `051`); `calculateROI` nimmt optionale Annahmen (Richtpreis €/kWp, Strompreis-Default, Einspeisevergütung, Wartung); `useInstallerCalcAssumptions` lädt sie im Funnel; AdminSettings-Tab „Konfigurator-Annahmen (ROI)" ✅ (2026-06-25)
+- [x] **Erster Test-Kunde onboardet** — `ag@sunwinwin.de` (Ali Galioglu, Firma sunwinwin), Rolle `owner`, `installer_slug = sunwinwin` ✅ (2026-06-25)
+- [ ] **ROI-Annahmen Stufe 3 (optional)** — Annahmen pro Lead mitspeichern, damit `LeadDetailsPage`-Neuberechnung exakt zur gespeicherten ROI passt
 - [ ] **Angebots-E-Mail mit Varianten** — Kunde wählt im E-Mail-Link → Tracking
 
 ### Digitale Unterschrift
@@ -326,7 +331,8 @@ GROUP BY source_id;
 - **Konkret:**
   - `profiles`-Spalten für alle Settings: `company_settings jsonb` (logo, Farben, IBAN, Preise, etc.)
   - `loadCompanySettings()` in OfferBuilderPage + PDF: statt localStorage → DB-Query
-  - Migration: `050_company_settings_db.sql`
+  - Migration: `052_company_settings_db.sql` (⚠️ 050/051 sind seit 2026-06-25 belegt: resolve_installer_slug + installer_calc_assumptions)
+  - **Hinweis:** `calc_assumptions` liegt bereits in der DB — WL2 sollte die übrigen `localStorage`-Settings (Logo, Farben, IBAN, Angebotspreise) demselben Muster folgend in `profiles` migrieren.
 - **Aufwand:** Mittel
 - **✅ Akzeptanz:** Vertriebler auf mobilem Gerät sieht dieselben Firmenfarben wie Inhaber am Desktop.
 

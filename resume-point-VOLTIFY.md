@@ -1,5 +1,5 @@
 # Voltify — Resume Point
-<!-- Zuletzt aktualisiert: 2026-06-23 — Angebots-Konfigurator, Vorlagen, White-Label WL1, DIN A4 Vorschau — deployed -->
+<!-- Zuletzt aktualisiert: 2026-06-25 — Installer-Lead-Attribution + White-Label-Embed + einstellbare ROI-Annahmen deployed; erster Test-Kunde (sunwinwin) onboardet -->
 
 ## Status: MVP-INFRASTRUKTUR KOMPLETT ✅
 
@@ -54,6 +54,14 @@ Session 2026-06-23 (Angebots-Konfigurator + Vorlagen + White-Label + PDF-Vorscha
   - **White-Label WL1** ✅ — Migration `049_installer_branding.sql`, `installer_slug` + `branding` JSONB in profiles, `useTenantBranding` Hook, `?i=<slug>` URL-Param, Konfigurator in Installer-Farben + Logo + "Powered by Voltify"
   - **Preise angehoben** ✅ — Installer 179/379/799€, Agency 199/399/699€, White-Label Addon +79€/Mo (Vollpreise)
   - Migrationen 045–049 deployed · 0 TypeScript-Fehler · Commit `dfaf713` · Vercel-Deploy ausgelöst
+
+Session 2026-06-25 (Embed-Go-Live + Installer-Attribution + einstellbare ROI):
+  - **Erster Test-Kunde onboardet** ✅ — `ag@sunwinwin.de` (Ali Galioglu, Firma sunwinwin), Rolle `owner`, `installer_slug = sunwinwin`. Login: https://voltify-app.vercel.app/login (PW `Voltify2026!`, sollte geändert werden)
+  - **Installer-Lead-Attribution** ✅ — RPC `resolve_installer_slug` (Migration `050`); `Configurator.tsx` übergibt echte `installerId` statt `undefined`. `?i=sunwinwin`-Leads landen automatisch in Alis CRM (E2E gegen DB getestet)
+  - **White-Label-Embed (iframe)** ✅ — `useEmbedAutoResize` postet Inhaltshöhe per `postMessage`; `min-h-screen` nur im Vollbild (kein Loop im iframe). Snippet: `docs/embed/voltify-embed.md`
+  - **Konfigurator-ROI-Annahmen pro Installateur (Stufe 1+2)** ✅ — Spalte `profiles.calc_assumptions` + RPC `get_installer_calc_assumptions` (Migration `051`). `calculateROI(data, assumptions={})` rückwärtskompatibel: Richtpreis €/kWp, Strompreis-Default, Einspeisevergütung, Wartung einstellbar. Hook `useInstallerCalcAssumptions`, in Step7 + Submit verdrahtet, AdminSettings-Tab „Konfigurator-Annahmen (ROI)"
+  - 2 Commits gepusht (`344a3ed`, `d6a2e66`) → `main` → Vercel-Deploy ausgelöst · 121/121 Tests · 0 TS-Fehler
+  - ⚠️ **Code/DB-Drift entdeckt:** Migrationen 042–044, 048, 049 sind in der DB aktiv, fehlen aber als Datei im Repo (deshalb war `get_installer_branding` lokal nicht findbar). Sollten als Migrations-Dateien nachgezogen werden, damit ein frisches `db push` reproduzierbar ist.
 
 ---
 
@@ -161,9 +169,16 @@ Session 2026-06-23 (Angebots-Konfigurator + Vorlagen + White-Label + PDF-Vorscha
 - **Fix:** `npx supabase link --project-ref ecsqbsgbfmvqaqnryvwf` → DB-Passwort eingeben → `npx supabase db push`
 - **Mit einem Push werden gleich 045, 046 und 047 deployed.**
 
-## Nächster Schritt (Stand 2026-06-23)
+## Nächster Schritt (Stand 2026-06-25)
 
-### ← NÄCHSTE CODE-SCHRITTE (nach Wahl)
+### ← JETZT DRAN: sunwinwin live bringen
+1. **Vercel-Deploy abwarten/prüfen** — Commit `d6a2e66` deployt gerade; danach ist Embed + ROI-Annahmen scharf.
+2. **Ali Zugang geben** — Login-Daten weitergeben, Passwort-Wechsel empfehlen.
+3. **Branding + ROI-Annahmen mit Ali befüllen** — AdminSettings → Profil & Branding (Logo/Farben) + Tab „Konfigurator-Annahmen (ROI)" (Richtpreis €/kWp nahe seiner realen Kalkulation).
+4. **Embed-Snippet übergeben** — `docs/embed/voltify-embed.md` (sunwinwin-Variante), in „Custom HTML"-Block seiner Seite.
+5. **Browser-Smoke-Test** — `?i=sunwinwin` live durchklicken → Lead muss in Alis CRM erscheinen (noch ausstehend).
+
+### ← WEITERE CODE-SCHRITTE (nach Wahl)
 - **E2E-Smoke-Test Agency** — Lead via `?a=solar-vertrieb-gmbh` → Zuweisen → Portal (Inkognito) → annehmen → converted → Commission prüfen.
 - **C2 — Annahme-Frist + Auto-Reassignment** — 24h-Timeout für `pending` Assignments (Cron-Job oder Edge Function).
 - **C3 — Partner-Self-Onboarding** — Einladungs-Link für Partner-Registrierung.
@@ -236,10 +251,15 @@ Session 2026-06-23 (Angebots-Konfigurator + Vorlagen + White-Label + PDF-Vorscha
   - 042: `agency_agent` Role-Constraint + Vertriebler-Test-Account
   - 043: `lead_assignments.assigned_by` (uuid, nullable, FK → profiles)
   - 044: `profiles.agency_default_commission_type/value`, `agency_notify_on_response`, `agency_website`
-- **Migrationen 045–047:** 🟡 Geschrieben, **noch nicht deployed**
+- **Migrationen 045–051:** ✅ Ausgeführt (alle live)
   - 045: `offer_drafts` + `offer_line_items` — Angebots-Konfigurator
   - 046: `profiles.agency_tier` + `profiles.agency_partner_limit` — Agency-Tiers
   - 047: `partner_limit_trigger` — harte Partner-Limit-Absicherung
+  - 048: `offer_templates` — Vorlagen (nur in DB, Datei fehlt im Repo → Drift)
+  - 049: `installer_branding` (`installer_slug` + `branding`, `get_installer_branding`) — nur in DB, Datei fehlt im Repo → Drift
+  - 050: `resolve_installer_slug` — `?i=<slug>` → installer_id (Datei im Repo ✅)
+  - 051: `installer_calc_assumptions` (`profiles.calc_assumptions` + `get_installer_calc_assumptions`) (Datei im Repo ✅)
+- **⚠️ Drift:** 042–044, 048, 049 sind in der DB aktiv, aber **nicht** als Migrations-Datei im Repo. Bei Gelegenheit nachziehen.
 
 ## Test-Accounts
 | E-Mail | Rolle | Passwort | Hinweis |
@@ -248,6 +268,7 @@ Session 2026-06-23 (Angebots-Konfigurator + Vorlagen + White-Label + PDF-Vorscha
 | inhaber@test.de | owner | Test123456 | |
 | agentur@test.de | sales_agency | Test123456 | Solar Vertrieb GmbH, slug `solar-vertrieb-gmbh` |
 | vertriebler@test.de | agency_agent | Test123456 | owner_id = agentur@test.de |
+| ag@sunwinwin.de | owner | Voltify2026! | **ERSTER ECHTER TEST-KUNDE** — Ali Galioglu, Firma sunwinwin, `installer_slug = sunwinwin` |
 
 ---
 

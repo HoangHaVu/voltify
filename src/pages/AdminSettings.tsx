@@ -17,6 +17,7 @@ import { InvoicePreviewCard } from '../components/settings/InvoicePreviewCard';
 import { WebhookSettingsSection } from '../components/settings/WebhookSettingsSection';
 import { AdminSidebar } from '../components/layout/AdminSidebar';
 import { supabase } from '../lib/supabase';
+import type { CalcAssumptions } from '../lib/calculations';
 
 // ── Types & Defaults ──
 
@@ -112,6 +113,8 @@ export default function AdminSettings() {
   const [profileBio, setProfileBio] = useState('');
   const [installerSlug, setInstallerSlug] = useState('');
   const [slugSaved, setSlugSaved] = useState(false);
+  // Konfigurator-ROI-Annahmen (DB: profiles.calc_assumptions) — leer = globale Defaults
+  const [calcAssumptions, setCalcAssumptions] = useState<CalcAssumptions>({});
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Tabs
@@ -133,7 +136,7 @@ export default function AdminSettings() {
     if (!user) return;
     supabase
       .from('profiles')
-      .select('company_name, website, bio, offer_text_template, email_template, installer_slug')
+      .select('company_name, website, bio, offer_text_template, email_template, installer_slug, calc_assumptions')
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
@@ -142,6 +145,9 @@ export default function AdminSettings() {
         setProfileWebsite(data.website ?? '');
         setProfileBio(data.bio ?? '');
         setInstallerSlug(data.installer_slug ?? '');
+        if (data.calc_assumptions && typeof data.calc_assumptions === 'object') {
+          setCalcAssumptions(data.calc_assumptions as CalcAssumptions);
+        }
         if (data.offer_text_template) {
           setOfferTextTemplate((prev) => ({ ...prev, ...(data.offer_text_template as Partial<OfferTextTemplate>) }));
         }
@@ -161,6 +167,16 @@ export default function AdminSettings() {
 
   function updateSetting<K extends keyof OwnerSettings>(key: K, value: OwnerSettings[K]) {
     setSettings((prev) => ({ ...prev, [key]: value }));
+  }
+
+  // Setzt einen ROI-Annahmen-Wert; leeres Feld → Schlüssel entfernen → globaler Default greift
+  function updateAssumption(key: keyof CalcAssumptions, raw: string) {
+    setCalcAssumptions((prev) => {
+      const next = { ...prev };
+      if (raw.trim() === '') delete next[key];
+      else next[key] = Number(raw);
+      return next;
+    });
   }
 
   function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -187,6 +203,7 @@ export default function AdminSettings() {
         installer_slug: installerSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-') || null,
         offer_text_template: offerTextTemplate,
         email_template: emailTemplate,
+        calc_assumptions: Object.keys(calcAssumptions).length > 0 ? calcAssumptions : null,
         branding: {
           firmenname:       settings.firmenname,
           slogan:           settings.slogan,
@@ -649,6 +666,79 @@ export default function AdminSettings() {
 
             {activeTab === 'kalkulation' && (
             <>
+            {/* ── Konfigurator-Annahmen (ROI, was der Kunde im Funnel sieht) ── */}
+            <div className="bg-[#1A1A1A] rounded-2xl border border-white/5 overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-5 border-b border-white/5">
+                <Calculator className="w-5 h-5 text-[#F5A623]" />
+                <h3 className="text-sm font-semibold text-white">Konfigurator-Annahmen (ROI)</h3>
+              </div>
+              <div className="px-6 py-6 space-y-5">
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Diese Werte steuern die <strong className="text-gray-300">Wirtschaftlichkeits-Analyse</strong>, die dein
+                  Kunde im Konfigurator sieht. Lass ein Feld leer, um den Voltify-Standard zu nutzen.
+                  Tipp: Setze den Richtpreis nahe deiner realen Kalkulation, damit das spätere Angebot keine Überraschung wird.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-400">Richtpreis (€/kWp)</label>
+                    <div className="relative">
+                      <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <input
+                        type="number"
+                        value={calcAssumptions.investPerKwp ?? ''}
+                        onChange={(e) => updateAssumption('investPerKwp', e.target.value)}
+                        className="w-full bg-[#252525] border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50"
+                        placeholder="Standard: 1800"
+                        min="0" step="50"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-400">Strompreis-Default (€/kWh)</label>
+                    <div className="relative">
+                      <Zap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <input
+                        type="number"
+                        value={calcAssumptions.electricityPrice ?? ''}
+                        onChange={(e) => updateAssumption('electricityPrice', e.target.value)}
+                        className="w-full bg-[#252525] border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50"
+                        placeholder="Standard: 0.32"
+                        min="0" step="0.01"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-400">Einspeisevergütung (€/kWh)</label>
+                    <div className="relative">
+                      <TrendingUp className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <input
+                        type="number"
+                        value={calcAssumptions.feedInTariff ?? ''}
+                        onChange={(e) => updateAssumption('feedInTariff', e.target.value)}
+                        className="w-full bg-[#252525] border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50"
+                        placeholder="Standard: 0.082"
+                        min="0" step="0.001"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-400">Wartungskosten (€/Jahr)</label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <input
+                        type="number"
+                        value={calcAssumptions.maintenancePerYear ?? ''}
+                        onChange={(e) => updateAssumption('maintenancePerYear', e.target.value)}
+                        className="w-full bg-[#252525] border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#F5A623]/50"
+                        placeholder="Standard: 200"
+                        min="0" step="50"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* ── Angebots-Konfiguration ── */}
             <div className="bg-[#1A1A1A] rounded-2xl border border-white/5 overflow-hidden">
               <div className="flex items-center gap-3 px-6 py-5 border-b border-white/5">

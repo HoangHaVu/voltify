@@ -3,21 +3,22 @@ import { TrendingUp, DollarSign, Clock, Sun, ArrowRight, Zap, CheckCircle, Perce
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ROIPdfDocument from '../../components/pdf/ROIPdfDocument';
 import type { WizardData } from '../../pages/Configurator';
-import { calculateROI } from '../../lib/calculations';
+import { calculateROI, type CalcAssumptions } from '../../lib/calculations';
 import { getGrantSubsidyTotal } from '../../data/grants';
 
 interface Props {
   data: WizardData;
   updateData: (p: Partial<WizardData>) => void;
   onNext: () => void;
+  assumptions?: CalcAssumptions;
 }
 
-export default function Step7_Analysis({ data, onNext }: Props) {
+export default function Step7_Analysis({ data, onNext, assumptions = {} }: Props) {
   const [showWithoutBattery, setShowWithoutBattery] = useState(false);
 
-  // Berechnung mit/ohne Speicher für Vergleich
-  const calcWith = calculateROI(data);
-  const calcWithout = calculateROI({ ...data, storageSize: '0' });
+  // Berechnung mit/ohne Speicher für Vergleich — installateur-spezifische Annahmen
+  const calcWith = calculateROI(data, assumptions);
+  const calcWithout = calculateROI({ ...data, storageSize: '0' }, assumptions);
   const calc = showWithoutBattery ? calcWithout : calcWith;
 
   const co2Saved = Math.round(calc.kwp * 900 / 1000 * 10) / 10;

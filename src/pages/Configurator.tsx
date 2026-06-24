@@ -8,6 +8,8 @@ import { calculateROI } from '../lib/calculations';
 import { trackFunnelEvent, getFunnelSource } from '../lib/funnelTracking';
 import { supabase } from '../lib/supabase';
 import { useTenantBranding } from '../hooks/useTenantBranding';
+import { useEmbedAutoResize, isEmbedded } from '../hooks/useEmbedAutoResize';
+import { useInstallerCalcAssumptions } from '../hooks/useInstallerCalcAssumptions';
 import Step0_EmailGate from '../sections/configurator/Step0_EmailGate';
 import Step1_Building from '../sections/configurator/Step1_Building';
 import Step2_Roof from '../sections/configurator/Step2_Roof';
@@ -89,6 +91,8 @@ export default function Configurator() {
   const [searchParams] = useSearchParams();
   const isDemo = searchParams.get('demo') === '1';
   const branding = useTenantBranding();
+  const calcAssumptions = useInstallerCalcAssumptions();
+  useEmbedAutoResize();
 
   const [gateCleared, setGateCleared] = useState(isDemo);
   const [currentStep, setCurrentStep] = useState(1);
@@ -131,16 +135,25 @@ export default function Configurator() {
     setIsSubmitting(true);
     setSubmitError('');
     try {
-      const calc = calculateROI(data);
+      const calc = calculateROI(data, calcAssumptions);
       // Speichere effectiveInvestment (nach Förderungen) als investment in der DB
       const dbCalc = {
         ...calc,
         investment: calc.effectiveInvestment || calc.investment,
       };
 
-      // Agency-Slug aus Funnel-Cache auflösen → agency_id für Lead-Attribution
+      // Slugs aus Funnel-Cache auflösen → installer_id / agency_id für Lead-Attribution
+      const { agencySlug, installerSlug } = getFunnelSource();
+
+      // ?i=<slug> (White-Label-Embed) → installer_id: Lead landet direkt im CRM des Installateurs
+      let installerId: string | undefined;
+      if (installerSlug && !isDemo) {
+        const { data: resolvedInstaller } = await supabase.rpc('resolve_installer_slug', { p_slug: installerSlug });
+        installerId = resolvedInstaller ?? undefined;
+      }
+
+      // ?a=<slug> (Agentur-Funnel) → agency_id
       let agencyId: string | undefined;
-      const { agencySlug } = getFunnelSource();
       if (agencySlug && !isDemo) {
         const { data: resolvedId } = await supabase.rpc('resolve_agency_slug', { p_slug: agencySlug });
         agencyId = resolvedId ?? undefined;
@@ -175,7 +188,7 @@ export default function Configurator() {
           heatPump: data.heatPump,
         },
         dbCalc,
-        undefined,  // installerId
+        installerId,
         agencyId,
       );
       trackFunnelEvent(9, 'completed', { demoMode: isDemo });
@@ -221,7 +234,7 @@ export default function Configurator() {
       case 4: return <Step5_Options {...props} />;
       case 5: return <Step4_Storage {...props} />;
       case 6: return <Step6_Subsidies {...props} />;
-      case 7: return <Step7_Analysis key={analysisKey} {...props} onNext={goNext} />;
+      case 7: return <Step7_Analysis key={analysisKey} {...props} assumptions={calcAssumptions} onNext={goNext} />;
       case 8: return <Step8_Contact {...props} onSubmit={handleSubmit} isSubmitting={isSubmitting} submitError={submitError} companyName={branding.firmenname} />;
       case 9: return <Step9_ThankYou demoMode={isDemo} />;
       default: return null;
@@ -251,7 +264,7 @@ export default function Configurator() {
         canonical="/konfigurator"
         noindex
       />
-      <div className="min-h-screen flex flex-col">
+      <div className={`${isEmbedded ? '' : 'min-h-screen'} flex flex-col`}>
       {/* Demo-Modus-Banner — nur bei ?demo=1 (Installateur-Preview) */}
       {isDemo && <DemoBanner label="Demo-Modus — so konfigurieren deine Kunden ihre Solaranlage" />}
       <div className="flex flex-1 min-h-0">

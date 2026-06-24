@@ -56,12 +56,29 @@ export interface ExtendedROICalculations extends ROICalculations {
   chartDataRealistic: { year: number; value: number }[];
 }
 
-export function calculateROI(data: WizardData): ExtendedROICalculations {
+// Pro-Installateur einstellbare ROI-Annahmen (Stufe 1+2). Alle optional → globaler Fallback.
+export interface CalcAssumptions {
+  investPerKwp?: number;       // €/kWp (Stufe 1)
+  electricityPrice?: number;   // €/kWh Default-Strompreis, wenn Kunde keinen angibt (Stufe 2)
+  feedInTariff?: number;       // €/kWh Einspeisevergütung (Stufe 2)
+  maintenancePerYear?: number; // €/Jahr Wartung (Stufe 2)
+}
+
+export function calculateROI(
+  data: WizardData,
+  assumptions: CalcAssumptions = {},
+): ExtendedROICalculations {
+  // Installateur-Annahmen mit globalem Fallback (rückwärtskompatibel)
+  const investPerKwp            = assumptions.investPerKwp       ?? INVEST_PER_KWP;
+  const feedInTariff            = assumptions.feedInTariff       ?? FEED_IN_TARIFF;
+  const maintenancePerYear      = assumptions.maintenancePerYear ?? MAINTENANCE_PER_YEAR;
+  const defaultElectricityPrice = assumptions.electricityPrice   ?? 0.32;
+
   const consumption = Math.max(0, Number(data.consumption) || 4000);
   const roofArea = Math.max(0, Number(data.roofArea) || 50);
   const storageKwh = data.storageSize !== '' && data.storageSize !== undefined ? Number(data.storageSize) : 10;
   const hasBattery = storageKwh > 0;
-  const electricityPrice = Math.max(0, Number(data.electricityPrice) || 0.32);
+  const electricityPrice = Math.max(0, Number(data.electricityPrice) || defaultElectricityPrice);
 
   // Einstrahlung basierend auf PLZ
   const irradiation = getIrradiationByZip(data.zipCode);
@@ -108,7 +125,7 @@ export function calculateROI(data: WizardData): ExtendedROICalculations {
   const batteryAddon = hasBattery ? Math.round(500 * storageKwh + 2000) : 0;
   const batteryReplacementCost = hasBattery ? Math.round(500 * storageKwh + 1000) : 0;
   const constructionAddon = data.constructionYear === 'pre1980' ? CONSTRUCTION_ADDON : 0;
-  const investment = Math.round(kwp * INVEST_PER_KWP) + batteryAddon + constructionAddon;
+  const investment = Math.round(kwp * investPerKwp) + batteryAddon + constructionAddon;
 
   // Förderungen
   const grantSavings = getGrantSubsidyTotal(data.zipCode);
@@ -116,7 +133,7 @@ export function calculateROI(data: WizardData): ExtendedROICalculations {
 
   // Jährliche Ersparnis = Eigenverbrauch * Strompreis + Einspeisung * EEG-Vergütung
   const annualSavings = Math.round(
-    selfConsumedEnergy * electricityPrice + gridFeedIn * FEED_IN_TARIFF
+    selfConsumedEnergy * electricityPrice + gridFeedIn * feedInTariff
   );
 
   const amortization = annualSavings > 0 ? Math.round(effectiveInvestment / annualSavings) : 0;
@@ -130,7 +147,7 @@ export function calculateROI(data: WizardData): ExtendedROICalculations {
 
   // Realistische Berechnung mit Folgekosten
   const totalFollowUpCosts =
-    MAINTENANCE_PER_YEAR * 20 +
+    maintenancePerYear * 20 +
     INVERTER_REPLACEMENT_COST +
     batteryReplacementCost;
 
@@ -138,7 +155,7 @@ export function calculateROI(data: WizardData): ExtendedROICalculations {
   let amortizationRealistic = 0;
   const chartDataRealistic = Array.from({ length: 21 }, (_, year) => {
     if (year === 0) return { year, value: cumulativeRealistic };
-    let net = annualSavings - MAINTENANCE_PER_YEAR;
+    let net = annualSavings - maintenancePerYear;
     if (year === INVERTER_REPLACEMENT_YEAR) {
       net -= INVERTER_REPLACEMENT_COST;
       net -= batteryReplacementCost;
@@ -150,7 +167,7 @@ export function calculateROI(data: WizardData): ExtendedROICalculations {
     return { year, value: Math.round(cumulativeRealistic) };
   });
 
-  const annualSavingsRealistic = annualSavings - MAINTENANCE_PER_YEAR;
+  const annualSavingsRealistic = annualSavings - maintenancePerYear;
   const profit20YearsRealistic = chartDataRealistic[20]?.value ?? 0;
 
   // Lead Score (0-100)

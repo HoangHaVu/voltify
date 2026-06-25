@@ -61,6 +61,8 @@ Session 2026-06-25 (Embed-Go-Live + Installer-Attribution + einstellbare ROI):
   - **White-Label-Embed (iframe)** ✅ — `useEmbedAutoResize` postet Inhaltshöhe per `postMessage`; `min-h-screen` nur im Vollbild (kein Loop im iframe). Snippet: `docs/embed/voltify-embed.md`
   - **Konfigurator-ROI-Annahmen pro Installateur (Stufe 1+2)** ✅ — Spalte `profiles.calc_assumptions` + RPC `get_installer_calc_assumptions` (Migration `051`). `calculateROI(data, assumptions={})` rückwärtskompatibel: Richtpreis €/kWp, Strompreis-Default, Einspeisevergütung, Wartung einstellbar. Hook `useInstallerCalcAssumptions`, in Step7 + Submit verdrahtet, AdminSettings-Tab „Konfigurator-Annahmen (ROI)"
   - 2 Commits gepusht (`344a3ed`, `d6a2e66`) → `main` → Vercel-Deploy ausgelöst · 121/121 Tests · 0 TS-Fehler
+  - **E2E-Browser-Smoke-Test** ✅ — Konfigurator `?i=sunwinwin` komplett durchgeklickt (Playwright), Lead landete mit `installer_id` in Alis CRM (danach aufgeräumt). Branding-Test: grünes Test-Branding gesetzt → Header zeigte „sunwinwin Solar" + grüne Seitenleiste → bestätigt, danach zurückgesetzt.
+  - **WL2 — Company-Settings in DB** ✅ — Migration `052` (`profiles.company_settings`), `src/services/companySettings.ts`, `AuthContext` hydratisiert localStorage-Cache bei Login aus DB, `AdminSettings`+`AdminDashboard` lesen/schreiben Settings in DB. Behebt Multi-Device-Überschreib-Bug. Commit `08ad08d`.
   - ⚠️ **Code/DB-Drift entdeckt:** Migrationen 042–044, 048, 049 sind in der DB aktiv, fehlen aber als Datei im Repo (deshalb war `get_installer_branding` lokal nicht findbar). Sollten als Migrations-Dateien nachgezogen werden, damit ein frisches `db push` reproduzierbar ist.
 
 ---
@@ -184,7 +186,7 @@ Session 2026-06-25 (Embed-Go-Live + Installer-Attribution + einstellbare ROI):
 - **C3 — Partner-Self-Onboarding** — Einladungs-Link für Partner-Registrierung.
 - **C5 — Partner-Scorecard** — Conversion-Rate & Reaktionszeit pro Partner.
 - **Cron Jobs** — `notify-offer-expiry` + `notify-payment-due` täglich 08:00.
-- **WL2** — Installer Company-Settings von localStorage nach `profiles.company_settings` in DB migrieren.
+- ~~**WL2** — Company-Settings in DB~~ ✅ erledigt (2026-06-25, Commit `08ad08d`)
 
 ### ← NÄCHSTER VERTRIEBS-SCHRITT
 - 3 Beta-Tester onboarden → White-Label-Slug vergeben + eigenes Branding testen
@@ -251,7 +253,7 @@ Session 2026-06-25 (Embed-Go-Live + Installer-Attribution + einstellbare ROI):
   - 042: `agency_agent` Role-Constraint + Vertriebler-Test-Account
   - 043: `lead_assignments.assigned_by` (uuid, nullable, FK → profiles)
   - 044: `profiles.agency_default_commission_type/value`, `agency_notify_on_response`, `agency_website`
-- **Migrationen 045–051:** ✅ Ausgeführt (alle live)
+- **Migrationen 045–052:** ✅ Ausgeführt (alle live)
   - 045: `offer_drafts` + `offer_line_items` — Angebots-Konfigurator
   - 046: `profiles.agency_tier` + `profiles.agency_partner_limit` — Agency-Tiers
   - 047: `partner_limit_trigger` — harte Partner-Limit-Absicherung
@@ -259,6 +261,7 @@ Session 2026-06-25 (Embed-Go-Live + Installer-Attribution + einstellbare ROI):
   - 049: `installer_branding` (`installer_slug` + `branding`, `get_installer_branding`) — nur in DB, Datei fehlt im Repo → Drift
   - 050: `resolve_installer_slug` — `?i=<slug>` → installer_id (Datei im Repo ✅)
   - 051: `installer_calc_assumptions` (`profiles.calc_assumptions` + `get_installer_calc_assumptions`) (Datei im Repo ✅)
+  - 052: `company_settings_db` (`profiles.company_settings`) — WL2 (Datei im Repo ✅)
 - **⚠️ Drift:** 042–044, 048, 049 sind in der DB aktiv, aber **nicht** als Migrations-Datei im Repo. Bei Gelegenheit nachziehen.
 
 ## Test-Accounts

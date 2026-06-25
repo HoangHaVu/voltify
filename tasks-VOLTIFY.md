@@ -1,5 +1,5 @@
 # Voltify — Tasks & Roadmap
-<!-- Zuletzt aktualisiert: 2026-06-25 — Installer-Lead-Attribution + White-Label-Embed + einstellbare ROI-Annahmen deployed; erster Test-Kunde onboardet -->
+<!-- Zuletzt aktualisiert: 2026-06-25 — Installer-Attribution + Embed + einstellbare ROI-Annahmen + WL2 (Settings in DB) deployed; erster Test-Kunde onboardet & E2E-verifiziert -->
 
 ---
 
@@ -326,15 +326,14 @@ GROUP BY source_id;
 - **Aufwand:** Klein — hauptsächlich Props durchreichen
 - **✅ Akzeptanz:** Endkunde sieht nirgendwo "Voltify" — nur den Firmennamen des Installateuers.
 
-#### WL2 — Multi-Tenant Settings in DB (statt localStorage)
-- **Was:** `localStorage` funktioniert nur auf einem Browser. Team-Mitglieder und Mobile haben andere Daten. Settings → in `profiles` (bereits für `offer_text_template` / `email_template` begonnen).
-- **Konkret:**
-  - `profiles`-Spalten für alle Settings: `company_settings jsonb` (logo, Farben, IBAN, Preise, etc.)
-  - `loadCompanySettings()` in OfferBuilderPage + PDF: statt localStorage → DB-Query
-  - Migration: `052_company_settings_db.sql` (⚠️ 050/051 sind seit 2026-06-25 belegt: resolve_installer_slug + installer_calc_assumptions)
-  - **Hinweis:** `calc_assumptions` liegt bereits in der DB — WL2 sollte die übrigen `localStorage`-Settings (Logo, Farben, IBAN, Angebotspreise) demselben Muster folgend in `profiles` migrieren.
-- **Aufwand:** Mittel
-- **✅ Akzeptanz:** Vertriebler auf mobilem Gerät sieht dieselben Firmenfarben wie Inhaber am Desktop.
+#### WL2 — Multi-Tenant Settings in DB (statt localStorage) ✅ DONE (2026-06-25)
+- **Umgesetzt:**
+  - Migration `052_company_settings_db.sql` — `profiles.company_settings jsonb`
+  - `src/services/companySettings.ts` — `hydrateCompanySettingsCache` / `fetchCompanySettings` / `persistCompanySettings` / `settingsOwnerId` (Mitarbeiter → `ownerId`)
+  - **Strategie: DB = Source of Truth, localStorage = synchronisierter Cache.** `AuthContext` hydratisiert den Cache bei Login aus der DB → die vielen synchronen `loadCompanySettings()`-Aufrufe (OfferBuilder, PDF, LeadDetails, Dashboard) bleiben unverändert, lesen aber jetzt geräteübergreifend frische Daten.
+  - `AdminSettings` + `AdminDashboard` laden Settings aus DB und schreiben `company_settings` + `branding` in DB (nicht mehr nur localStorage) → behebt den Überschreib-Bug.
+- **✅ Akzeptanz erfüllt:** Zweites Gerät/Browser zeigt nicht mehr Defaults; DB-Branding kann nicht mehr versehentlich geplättet werden. 121/121 Tests, 0 TS-Fehler.
+- **Offen (Rest):** Team-Mitglieder, die Settings *bearbeiten* dürfen, brauchen ggf. eine RLS-Policy zum Update der Owner-Zeile (aktuell editiert nur der Owner selbst; Mitarbeiter lesen best-effort).
 
 #### WL3 — Custom Domain / Subdomain für Konfigurator
 - **Was:** Installateur bekommt `solar.firma.de` statt `voltify-app.vercel.app/konfigurator`.

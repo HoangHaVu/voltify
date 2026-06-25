@@ -5,6 +5,7 @@ import type { UserRole } from './services/auth';
 import CustomerLandingPage from './pages/CustomerLandingPage';
 import Login from './pages/Login';
 import Configurator from './pages/Configurator';
+import SolutionCheck from './pages/SolutionCheck';
 
 import AdminDashboard from './pages/AdminDashboard';
 import AdminSettings from './pages/AdminSettings';
@@ -56,6 +57,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Navigate to="/beta" replace />} />
       <Route path="/konfigurator" element={<Configurator />} />
+      <Route path="/check" element={<SolutionCheck />} />
       <Route
         path="/admin"
         element={

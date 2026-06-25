@@ -190,10 +190,10 @@ export default function LandingPage() {
           </p>
           <div className="reveal flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              onClick={() => navigate('/beta')}
+              onClick={() => navigate('/check')}
               className="inline-flex items-center gap-2 bg-[#F5A623] text-[#1A3A5C] text-base font-bold px-8 py-4 rounded-full hover:bg-[#E09000] transition-all hover:scale-[1.02]"
             >
-              Jetzt Beta-Partner werden <ArrowRight className="w-5 h-5" />
+              Welche Lösung passt zu mir? <ArrowRight className="w-5 h-5" />
             </button>
             <button
               onClick={() => navigate('/konfigurator?demo=1')}
@@ -203,7 +203,7 @@ export default function LandingPage() {
             </button>
           </div>
           <p className="reveal text-xs text-gray-400 mt-4">
-            {BETA_COPY.freeTrial} · Keine Kreditkarte · {BETA.callMinutes}-Min Demo-Call
+            60-Sekunden-Check · Keine Anmeldung · Sofort-Auswertung + passende Demo
           </p>
         </div>
       </section>

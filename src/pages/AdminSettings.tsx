@@ -136,7 +136,7 @@ export default function AdminSettings() {
     if (!user) return;
     supabase
       .from('profiles')
-      .select('company_name, website, bio, offer_text_template, email_template, installer_slug, calc_assumptions')
+      .select('company_name, website, bio, offer_text_template, email_template, installer_slug, calc_assumptions, company_settings')
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
@@ -147,6 +147,11 @@ export default function AdminSettings() {
         setInstallerSlug(data.installer_slug ?? '');
         if (data.calc_assumptions && typeof data.calc_assumptions === 'object') {
           setCalcAssumptions(data.calc_assumptions as CalcAssumptions);
+        }
+        // WL2: Settings aus DB (Source of Truth) übernehmen — verhindert Überschreiben
+        // mit Defaults auf einem zweiten Gerät/Browser.
+        if (data.company_settings && typeof data.company_settings === 'object') {
+          setSettings((prev) => ({ ...prev, ...(data.company_settings as Partial<OwnerSettings>) }));
         }
         if (data.offer_text_template) {
           setOfferTextTemplate((prev) => ({ ...prev, ...(data.offer_text_template as Partial<OfferTextTemplate>) }));
@@ -204,6 +209,7 @@ export default function AdminSettings() {
         offer_text_template: offerTextTemplate,
         email_template: emailTemplate,
         calc_assumptions: Object.keys(calcAssumptions).length > 0 ? calcAssumptions : null,
+        company_settings: settings, // WL2: Source of Truth in DB (localStorage = Cache)
         branding: {
           firmenname:       settings.firmenname,
           slogan:           settings.slogan,

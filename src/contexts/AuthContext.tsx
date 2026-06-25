@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { fetchProfile, signIn, signOut } from '../services/auth';
 import type { UserRole, Profile } from '../services/auth';
+import { hydrateCompanySettingsCache, settingsOwnerId } from '../services/companySettings';
 
 interface AuthUser {
   id: string;
@@ -67,11 +68,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Setzt den User und hydratisiert den Company-Settings-Cache aus der DB (WL2).
+  const applyUser = (u: AuthUser | null) => {
+    setUser(u);
+    if (u) void hydrateCompanySettingsCache(settingsOwnerId(u));
+  };
+
   useEffect(() => {
     // Prüfe initialen Session-Status
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        setUser(await buildUser(session));
+        applyUser(await buildUser(session));
       }
       setIsLoading(false);
     });
@@ -84,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         if (session) {
-          setUser(await buildUser(session));
+          applyUser(await buildUser(session));
         } else {
           setUser(null);
         }
@@ -97,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     const session = await signIn(email, password);
-    setUser(await buildUser(session));
+    applyUser(await buildUser(session));
   };
 
   const logout = async () => {

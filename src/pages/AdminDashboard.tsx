@@ -571,12 +571,16 @@ export default function AdminDashboard() {
   // Profil-Daten laden
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('company_name, website, bio').eq('id', user.id).single()
+    supabase.from('profiles').select('company_name, website, bio, company_settings').eq('id', user.id).single()
       .then(({ data }) => {
         if (data) {
           setProfileCompanyName(data.company_name ?? '');
           setProfileWebsite(data.website ?? '');
           setProfileBio(data.bio ?? '');
+          // WL2: Settings aus DB (Source of Truth) übernehmen
+          if (data.company_settings && typeof data.company_settings === 'object') {
+            setSettings((prev) => ({ ...prev, ...(data.company_settings as Partial<OwnerSettings>) }));
+          }
         }
       });
   }, [user]);
@@ -614,6 +618,15 @@ export default function AdminDashboard() {
         company_name: profileCompanyName || null,
         website: profileWebsite || null,
         bio: profileBio || null,
+        company_settings: settings, // WL2: Source of Truth in DB
+        branding: {
+          firmenname:       settings.firmenname,
+          slogan:           settings.slogan,
+          logoDataUrl:      settings.logoDataUrl,
+          primaryColor:     settings.primaryColor,
+          accentColor:      settings.accentColor,
+          poweredByVoltify: true,
+        },
       }).eq('id', user.id);
     }
     setSaveStatus('success');

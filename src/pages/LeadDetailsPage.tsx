@@ -7,9 +7,10 @@ import {
   Compass, BatteryCharging, Car, Thermometer, TrendingUp,
   Video, BarChart2, FileText, Send, CheckCircle, Eye, XCircle,
   Tag, Percent, Loader2, ArrowRight, AlertCircle, Receipt,
-  Download, Check, AlertTriangle, FilePlus,
+  Download, Check, AlertTriangle, FilePlus, Trash2, ShieldAlert,
 } from 'lucide-react';
 import { AdminSidebar } from '../components/layout/AdminSidebar';
+import { eraseLead } from '../services/leads';
 import SolarPlanningSection from '../components/solar-planner/SolarPlanningSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useInstallerLead } from '../hooks/useInstallerLead';
@@ -283,6 +284,22 @@ export default function LeadDetailsPage() {
 
   const [draft, setDraft] = useState<OfferDraft | null>(null);
   const [loadingDraft, setLoadingDraft] = useState(true);
+  const [showErase, setShowErase] = useState(false);
+  const [erasing, setErasing] = useState(false);
+  const [eraseError, setEraseError] = useState('');
+
+  async function handleErase() {
+    if (!lead) return;
+    setErasing(true);
+    setEraseError('');
+    try {
+      await eraseLead(lead.id);
+      navigate('/admin');
+    } catch (e) {
+      setEraseError(e instanceof Error ? e.message : 'Löschung fehlgeschlagen');
+      setErasing(false);
+    }
+  }
   const [planningPng, setPlanningPng] = useState<string | undefined>(
     lead?.module_layout?.previewPng ?? undefined
   );
@@ -378,13 +395,59 @@ export default function LeadDetailsPage() {
 
           {!isLoading && lead && (
             <>
-              <button
-                onClick={() => navigate('/admin')}
-                className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-white transition-colors mb-6 group"
-              >
-                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-                Zurück zur Pipeline
-              </button>
+              <div className="flex items-center justify-between mb-6">
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-white transition-colors group"
+                >
+                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                  Zurück zur Pipeline
+                </button>
+                <button
+                  onClick={() => setShowErase(true)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-red-400 transition-colors"
+                  title="Alle personenbezogenen Daten dieses Leads löschen (DSGVO Art. 17)"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> DSGVO-Löschung
+                </button>
+              </div>
+
+              {showErase && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => !erasing && setShowErase(false)}>
+                  <div className="bg-[#1A1A1A] rounded-2xl border border-red-500/20 max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                        <ShieldAlert className="w-5 h-5 text-red-400" />
+                      </div>
+                      <h3 className="text-lg font-black text-white">DSGVO-Löschung</h3>
+                    </div>
+                    <p className="text-sm text-gray-400 mb-3">
+                      Alle personenbezogenen Daten von <span className="font-bold text-white">{lead.first_name} {lead.last_name}</span> werden
+                      <span className="font-bold text-red-400"> unwiderruflich</span> gelöscht:
+                    </p>
+                    <ul className="text-xs text-gray-500 space-y-1 mb-4 list-disc list-inside">
+                      <li>Lead, Notizen, Termine, Angebote &amp; Unterschriften</li>
+                      <li>Funnel- &amp; Webhook-Verlauf</li>
+                      <li>Provisionen werden anonymisiert (Buchhaltung bleibt erhalten)</li>
+                    </ul>
+                    {eraseError && <p className="text-xs text-red-400 mb-3">{eraseError}</p>}
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowErase(false)} disabled={erasing}
+                        className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm font-bold text-gray-300 hover:bg-white/5 transition-colors disabled:opacity-50"
+                      >
+                        Abbrechen
+                      </button>
+                      <button
+                        onClick={handleErase} disabled={erasing}
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-50"
+                      >
+                        {erasing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4" /> Endgültig löschen</>}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Header */}
               <header className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">

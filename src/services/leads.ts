@@ -41,6 +41,12 @@ export interface ROICalculations {
   score: number;
 }
 
+// DSGVO Art. 17: vollständige Löschung eines Leads über alle PII-Tabellen (RPC, serverseitig).
+export async function eraseLead(leadId: string): Promise<void> {
+  const { error } = await supabase.rpc('erase_lead', { p_lead_id: leadId });
+  if (error) throw new Error(error.message);
+}
+
 export async function submitLead(
   contact: LeadContact,
   data: WizardData,

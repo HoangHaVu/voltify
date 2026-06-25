@@ -1,5 +1,5 @@
 # Voltify — Tasks & Roadmap
-<!-- Zuletzt aktualisiert: 2026-06-25 — Installer-Attribution + Embed + einstellbare ROI-Annahmen + WL2 (Settings in DB) deployed; erster Test-Kunde onboardet & E2E-verifiziert -->
+<!-- Zuletzt aktualisiert: 2026-06-25 — Installer-Attribution + Embed + ROI-Annahmen + WL2 + geführter Lösungs-Check (/check) deployed; erster Test-Kunde onboardet & E2E-verifiziert -->
 
 ---
 
@@ -293,6 +293,9 @@ GROUP BY source_id;
 - [x] **White-Label-Embed (iframe + Auto-Resize)** — `useEmbedAutoResize` (postMessage), `min-h-screen` nur im Vollbild, Copy-&-Paste-Snippet `docs/embed/voltify-embed.md` ✅ (2026-06-25)
 - [x] **Konfigurator-ROI-Annahmen pro Installateur (Stufe 1+2)** — Spalte `profiles.calc_assumptions` + RPC `get_installer_calc_assumptions` (Migration `051`); `calculateROI` nimmt optionale Annahmen (Richtpreis €/kWp, Strompreis-Default, Einspeisevergütung, Wartung); `useInstallerCalcAssumptions` lädt sie im Funnel; AdminSettings-Tab „Konfigurator-Annahmen (ROI)" ✅ (2026-06-25)
 - [x] **Erster Test-Kunde onboardet** — `ag@sunwinwin.de` (Ali Galioglu, Firma sunwinwin), Rolle `owner`, `installer_slug = sunwinwin` ✅ (2026-06-25)
+- [x] **Geführter Lösungs-Check (B2B-Funnel)** ✅ — `/check`: Schmerz-Diagnose → Hero-Modul + Begründung + Demo + Call; Migration `053` `solution_check_responses` (Founder-Learning); LandingPage-Hero umgebaut. **Strategie: Plattform, Module = Einstiegsrampen.** E2E-verifiziert (2026-06-25)
+- [ ] **Lösungs-Check: Agentur-Pfad** — eigene Frage 2-4 (Lead-Routing/Provision/Partner) + Auswertung; aktuell leitet Nicht-Installateur direkt zum Call
+- [ ] **Check-Antworten auswerten** — nach ersten Durchläufen `solution_check_responses` ansehen: welcher Schmerz brennt am häufigsten? → Wedge-Entscheidung
 - [ ] **ROI-Annahmen Stufe 3 (optional)** — Annahmen pro Lead mitspeichern, damit `LeadDetailsPage`-Neuberechnung exakt zur gespeicherten ROI passt
 - [ ] **Angebots-E-Mail mit Varianten** — Kunde wählt im E-Mail-Link → Tracking
 

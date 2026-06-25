@@ -1,5 +1,5 @@
 # Voltify — Tasks & Roadmap
-<!-- Zuletzt aktualisiert: 2026-06-25 — Installer-Attribution + Embed + ROI-Annahmen + WL2 + geführter Lösungs-Check (/check) deployed; erster Test-Kunde onboardet & E2E-verifiziert -->
+<!-- Zuletzt aktualisiert: 2026-06-25 — Attribution + Embed + ROI-Annahmen + WL2 + Lösungs-Check + DSGVO-Löschung (Art. 17) deployed; erster Test-Kunde onboardet & E2E-verifiziert -->
 
 ---
 
@@ -296,6 +296,9 @@ GROUP BY source_id;
 - [x] **Geführter Lösungs-Check (B2B-Funnel)** ✅ — `/check`: Schmerz-Diagnose → Hero-Modul + Begründung + Demo + Call; Migration `053` `solution_check_responses` (Founder-Learning); LandingPage-Hero umgebaut. **Strategie: Plattform, Module = Einstiegsrampen.** E2E-verifiziert (2026-06-25)
 - [ ] **Lösungs-Check: Agentur-Pfad** — eigene Frage 2-4 (Lead-Routing/Provision/Partner) + Auswertung; aktuell leitet Nicht-Installateur direkt zum Call
 - [ ] **Check-Antworten auswerten** — nach ersten Durchläufen `solution_check_responses` ansehen: welcher Schmerz brennt am häufigsten? → Wedge-Entscheidung
+- [x] **DSGVO-Löschung (Art. 17)** ✅ — `erase_lead`-RPC (Migration `054`) löscht PII über alle Tabellen, anonymisiert `commissions` (Aufbewahrungspflicht); Bestätigungs-Modal in LeadDetailsPage. Doppelt verifiziert (SQL + UI-Auth-Pfad). (2026-06-25)
+- [ ] **DSGVO-Unterbau (kein Code)** — AVV/Auftragsverarbeitungsvertrag + Datenschutzerklärung für Kunden (Anwalt/Generator), Supabase-Region (EU) bestätigen, TOMs dokumentieren
+- [ ] **Datenexport (Art. 20)** — Lead-Daten als JSON/PDF exportieren (Gegenstück zur Löschung)
 - [ ] **ROI-Annahmen Stufe 3 (optional)** — Annahmen pro Lead mitspeichern, damit `LeadDetailsPage`-Neuberechnung exakt zur gespeicherten ROI passt
 - [ ] **Angebots-E-Mail mit Varianten** — Kunde wählt im E-Mail-Link → Tracking
 

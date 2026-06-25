@@ -64,6 +64,7 @@ Session 2026-06-25 (Embed-Go-Live + Installer-Attribution + einstellbare ROI):
   - **E2E-Browser-Smoke-Test** ✅ — Konfigurator `?i=sunwinwin` komplett durchgeklickt (Playwright), Lead landete mit `installer_id` in Alis CRM (danach aufgeräumt). Branding-Test: grünes Test-Branding gesetzt → Header zeigte „sunwinwin Solar" + grüne Seitenleiste → bestätigt, danach zurückgesetzt.
   - **WL2 — Company-Settings in DB** ✅ — Migration `052` (`profiles.company_settings`), `src/services/companySettings.ts`, `AuthContext` hydratisiert localStorage-Cache bei Login aus DB, `AdminSettings`+`AdminDashboard` lesen/schreiben Settings in DB. Behebt Multi-Device-Überschreib-Bug. Commit `08ad08d`.
   - **Geführter Lösungs-Check (B2B-Funnel)** ✅ — `/check`: Schmerz-Diagnose (Installateur-Pfad) → Hero-Modul (Priorität) + ehrliche Begründung + Zeitersparnis + passende Demo + Calendly-Call. `src/lib/solutionCheck.ts` (Logik), `src/pages/SolutionCheck.tsx` (Funnel), Migration `053` (`solution_check_responses` = Founder-Learning + Pipeline, anon-insert). LandingPage-Hero: Check = primärer CTA, Live-Demo = Fluchtweg. E2E-Browser-Test bestanden (Flow + Auswertung + DB-Persistenz). Commit `bbefb85`. **Strategie-Entscheidung: Voltify = eine Plattform (kein Einzelprodukt-Verkauf); Module = Schmerz-Einstiegsrampen; Agentur-Pfad später.**
+  - **DSGVO-Löschung (Art. 17)** ✅ — Migration `054`: `erase_lead(p_lead_id)` RPC (SECURITY DEFINER + Autorisierung). Löscht PII über ALLE Tabellen (appointments, webhook_logs, funnel_events per E-Mail + Lead-Cascade); `commissions` werden anonymisiert (Aufbewahrungspflicht § 147 AO → `lead_id` nullable). `eraseLead`-Service + Bestätigungs-Modal in `LeadDetailsPage`. **Doppelt verifiziert:** SQL-Dry-Run (alle PII=0, Provision erhalten) + echter UI-Auth-Pfad (Login → Löschen → Lead weg). Commit `1fe3ae8`. **OFFEN (kein Code): AVV/Auftragsverarbeitungsvertrag + Datenschutzerklärung für Kunden; Datenexport Art. 20.**
   - ⚠️ **Code/DB-Drift entdeckt:** Migrationen 042–044, 048, 049 sind in der DB aktiv, fehlen aber als Datei im Repo (deshalb war `get_installer_branding` lokal nicht findbar). Sollten als Migrations-Dateien nachgezogen werden, damit ein frisches `db push` reproduzierbar ist.
 
 ---
@@ -254,7 +255,7 @@ Session 2026-06-25 (Embed-Go-Live + Installer-Attribution + einstellbare ROI):
   - 042: `agency_agent` Role-Constraint + Vertriebler-Test-Account
   - 043: `lead_assignments.assigned_by` (uuid, nullable, FK → profiles)
   - 044: `profiles.agency_default_commission_type/value`, `agency_notify_on_response`, `agency_website`
-- **Migrationen 045–053:** ✅ Ausgeführt (alle live)
+- **Migrationen 045–054:** ✅ Ausgeführt (alle live)
   - 045: `offer_drafts` + `offer_line_items` — Angebots-Konfigurator
   - 046: `profiles.agency_tier` + `profiles.agency_partner_limit` — Agency-Tiers
   - 047: `partner_limit_trigger` — harte Partner-Limit-Absicherung
@@ -264,6 +265,7 @@ Session 2026-06-25 (Embed-Go-Live + Installer-Attribution + einstellbare ROI):
   - 051: `installer_calc_assumptions` (`profiles.calc_assumptions` + `get_installer_calc_assumptions`) (Datei im Repo ✅)
   - 052: `company_settings_db` (`profiles.company_settings`) — WL2 (Datei im Repo ✅)
   - 053: `solution_check_responses` (Lösungs-Check-Antworten, anon-insert RLS) (Datei im Repo ✅)
+  - 054: `erase_lead` RPC (DSGVO Art. 17) + `commissions.lead_id` nullable (Datei im Repo ✅)
 - **⚠️ Drift:** 042–044, 048, 049 sind in der DB aktiv, aber **nicht** als Migrations-Datei im Repo. Bei Gelegenheit nachziehen.
 
 ## Test-Accounts
